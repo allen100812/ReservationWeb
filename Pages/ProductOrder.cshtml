@@ -1,0 +1,46 @@
+﻿@page
+@model Web0524.Pages.ProductOrderModel
+@{
+}
+<h2>可預約時段一覽</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Sid</th>
+            <th>Pid</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Event</th>
+            <th>Id</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Ordersets)
+        {
+            <tr>
+                <td>
+                    <a class="btn btn-primary" asp-page="ProductOrder" asp-route-id="@item.Pid">編輯</a>
+                </td>
+                <td>
+                    @item.Pid
+                </td>
+                <td>
+                    @item.Pname
+                </td>
+                <td>
+                    @item.Price
+                </td>
+                <td>
+                    @item.Unit
+                </td>
+                <td>
+                    @item.Date
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+<a class="btn btn-success" asp-page="ProductAdd">新增</a>

@@ -1,0 +1,193 @@
+﻿@page
+@model Web0524.Pages.NewAddModel
+@{
+}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+@if (TempData.ContainsKey("add_error"))
+{
+    <script>
+        setTimeout(function () {
+            alert('投稿失敗');
+        @(TempData.Remove("add_error"));
+        }, 100);
+    </script>
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        function validateImageSize(input) {
+            var maxSizeInBytes = 10 * 1024 * 1024; // 1MB，您可以根據需要調整此大小
+            var file = input.files[0];
+
+            if (file.size > maxSizeInBytes) {
+                alert('選擇的圖片大小超過限制。請選擇小於 10MB 的圖片。');
+                input.value = ''; // 清除已選擇的檔案
+            } else {
+                if (input.files && input.files[0]) {
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        var previewElement = document.getElementById('imagePreview8');
+                        previewElement.setAttribute('src', e.target.result);
+                        previewElement.style.display = 'block ';
+                    };
+
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+        }
+        $(document).ready(function () {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+        $(document).ready(function () {
+            $('[data-toggle="popover"]').popover();
+        });
+    </script>
+    <style>
+        .form-group label {
+            color: var(--color3_2);
+        }
+
+        .infotext {
+            font-size: 14px;
+            color: var(--color3_2);
+        }
+    </style>
+    <style>
+        .newList-div {
+            width: 100%;
+            height: 400px;
+            max-width: 400px; /* 限制最大宽度 */
+            border-radius: 20px;
+            box-shadow: 10px 10px 15px #ebd5bf, -10px -10px 15px #fff9e1;
+        }
+
+        .newList-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 保持比例，显示完整图片 */
+            border-radius: 20px;
+            box-shadow: 10px 10px 15px #ebd5bf, -10px -10px 15px #fff9e1;
+        }
+
+        .money {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 18px;
+            color: #007bff; /* 适当的颜色 */
+        }
+
+        .order-button {
+            position: absolute;
+            top: 65%;
+            right: 30px;
+            font-size: 18px;
+            padding: 20px 30px; /* 调整内边距 */
+            border-radius: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container page-basetop">
+        <header>
+            <div class="animation-div">
+                <h2 class="header_text heading break-all slideInRight">
+                    新增文章
+                </h2>
+            </div>
+        </header>
+
+        <form method="post" enctype="multipart/form-data">
+            <div class="form-group" style="display: none;">
+                <label>文章編號</label>
+                <input asp-for="newList.NewId" class="form-control" type="number" />
+                <span asp-valNewIdation-for="newList.NewId" class="text-danger"></span>
+            </div>
+            <div class="form-group" style="display: none;">
+                <label>作者</label>
+                <input asp-for="newList.Author" class="form-control" value="@Model.User_me.Id" />
+            </div>
+            <div class="form-group" style="display: none;">
+                <label>狀態</label>
+                <input asp-for="newList.Status" class="form-control" value="0"/>
+            </div>
+            <div>
+                <div class="col-md-4 newList-item fx-tobig" style="padding-top:30px;">
+                    <div class="mb-3 newList-list ">
+                        <div class="newList-div">
+                            <img id="imagePreview8" class="newList-img" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="form-group alert alert-light " role="alert">
+                <table style="width:100%;">
+                    <tr>
+                        <th>
+                            <label>更換圖片</label>
+                        </th>
+                        <td style="width:70%;text-align:end;">
+                            <label for="newImage" style="font-weight:bold; font-size:20px;">＞</label>
+                            <input type="file" id="newImage" name="newImage" accept="image/*" style="display: none;" onchange="validateImageSize(this)" />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <div class="form-group alert alert-light alert-form-div" role="alert">
+                <table>
+                    <tr>
+                        <th>
+                            <label>類別</label>
+                        </th>
+                        <td>
+                            <select asp-for="newList.Category" class="form-group">
+                                <option value="0">最新訊息</option>
+                                <option value="1">優惠活動</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>文章標題</label>
+                        </th>
+                        <td>
+                            <input asp-for="newList.Title" class="form-control" title="文章標題字數需介於2到50之間" maxlength="50" minlength="2" required />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>內容</label>
+                        </th>
+                        <td>
+                            <textarea asp-for="newList.Content" class="form-control"></textarea>
+                        </td>
+                    </tr>
+                </table>
+                <br>
+                <br>
+                <div style="text-align:end"><button type="submit" class="btn btn-dark">新建產品</button></div>
+            </div>
+
+        </form>
+
+        <script>
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl)
+            })
+        </script>
+       
+    </div>
+
+</body>
+</html>

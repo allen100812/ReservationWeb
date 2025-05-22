@@ -1,0 +1,249 @@
+﻿@page
+@model Web0524.Pages.OrdersetList_mModel
+@using System.Linq
+@using System.Globalization
+@using Web0524.Models
+@{
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link rel="stylesheet" href="~/css/Share.css">
+    <link rel="stylesheet" href="~/css/wickedcss.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        function promptPassword() {
+            var password = prompt("請輸入您的密碼：");
+            if (password === "@Model.User_me.Password" && "@Model.User_me.Password" !== null) {
+                // 密碼正確，執行後續處理
+                return true;
+            } else {
+                // 密碼錯誤，提示錯誤訊息或執行其他操作
+                alert("密碼錯誤，請重新輸入。");
+                return false;
+            }
+        }
+    </script>
+    <style>
+        .form-group label {
+            color: var(--color3_2);
+        }
+
+        .infotext {
+            font-size: 14px;
+            color: var(--color3_2);
+        }
+    </style>
+    <style>
+        .order-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .order-img img {
+            width: 100px; /* 设置图像最大宽度 */
+            height: 100px; /* 保持图像高度自动适应 */
+            object-fit: cover; /* 保持比例，显示完整图片 */
+            border-radius: 10px;
+            margin-right: 30px; /* 调整图像和文本之间的间距 */
+        }
+
+        .order-details {
+            flex: 1; /* 文本部分占据剩余宽度 */
+        }
+
+        .order-details-title {
+            color: var(--color3);
+            line-height: 22px; /* 使用像素设置行高 */
+        }
+
+        .order-details-title-history {
+            line-height: 22px; /* 使用像素设置行高 */
+        }
+
+        .order-details-text {
+            margin: 5px;
+            font-size: 14px;
+            color: var(--color3_2);
+            line-height: 14px; /* 使用像素设置行高 */
+        }
+
+        .order-details-text-history {
+            font-size: 14px;
+            line-height: 14px; /* 使用像素设置行高 */
+        }
+
+        .order-button {
+            /* 按钮样式 */
+
+            margin-left: auto;
+            align-self: flex-end; /* 将按钮靠下对齐 */
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center; /* Centers the tab buttons horizontally */
+            margin-bottom: 20px; /* Optional spacing */
+        }
+
+        .nav-item {
+            margin-right: 20px; /* Adds space between tab buttons */
+        }
+
+        #allOrdersContent, #historyOrdersContent {
+            min-height: 100vh; /* 最小高度为视口的高度 */
+        }
+
+        .custom-text {
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container page-basetop">
+        <header>
+            <div class="animation-div">
+                <h2 class="header_text heading break-all slideInRight">
+                    查詢預約單
+                </h2>
+            </div>
+            <form method="post" asp-page-handler="SearchOrders">
+                <nav class="nav">
+                    <input type="text" class="nav-link" id="searchKeyword" style="margin-right: 10px;" name="key" placeholder="輸入關鍵字">
+                    <button type="submit" class="btn btn-primary nav-link" style="margin-right: 10px;">搜索</button>
+                </nav>
+                <label class="infotext">輸入預約編號、日期、產品名稱、會員名稱搜索預約單</label>
+                <br>
+            </form>
+        </header>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div id="allOrdersContent" class="content">
+                        @if (!Model.Ordersets.Any())
+                        {
+                            <div class="shake" style="margin:10px; text-align:center;">
+                                <h3 style="color: var(--color3_2);">查無預約單</h3>
+                            </div>
+
+                        }
+
+                        @foreach (var item in Model.Ordersets)
+                        {
+                            DateTime date = Convert.ToDateTime(item.Date);
+                            DateTime orderdate = Convert.ToDateTime(item.Orderdate);
+                            <form method="post" asp-page-handler="CheckSJ">
+                                <input type="hidden" name="sid" value="@item.Sid" />
+                                <div class="order-item fx-tobig">
+                                    <div class="order-img">
+                                        @{
+                                            string imageData = item.Photo != null ? Convert.ToBase64String(item.Photo) : null;
+                                        }
+                                        @if (string.IsNullOrEmpty(imageData))
+                                        {
+                                            <img src="dist/img/product.jpg" alt="圖片">
+                                        }
+                                        else
+                                        {
+                                            <img src="data:image/jpeg;base64,@imageData" alt="圖片">
+                                        }
+                                    </div>
+                                    <div class="order-details">
+                                        @{
+                                            Place matchingPlace = Model.place.FirstOrDefault(p => p.Placeid == item.Placeid);
+                                        }
+
+                                        @if (item.Event == "0")
+                                        {
+                                            <div class="order-details-title">
+                                                <h5>
+                                                    <span style="color:darkblue"><i class="fas fa-hourglass icon-width"></i>等待接受 <span class="order-details-title custom-text">  @item.Pname</span></span>
+                                                </h5>
+                                            </div>
+                                        }
+                                        else if (item.Event == "1")
+                                        {
+                                            <div class="order-details-title">
+                                                <h5>
+                                                    <span style="color:forestgreen"><i class="fas fa-check icon-width"></i>已被接受 <span class="order-details-title custom-text">  @item.Pname</span></span>
+                                                </h5>
+                                            </div>
+                                        }
+                                        else if (item.Event == "9")
+                                        {
+                                            <div class="order-details-title">
+                                                <h5>
+                                                    <span style="color:red"><i class="fas fa-ban icon-width"></i>已被取消 <span class="order-details-title custom-text">  @item.Pname</span></span>
+                                                </h5>
+                                            </div>
+                                        }
+
+                                        @if (item.Event == "10")
+                                        {
+                                            <div class="order-details-title-history text-gray-dark">
+                                                <h5>
+                                                    <span><i class="fas fa-hourglass"></i>未被接受 <span class="order-details-title-history custom-text">  @item.Pname</span></span>
+                                                </h5>
+                                            </div>
+                                        }
+                                        else if (item.Event == "11")
+                                        {
+                                            <div class="order-details-title-history text-gray-dark">
+                                                <h5>
+                                                    <span><i class="fas fa-check"></i>已完成 <span class="order-details-title-history custom-text">  @item.Pname</span></span>
+                                                </h5>
+                                            </div>
+                                        }
+                                        else if (item.Event == "19")
+                                        {
+                                            <div class="order-details-title-history text-gray-dark">
+                                                <h5>
+                                                    <span><i class="fas fa-ban"></i>已取消 <span class="order-details-title-history custom-text">  @item.Pname</span></span>
+                                                </h5>
+                                            </div>
+                                        }
+                                        <div class="order-details-text">
+                                            @("S" + item.Sid.ToString().PadLeft(6, '0'))
+                                        </div>
+                                        <div class="order-details-text">
+                                            <i class="fas fa-map-marker-alt icon-width"></i> @matchingPlace.Placetitle
+                                        </div>
+                                        <div class="order-details-text">
+                                            <span>@date.ToShortDateString() <i class="fas fa-clock icon-width"></i>@date.ToShortTimeString()</span>
+                                        </div>
+                                        <div class="order-details-text">
+                                            <span><i class="fas fa-user icon-width"></i>@item.Uname</span>
+                                        </div>
+
+                                    </div>
+                                    <div class="order-button">
+                                        <a class="btn btn-dark btn-block" href="/OrdersetEdit?sid=@item.Sid">
+                                            查看
+                                        </a>
+                                    </div>
+                                </div>
+
+
+                            </form>
+                            <br>
+                        }
+                    </div>
+                </div>
+            </div>
+    </div>
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,225 @@
+﻿@page
+@model Web0524.Pages.OrdersetCalendar_mModel
+@using System.Linq
+@using System.Globalization
+@using Web0524.Models
+@{
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js" integrity="sha384-Rx+T1VzGupg4BHQYs2gCW9It+akI2MM/mndMCy36UVfodzcJcF0GGLxZIzObiEfa" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- jQuery v1.9.1 -->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <!-- Moment.js v2.20.0 -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.0/moment.min.js"></script>
+    <!-- FullCalendar v3.8.1 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.11.5/main.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.11.5/main.min.js"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <link rel="stylesheet" href="~/css/wickedcss.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美容工作室介紹</title>
+    <style>
+        .fc-title {
+            white-space: normal; /* 允许标题换行 */
+            display: block; /* 将标题设置为块元素，使其垂直显示 */
+            overflow: hidden; /* 隐藏超出部分 */
+            text-overflow: ellipsis; /* 当超出容器时显示省略号 */
+            font-size: 4px; /* 調整為您希望的字體大小 */
+        }
+
+        .fc-title-wrap {
+            white-space: normal; /* 允许标题换行 */
+            word-break: break-all; /* 在单词内换行，适应格子宽度 */
+            display: block; /* 将标题设置为块元素，使其垂直显示 */
+        }
+
+        .small-font {
+            white-space: normal;
+            font-size: 14px; /* 調整為您希望的字體大小 */
+        }
+
+        .mid-font {
+            white-space: normal;
+            font-size: 16px; /* 調整為您希望的字體大小 */
+        }
+        /* 更改工具栏按钮的颜色 */
+        .fc-header-toolbar .fc-button {
+            background-color: #3498db; /* 更改为你想要的颜色 */
+            color: #fff; /* 更改为适合的文本颜色 */
+            border-color: #3498db; /* 更改边框颜色，与背景色相同 */
+        }
+
+            /* 更改按钮的 hover 和 active 状态的颜色 */
+            .fc-header-toolbar .fc-button:hover,
+            .fc-header-toolbar .fc-button:active {
+                background-color: #2980b9; /* 更改为你想要的颜色 */
+                border-color: #2980b9; /* 更改边框颜色，与背景色相同 */
+                color: #fff; /* 更改为适合的文本颜色 */
+            }
+    </style>
+</head>
+<body>
+    <div class="page-basetop">
+        <div id="calendar"></div>
+    </div>
+    
+    @section scripts {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var calendarEl = document.getElementById('calendar');
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    locale: 'zh-tw', // 设置地区为中文（中国）,
+                    initialView: 'dayGridMonth', // 初始视图为月视图
+                    height: 'auto',
+                    contentHeight: 'auto',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridDay' // 在头部工具栏中添加切换按钮
+                    },
+                    eventTimeFormat: { // like '14:30:00'
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        omitZeroMinute: false, // 保留00分
+                        meridiem: ''
+                    },
+                    events: function (fetchInfo, successCallback, failureCallback) {
+                        // 使用Ajax從後端獲取行事曆事件
+                        $.ajax({
+                            url: '/OrdersetCalendar_m?handler=CalendarEvents',
+                            dataType: 'json',
+                            success: function (response) {
+                                // 在成功回调中处理获取的事件数据
+                                var events = response.map(function (event) {
+                                    var eventColor = 'bg-warning'; // 默认颜色为 primary
+                                    var eventTextColor = ''; // 默认颜色为 primary
+                                    var eventBorderColor = '#FFC107'
+                                    switch (event.oevent) {
+                                        case "0":
+                                            eventColor = 'bg-warning'; // 黃色
+                                            eventTextColor = 'text-dark';
+                                            eventBorderColor = '#FFC107'; // 黃色的邊框色碼
+                                            break;
+                                        case "1":
+                                            eventColor = 'bg-success'; // 綠色
+                                            eventTextColor = 'text-light';
+                                            eventBorderColor = '#28A745'; // 綠色的邊框色碼
+                                            break;
+                                        case "9":
+                                            eventColor = 'bg-danger'; // 紅色
+                                            eventTextColor = 'text-light';
+                                            eventBorderColor = '#DC3545'; // 紅色的邊框色碼
+                                            break;
+                                        case "10":
+                                            eventColor = 'bg-secondary'; // 灰色
+                                            eventTextColor = 'text-light';
+                                            eventBorderColor = '#6C757D'; // 灰色的邊框色碼
+                                            break;
+                                        case "11":
+                                            eventColor = 'bg-light'; // 淺色
+                                            eventTextColor = 'text-dark';
+                                            eventBorderColor = '#F8F9FA'; // 淺色的邊框色碼
+                                            break;
+                                        case "19":
+                                            eventColor = 'bg-secondary'; // 灰色
+                                            eventTextColor = 'text-light';
+                                            eventBorderColor = '#6C757D'; // 灰色的邊框色碼
+                                            break;
+                                    }
+
+                                    var isMobile = window.innerWidth < 768; // 螢幕寬度小於 768 視為手機
+                                    var isLandscape = window.innerWidth > window.innerHeight; // 判斷是否為橫向瀏覽
+
+                                    if (isMobile && !isLandscape) {
+                                        title = event.title.substring(0, 5);
+                                    } else {
+                                        title = event.title;
+                                    }
+
+                                    return {
+                                        title: title, // 使用 pname 作为标题
+                                        start: event.start, // 使用 date 作为开始时间
+                                        end: event.end, // 使用 date 作为结束时间
+                                        borderColor: eventBorderColor,
+                                        classNames: ['small-font', eventColor, eventTextColor],
+                                        allDay: false,
+                                        extendedProps: {
+                                            pname: event.pname,
+                                            title: event.title,
+                                            sid: event.sid, // 这里假设 sid 存在于事件数据的 sid 属性中
+                                        }
+                                    };
+                                });
+
+                                successCallback(events);
+                            },
+                            error: function () {
+                                failureCallback();
+                            }
+
+                        });
+                    },
+                    eventContent: function (arg) {
+                        var view = calendar.view;
+                        var maxChars = 20; // 设置最大字符数
+                        var truncatedTitle = arg.event.extendedProps.title.length > maxChars ?
+                            arg.event.extendedProps.title.substring(0, maxChars) + '...' :
+                            arg.event.extendedProps.title;
+                        if (view.type === 'dayGridMonth') {
+                            content = '<div class="event-content small-font">' + arg.event.extendedProps.title + '</div>';
+                        } else if (view.type === 'timeGridDay') {
+                            content = '<div class="event-content mid-font">' + arg.event.extendedProps.title + " " + arg.event.extendedProps.pname + '</div>'
+                        }
+
+                        return {
+                            html: content
+                        };
+
+                    },
+                    eventRender: function (info) {
+                        // 检查事件是否跨日
+                        if (info.event.start.getDate() !== info.event.end.getDate()) {
+                            // 设置跨日事件的字体颜色
+                            info.el.style.color = 'red'; // 在这里将字体颜色设置为红色
+                        }
+                    },
+                    eventClick: function (info) {
+                        // 點擊事件後觸發的處理
+                        // 在這裡可以直接使用 info.event.extendedProps.sid
+                        var sid = info.event.extendedProps.sid;
+                        // 构建 URL，将 sid 作为参数传递
+                        var editUrl = '/OrdersetEdit?sid=' + sid;
+
+                        // 执行页面跳转
+                        window.location.href = editUrl;
+                    },
+
+
+                });
+
+                calendar.render();
+
+                calendar.setOption('contentHeight', 'auto');
+
+                // 添加视图切换按钮
+                var changeViewButton = document.getElementById('changeViewButton');
+                changeViewButton.addEventListener('click', function () {
+                    calendar.changeView('timeGridWeek'); // 切换到周视图
+                });
+            });
+        </script>
+    }
+
+</body>
+</html>
+
+
+
+

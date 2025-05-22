@@ -1,0 +1,203 @@
+﻿@page
+@model Web0524.Pages.aboutModel
+@{
+}
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js" integrity="sha384-Rx+T1VzGupg4BHQYs2gCW9It+akI2MM/mndMCy36UVfodzcJcF0GGLxZIzObiEfa" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="~/css/Share.css">
+    <link rel="stylesheet" href="~/css/fx1.css">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .center-container {
+            justify-content: center; /* 水平居中对齐 */
+            align-items: center; /* 垂直居中对齐 */
+            margin-left: 5%; /* 左侧间距 */
+            margin-right: 5%; /* 右侧间距 */
+        }
+
+        .container {
+            align-items: center; /* 垂直居中对齐 */
+            justify-content: center; /* 水平居中对齐 */
+        }
+        header{
+            text-align:center;
+            margin-bottom:40px;
+        }
+
+        .img_show{
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 設置圖像填滿容器，可能會裁剪部分圖像 */
+        }
+
+        .fixed-height-col {
+            height: 300px; /* 將高度設置為您想要的固定值 */
+        }
+
+        .text-show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding:5%;
+        }
+    </style>
+    <style>
+        .ml2 {
+            font-weight: 900;
+            font-size: 2rem;
+        }
+
+            .ml2 .letter {
+                display: inline-block;
+                line-height: 1em;
+            }
+
+            .container{
+            color:var(--color3);
+            }
+
+        .container p {
+            color: var(--color3_2);
+        }
+
+    </style>
+
+</head>
+<body>
+    <div class="center-container page-basetop">
+
+        <header>
+            <h1 class="ml2" style="color:var(--color3);">時尚尖端 自然美結合</h1>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
+        </header>
+
+        <div class="row-group-b">
+            <div class="row no-gutters">
+                <div class="col-md-6 fixed-height-col">
+                    <section id="about" class="text-show">
+                        <div class="container">
+                            <h2>自然之美，專業呵護。</h2>
+                            <p>SuperiorSeed 是一家專注於自然美的美容業公司。我們致力於提供最高品質的美容服務，讓每位顧客都能散發自己的獨特之處。</p>
+                            <p>我們以專業手法和最新技術為您提供獨特的美容體驗。我們的團隊充滿熱情和專業知識，致力於幫助您實現自己的美麗目標。</p>
+                        </div>
+                    </section>
+                </div>
+                <div class="col-md-6 fixed-height-col">
+                    <img class="img_show" src="~/dist/img/about1.jpg" alt="預約">
+                </div>
+            </div>
+            <div class="row no-gutters">
+                <div class="col-md-6 fixed-height-col">
+                    <img class="img_show" src="~/dist/img/about2.jpg" alt="預約">
+                </div>
+                <div class="col-md-6 fixed-height-col">
+                    <section id="mission" class="text-show">
+                        <div class="container">
+                            <h2>探索美的秘密，SuperiorSeed將引導您。</h2>
+                            <p>我們的使命是讓每位顧客都感受到自然之美。我們相信，每個人都擁有獨特的美麗，我們的任務是幫助您發現和展現這種美麗。</p>
+                            <p>我們堅持使用最優質的產品和技術，並提供一流的服務，以確保您滿意並自信地走出我們的門。</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            <div class="row no-gutters">
+                <div class="col-md-6 fixed-height-col">
+                    <section id="services" class="text-show">
+                        <div class="container">
+                            <h2>自然之道，美的旅程。</h2>
+                            <ul>
+                                <li>專業美容治療</li>
+                                <li>最新美容技術</li>
+                                <li>個性化美容方案</li>
+                                <li>友好的環境和專業團隊</li>
+                            </ul>
+
+                        </div>
+                    </section>
+                </div>
+                <div class="col-md-6 fixed-height-col">
+                    <img class="img_show" src="~/dist/img/about3.jpg" alt="預約">
+                </div>
+            </div>
+        </div>
+
+        <div class="row-group-s">
+            <div class="row no-gutters">
+                <div class="col-sm-12 fixed-height-col">
+                    <section id="about" class="text-show">
+                        <div class="container">
+                            <h2>自然之美，專業呵護。</h2>
+                            <p>SuperiorSeed 是一家專注於自然美的美容業公司。我們致力於提供最高品質的美容服務，讓每位顧客都能散發自己的獨特之處。</p>
+                            <p>我們以專業手法和最新技術為您提供獨特的美容體驗。我們的團隊充滿熱情和專業知識，致力於幫助您實現自己的美麗目標。</p>
+                        </div>
+                    </section>
+                </div>
+                <div class="col-sm-12 fixed-height-col">
+                    <img class="img_show" src="~/dist/img/about1.jpg" alt="預約">
+                </div>
+
+
+                <div class="col-sm-12 fixed-height-col">
+                    <section id="mission" class="text-show">
+                        <div class="container">
+                            <h2>探索美的秘密，SuperiorSeed將引導您。</h2>
+                            <p>我們的使命是讓每位顧客都感受到自然之美。我們相信，每個人都擁有獨特的美麗，我們的任務是幫助您發現和展現這種美麗。</p>
+                            <p>我們堅持使用最優質的產品和技術，並提供一流的服務，以確保您滿意並自信地走出我們的門。</p>
+                        </div>
+                    </section>
+                </div>
+                <div class="col-sm-12 fixed-height-col">
+                    <img class="img_show" src="~/dist/img/about2.jpg" alt="預約">
+                </div>
+
+                <div class="col-sm-12 fixed-height-col">
+                    <section id="services" class="text-show">
+                        <div class="container">
+                            <h2>自然之道，美的旅程。</h2>
+                            <ul>
+                                <li>專業美容治療</li>
+                                <li>最新美容技術</li>
+                                <li>個性化美容方案</li>
+                                <li>友好的環境和專業團隊</li>
+                            </ul>
+
+                        </div>
+                    </section>
+                </div>
+                <div class="col-sm-12 fixed-height-col">
+                    <img class="img_show" src="~/dist/img/about3.jpg" alt="預約">
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
+<script>
+    // Wrap every letter in a span
+    var textWrapper = document.querySelector('.ml2');
+    textWrapper.innerHTML = textWrapper.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
+
+    anime.timeline({ loop: false })
+        .add({
+            targets: '.ml2 .letter',
+            scale: [4, 1],
+            opacity: [0, 1],
+            translateZ: 0,
+            easing: "easeOutExpo",
+            duration: 950,
+            delay: (el, i) => 70 * i
+        })
+</script>

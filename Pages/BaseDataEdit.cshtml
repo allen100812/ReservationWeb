@@ -1,0 +1,209 @@
+﻿@page
+@model Web0524.Pages.BaseDataEditModel
+@using Web0524.Models
+@{
+    var myService = (IMyService)ViewContext.HttpContext.RequestServices.GetService(typeof(IMyService));
+    var myData = myService.GetBaseData();
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js" integrity="sha384-Rx+T1VzGupg4BHQYs2gCW9It+akI2MM/mndMCy36UVfodzcJcF0GGLxZIzObiEfa" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        function validateImageSize(input) {
+            var maxSizeInBytes = 10 * 1024 * 1024; // 1MB，您可以根據需要調整此大小
+            var file = input.files[0];
+
+            if (file.size > maxSizeInBytes) {
+                alert('選擇的圖片大小超過限制。請選擇小於 10MB 的圖片。');
+                input.value = ''; // 清除已選擇的檔案
+            } else {
+                if (input.files && input.files[0]) {
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        var previewElement = document.getElementById('imagePreview');
+                        previewElement.setAttribute('src', e.target.result);
+                        previewElement.style.display = 'block ';
+                    };
+
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+        }
+    </script>
+    <script>
+        function confirmUpload() {
+            var confirmation = window.confirm("您确定要上传这些图像吗？");
+
+            if (confirmation) {
+                document.getElementById("uploadForm").submit(); // 用户确认，提交表单
+            } else {
+                // 用户取消，不执行任何操作
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container page-basetop">
+        @if (TempData.ContainsKey("Message"))
+        {
+            <div class="alert alert-success">@TempData["Message"]</div>
+        }
+        @if (TempData.ContainsKey("Error"))
+        {
+            <div class="alert alert-warning">@TempData["Error"]</div>
+        }
+
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+            <div class="form-group alert alert-light alert-form-div" role="alert">
+                <h2 style="color:var(--color3_2);">首頁輪播圖片更換</h2>
+                <table>
+                    <tr>
+                        <th>
+                            <label for="newImage1" style="font-weight:bold; font-size:20px;">Banner1：</label>
+                        </th>
+                        <td>
+                            <input type="file" id="imageFile1" name="imageFiles" accept="image/*" onchange="validateImageSize(this)" /><br>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label for="newImage2" style="font-weight:bold; font-size:20px;">Banner2：</label>
+                        </th>
+                        <td>
+                            <input type="file" id="imageFile2" name="imageFiles" accept="image/*" onchange="validateImageSize(this)" /><br>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label for="newImage3" style="font-weight:bold; font-size:20px;">Banner3：</label>
+                        </th>
+                        <td>
+                            <input type="file" id="imageFile3" name="imageFiles" accept="image/*" onchange="validateImageSize(this)" /><br>
+                        </td>
+                    </tr>
+                </table>
+                <br>
+                <br>
+                
+                <div style="text-align:end"><button type="submit" onclick="confirmUpload()" class="btn btn-dark">上傳圖片</button></div>
+            </div>
+        </form>
+
+        <form method="post" asp-page-handler="Update">
+            <div class="form-group alert alert-light alert-form-div" role="alert">
+                <h2 style="color:var(--color3_2);">網頁基本資料</h2>
+                <table>
+                    <tr>
+                        <th>
+                            <label><span class="infotext" style="color:red">*</span>店鋪名稱</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Name" class="form-control" title="店鋪名稱需介於1到20個字符之間" maxlength="20" minlength="1" required type="text" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label><span class="infotext" style="color:red">*</span>店鋪短名</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Name_short" class="form-control" title="店鋪短名需介於1到10個字符之間" maxlength="10" minlength="1" required type="text" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label><span class="infotext" style="color:red">*</span>店鋪電話</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Phone" class="form-control" title="店鋪電話需介於1到20個字符之間" maxlength="20" minlength="1" required type="tel" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>店鋪信箱</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Email" class="form-control" type="email" />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="form-group alert alert-light alert-form-div" role="alert">
+                <table>
+                    <tr>
+                        <th>
+                            <label><span class="infotext" style="color:red">*</span>網站網址</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.WebURL" class="form-control" required />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label><span class="infotext" style="color:red">*</span>LineBot網址</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.LineBotURL" class="form-control" required />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="form-group alert alert-light alert-form-div" role="alert">
+                <table>
+                    <tr>
+                        <th>
+                            <label>FB連結</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Fb_Url" class="form-control" type="url" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>IG連結</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Ig_Url" class="form-control" type="url" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>Youtube連結</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Yt_Url" class="form-control" type="url" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>TikTok連結</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Tk_Url" class="form-control" type="url" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>Line連結</label>
+                        </th>
+                        <td>
+                            <input asp-for="basedata.Line_Url" class="form-control" type="url" />
+                        </td>
+                    </tr>
+                </table>
+                <br>
+                <br>
+                <div style="text-align:end"><button type="submit" class="btn btn-dark">儲存</button></div>
+            </div>
+        </form>
+        
+    </div>
+</body>
+</html>

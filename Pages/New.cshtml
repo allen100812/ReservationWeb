@@ -1,0 +1,588 @@
+﻿@page
+@model Web0524.Pages.NewModel
+@using System.Globalization;
+@if (TempData.ContainsKey("edit_success"))
+{
+    <script>
+        setTimeout(function () {
+            alert('文章更新完成。');
+        @(TempData.Remove("edit_success"));
+        }, 100);
+    </script>
+}
+@if (TempData.ContainsKey("del_success"))
+{
+    <script>
+        setTimeout(function () {
+            alert('文章已刪除。');
+        @(TempData.Remove("del_success"));
+        }, 100);
+    </script>
+}
+@if (TempData.ContainsKey("add_success"))
+{
+    <script>
+        setTimeout(function () {
+            alert('文章已新增。');
+        @(TempData.Remove("add_success"));
+        }, 100);
+    </script>
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js" integrity="sha384-Rx+T1VzGupg4BHQYs2gCW9It+akI2MM/mndMCy36UVfodzcJcF0GGLxZIzObiEfa" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <link rel="stylesheet" href="~/css/wickedcss.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="css/hover-min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .date-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 水平居中 */
+            text-align: center; /* 文本水平居中 */
+        }
+
+        .year-month {
+            font-size: 12px; /* 设置月份和年份的字体大小 */
+            letter-spacing: 2px;
+        }
+
+        .day {
+            font-size: 22px; /* 设置日期的字体大小 */
+            letter-spacing: 2px;
+        }
+
+        .new-title {
+            font-size: 18px; /* 设置日期的字体大小 */
+            letter-spacing: 5px;
+        }
+
+        .new-content {
+            font-size: 14px; /* 设置日期的字体大小 */
+            letter-spacing: 2px;
+        }
+
+
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            margin: 10px 0; /* 添加上下间距 */
+            width: 100%; /* 图片容器宽度占满父元素 */
+            height: 0; /* 初始高度为0，将在内部的 img 元素决定高度 */
+            padding-bottom: 100%; /* 使用 padding-bottom 来实现容器的高度与宽度相等（正方形） */
+            border-radius: 8px;
+        }
+
+            .image-container img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%; /* 图片占满容器宽度 */
+                height: 100%; /* 图片占满容器高度 */
+                object-fit: cover;
+            }
+
+
+
+        #news-title1 {
+            color: var(--color3);
+            font-size: 30px; /* 设置日期的字体大小 */
+            letter-spacing: 5px;
+        }
+
+        #news-title2 {
+            font-size: 18px; /* 设置日期的字体大小 */
+            letter-spacing: 5px;
+        }
+
+        .line label::before,
+        .line label::after {
+            content: "";
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 1px;
+            background: #333;
+            margin: 0 10px;
+            top: -7px;
+        }
+
+        #prev-button1 {
+            margin: 0 10px;
+            font-size: 36px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+
+        #next-button1 {
+            margin: 0 10px;
+            font-size: 36px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+
+        #prev-button2 {
+            margin: 0 10px;
+            font-size: 36px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+
+        #next-button2 {
+            margin: 0 10px;
+            font-size: 36px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+        #page-number1 {
+            font-size: 18px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+
+        #page-number2 {
+            font-size: 18px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+        #readmore-buttom {
+            font-size: 24px; /* 设置日期的字体大小 */
+            letter-spacing: 5px;
+        }
+
+        .news-row {
+            padding-top: 10px;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container page-basetop">
+        <header>
+            <div class="animation-div">
+                <h2 class="header_text heading break-all slideInRight">
+                    最新消息＆優惠活動
+                </h2>
+            </div>
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button style="margin-right: 10px;color: var(--color3);" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" role="tab" aria-controls="profile-tab-pane" aria-selected="false" id="newlistTab" class="nav-link fx-tobig" data-tab="newlist">最新消息</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button style="margin-right: 10px;color: var(--color3);" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" role="tab" aria-controls="profile-tab-pane" aria-selected="false" id="eventlistTab" class="nav-link fx-tobig" data-tab="eventlist">優惠活動</button>
+                </li>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    string userTypeClaimValue = User.FindFirst("UserType")?.Value;
+                    if (!string.IsNullOrEmpty(userTypeClaimValue))
+                    {
+                        if (int.TryParse(userTypeClaimValue, out int userType))
+                        {
+                            if (userType < 2)
+                            {
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link fx-tobig" style="margin-right: 10px;color: var(--color3);" asp-page="NewAdd">
+                                        <i class="fas fa-plus"></i>
+                                        發文
+                                    </a>
+                                </li>
+                            }
+                        }
+                    }
+                }
+            </ul>
+
+        </header>
+        <div class ="listarea">
+            <div class="row">
+                <div class="col-md-12">
+                    <div id="newlistContent" class="content">
+
+                        @if (!Model.newLists.Any(o => o.Category == "0"))
+                        {
+                            <div class="shake" style="margin:10px; text-align:center;">
+                                <h3 style="color: var(--color3_2);">尚無最新消息</h3>
+                            </div>
+
+                        }
+
+                        @foreach (var item in Model.newLists.Where(o => o.Category == "0"))
+                        {
+                            DateTime date = Convert.ToDateTime(item.PublishDate);
+                            CultureInfo culture = new CultureInfo("en-US");
+                            string englishMonth = date.ToString("MMMM", culture);
+
+                            <div class="row animate__animated news-row">
+                                <div class="col-md-6 big-show">
+                                    <div class="date-container" style="display: flex;  align-items:start;">
+                                        <table>
+                                            <tr>
+                                                <th>
+                                                    <div class="year-month">
+                                                        <span class="month">@englishMonth</span>
+                                                        <span>.</span>
+                                                        <span class="year">@date.ToString("yyyy")</span>
+                                                    </div>
+                                                </th>
+                                                <td class="line">
+                                                    <hr style="border: none; width: 40px;height:1px; background-color: black; margin: 10px 10px;">
+                                                </td>
+                                                <td>
+                                                    <div class="new-title">
+                                                        @item.Title
+                                                        @if (User.Identity.IsAuthenticated)
+                                                        {
+                                                            string userTypeClaimValue = User.FindFirst("UserType")?.Value;
+                                                            if (!string.IsNullOrEmpty(userTypeClaimValue))
+                                                            {
+                                                                if (int.TryParse(userTypeClaimValue, out int userType))
+                                                                {
+                                                                    if (userType < 2)
+                                                                    {
+                                                                        <a asp-page="NewEdit" asp-route-id="@item.NewId">
+                                                                            <i class="fas fa-pencil-alt"></i>
+                                                                        </a>
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th class="text-center">
+                                                    <div class="day">
+                                                        <span class="day-number">@date.ToString("dd")</span>
+                                                    </div>
+                                                </th>
+                                                <td>
+                                                </td>
+                                                <td>
+                                                    <div class="new-content">
+                                                        @item.Content
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+
+                                    </div>
+                                </div>
+                                <div class="col-md-6" style="text-align: right;">
+                                    <div class="image-container fx-tobig">
+                                        @{
+                                            string imageData = item.Photo != null ? Convert.ToBase64String(item.Photo) : null;
+                                        }
+                                        @if (string.IsNullOrEmpty(imageData))
+                                        {
+                                            <img src="~/dist/img/user3-128x128.jpg" alt="圖片" class="new-image" />
+                                        }
+                                        else
+                                        {
+                                            <img src="data:image/jpeg;base64,@imageData" alt="圖片" class="new-image" />
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-md-6 sm-show">
+                                    <div class="date-container" style="display: flex;  align-items:start;">
+                                        <table>
+                                            <tr>
+                                                <th>
+                                                    <div class="new-title">
+                                                        @item.Title
+                                                        @if (User.Identity.IsAuthenticated)
+                                                        {
+                                                            string userTypeClaimValue = User.FindFirst("UserType")?.Value;
+                                                            if (!string.IsNullOrEmpty(userTypeClaimValue))
+                                                            {
+                                                                if (int.TryParse(userTypeClaimValue, out int userType))
+                                                                {
+                                                                    if (userType < 2)
+                                                                    {
+                                                                        <a asp-page="NewEdit" asp-route-id="@item.NewId">
+                                                                            <i class="fas fa-pencil-alt"></i>
+                                                                        </a>
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                    </div>
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th>
+                                                    <div class="year-month">
+                                                        <span class="month">@englishMonth</span>
+                                                        <span>.</span>
+                                                        <span class="year">@date.ToString("yyyy")</span>
+                                                        <span class="day-number">@date.ToString("dd")</span>
+                                                    </div>
+
+                                                </th>
+                                            </tr>
+                                        </table>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <div class="navigation-buttons1" style="text-align: end; display: flex; align-items: center; justify-content: flex-end;">
+                            <label id="prev-button1" class="hvr-backward"><</label>
+                            <div id="page-number1"></div>
+                            <label id="next-button1" class="hvr-forward">></label>
+                        </div>
+                    </div>
+                    <!-- 容器 2 -->
+                    <div id="eventlistContent" class="col-md-12 content" style="display: none;">
+
+                        @if (!Model.newLists.Any(o => o.Category == "1"))
+                        {
+                            <div style="margin:10px; text-align:center;">
+                                <h3 style="color: var(--color3_2);">優惠活動等待推出...</h3>
+                            </div>
+
+                        }
+                        @foreach (var item in Model.newLists.Where(o => o.Category == "1"))
+                        {
+                            DateTime date = Convert.ToDateTime(item.PublishDate);
+                            CultureInfo culture = new CultureInfo("en-US");
+                            string englishMonth = date.ToString("MMMM", culture);
+
+                            <div class="row animate__animated news-row">
+                                <div class="col-md-6 big-show">
+                                    <div class="date-container" style="display: flex;  align-items:start;">
+                                        <table>
+                                            <tr>
+                                                <th>
+                                                    <div class="year-month">
+                                                        <span class="month">@englishMonth</span>
+                                                        <span>.</span>
+                                                        <span class="year">@date.ToString("yyyy")</span>
+                                                    </div>
+                                                </th>
+                                                <td class="line">
+                                                    <hr style="border: none; width: 40px;height:1px; background-color: black; margin: 10px 10px;">
+                                                </td>
+                                                <td>
+                                                    <div class="new-title">
+                                                        @item.Title
+                                                        @if (User.Identity.IsAuthenticated)
+                                                        {
+                                                            string userTypeClaimValue = User.FindFirst("UserType")?.Value;
+                                                            if (!string.IsNullOrEmpty(userTypeClaimValue))
+                                                            {
+                                                                if (int.TryParse(userTypeClaimValue, out int userType))
+                                                                {
+                                                                    if (userType < 2)
+                                                                    {
+                                                                        <a asp-page="NewEdit" asp-route-id="@item.NewId">
+                                                                            <i class="fas fa-pencil-alt"></i>
+                                                                        </a>
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th class="text-center">
+                                                    <div class="day">
+                                                        <span class="day-number">@date.ToString("dd")</span>
+                                                    </div>
+                                                </th>
+                                                <td>
+                                                </td>
+                                                <td>
+                                                    <div class="new-content">
+                                                        @item.Content
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+
+                                    </div>
+                                </div>
+                                <div class="col-md-6" style="text-align: right;">
+                                    <div class="image-container fx-tobig">
+                                        @{
+                                            string imageData = item.Photo != null ? Convert.ToBase64String(item.Photo) : null;
+                                        }
+                                        @if (string.IsNullOrEmpty(imageData))
+                                        {
+                                            <img src="~/dist/img/user3-128x128.jpg" alt="圖片" class="new-image" />
+                                        }
+                                        else
+                                        {
+                                            <img src="data:image/jpeg;base64,@imageData" alt="圖片" class="new-image" />
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-md-6 sm-show">
+                                    <div class="date-container" style="display: flex;  align-items:start;">
+                                        <table>
+                                            <tr>
+                                                <th>
+                                                    <div class="new-title">
+                                                        @item.Title
+                                                        @if (User.Identity.IsAuthenticated)
+                                                        {
+                                                            string userTypeClaimValue = User.FindFirst("UserType")?.Value;
+                                                            if (!string.IsNullOrEmpty(userTypeClaimValue))
+                                                            {
+                                                                if (int.TryParse(userTypeClaimValue, out int userType))
+                                                                {
+                                                                    if (userType < 2)
+                                                                    {
+                                                                        <a asp-page="NewEdit" asp-route-id="@item.NewId">
+                                                                            <i class="fas fa-pencil-alt"></i>
+                                                                        </a>
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                    </div>
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th>
+                                                    <div class="year-month">
+                                                        <span class="month">@englishMonth</span>
+                                                        <span>.</span>
+                                                        <span class="year">@date.ToString("yyyy")</span>
+                                                        <span class="day-number">@date.ToString("dd")</span>
+                                                    </div>
+
+                                                </th>
+                                            </tr>
+                                        </table>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <div class="navigation-buttons2" style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
+                            <label id="prev-button2" class="hvr-backward"><</label>
+                            <div id="page-number2"></div>
+                            <label id="next-button2" class="hvr-forward">></label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+            
+    </div>
+    <script>
+        $(document).ready(function () {
+            // 初始化变量
+            var newsContainer1 = $("#newlistContent");
+            var newsContainer2 = $("#eventlistContent");
+            var prevButton1 = $("#prev-button1");
+            var nextButton1 = $("#next-button1");
+            var prevButton2 = $("#prev-button2");
+            var nextButton2 = $("#next-button2");
+            var newsItems1 = newsContainer1.find(".row");
+            var newsItems2 = newsContainer2.find(".row");
+            var currentIndex1 = 0;
+            var currentIndex2 = 0;
+            // 计算总页数（每页显示5条新闻）
+            var totalPages1 = Math.ceil(newsItems1.length / 5);
+            var totalPages2 = Math.ceil(newsItems2.length / 5);
+            // 初始化显示页数
+            updatePageNumber1(currentIndex1 / 5 + 1, totalPages1);
+            updatePageNumber2(currentIndex2 / 5 + 1, totalPages2);
+            // 隐藏所有新闻项目
+            newsItems1.hide();
+            newsItems2.hide();
+            // 显示第一页新闻
+            showNews1(currentIndex1, currentIndex1 + 4);
+            showNews2(currentIndex2, currentIndex2 + 4);
+            // 上一页按钮的点击事件
+            prevButton1.click(function () {
+                if (currentIndex1 >= 5) {
+                    currentIndex1 -= 5;
+                    newsItems1.hide();
+                    showNews1(currentIndex1, currentIndex1 + 4);
+                    updatePageNumber1(currentIndex1 / 5 + 1, totalPages1);
+                }
+            });
+            prevButton2.click(function () {
+                if (currentIndex2 >= 5) {
+                    currentIndex2 -= 5;
+                    newsItems2.hide();
+                    showNews2(currentIndex2, currentIndex2 + 4);
+                    updatePageNumber2(currentIndex2 / 5 + 1, totalPages2);
+                }
+            });
+            // 下一页按钮的点击事件
+            nextButton1.click(function () {
+                if (currentIndex1 + 5 < newsItems1.length) {
+                    currentIndex1 += 5;
+                    newsItems1.hide();
+                    showNews1(currentIndex1, currentIndex1 + 4);
+                    updatePageNumber1(currentIndex1 / 5 + 1, totalPages1);
+                }
+            });
+            nextButton2.click(function () {
+                if (currentIndex2 + 5 < newsItems2.length) {
+                    currentIndex2 += 5;
+                    newsItems2.hide();
+                    showNews2(currentIndex2, currentIndex2 + 4);
+                    updatePageNumber2(currentIndex2 / 5 + 1, totalPages2);
+                }
+            });
+            // 显示新闻项目的函数
+            function showNews1(startIndex, endIndex) {
+                for (var i = startIndex; i <= endIndex; i++) {
+                    newsItems1.eq(i).show();
+                }
+            }
+            function showNews2(startIndex, endIndex) {
+                for (var i = startIndex; i <= endIndex; i++) {
+                    newsItems2.eq(i).show();
+                }
+            }
+            // 更新显示页数的函数
+            function updatePageNumber1(currentPage, totalPage) {
+                $("#page-number1").text(currentPage + '/' + totalPage);
+            }
+            function updatePageNumber2(currentPage, totalPage) {
+                $("#page-number2").text(currentPage + '/' + totalPage);
+            }
+        });
+    </script>
+    @section Scripts {
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                $("#newlistTab").click(function () {
+                    $("#newlistContent").show();
+                    $("#eventlistContent").hide();
+                    $(".navigation-buttons1").show();
+                    $(".navigation-buttons2").hide();
+                });
+
+                $("#eventlistTab").click(function () {
+                    $("#newlistContent").hide();
+                    $("#eventlistContent").show();
+                    $(".navigation-buttons2").show();
+                    $(".navigation-buttons1").hide();
+                });
+            });
+        </script>
+    }
+
+</body>
+</html>
+
+

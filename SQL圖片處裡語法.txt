@@ -1,0 +1,3 @@
+UPDATE ProductTB
+SET Photo = (SELECT BulkColumn FROM OPENROWSET(BULK 'C:\allenpro\1.jpg', SINGLE_BLOB) AS ImageSource)
+WHERE Pid = 1

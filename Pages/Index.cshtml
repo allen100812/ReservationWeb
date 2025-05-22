@@ -1,0 +1,941 @@
+﻿@page
+@model IndexModel
+@using Web0524.Models
+@using System.Globalization;
+@{
+    var myService = (IMyService)ViewContext.HttpContext.RequestServices.GetService(typeof(IMyService));
+    var myData = myService.GetBaseData();
+}
+@{
+    ViewData["Title"] = "Home page";
+}
+
+@if (TempData.ContainsKey("ip_regnum_error"))
+{
+    <script>
+        setTimeout(function () {
+            alert('伺服器偵測到您正在嘗試多次註冊，已暫時拒絕提供您的註冊服務。');
+        @(TempData.Remove("ip_regnum_error"));
+        }, 100);
+    </script>
+}
+@if (TempData.ContainsKey("fristlogin_success"))
+{
+    <script>
+        alert('已成功加入會員。');
+        // 顯示警告後清除TempData
+        setTimeout(function () {
+        @(TempData.Remove("fristlogin_success"));
+        }, 100);
+    </script>
+}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var carousel = new bootstrap.Carousel(document.querySelector('#carouselExampleIndicators'), {
+            interval: 3000 // 自动播放间隔，以毫秒为单位
+        });
+    });
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js" integrity="sha384-Rx+T1VzGupg4BHQYs2gCW9It+akI2MM/mndMCy36UVfodzcJcF0GGLxZIzObiEfa" crossorigin="anonymous"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="all">
+    <link href="css/hover-min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@myData.Name</title>
+    <style>
+        /*文字動畫*/
+        .ml12 {
+            font-weight: 200;
+            font-size: 1.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.5em;
+        }
+
+            .ml12 .letter {
+                display: inline-block;
+                line-height: 1em;
+            }
+
+        .ml4 {
+            position: relative;
+            font-weight: 900;
+            font-size: 4.5em;
+        }
+            .ml4 .letters {
+                position: absolute;
+                margin: auto;
+                margin-top: -100px ;
+                left: 0;
+                top: 0.3em;
+                right: 0;
+                opacity: 0;
+            }
+    </style>
+    <style>
+        /* 自动滑动的 banner */
+        .banner-container {
+            position: relative;
+            overflow: hidden;
+            height: 300px;
+        }
+
+        .banner-slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            animation: slide 8s infinite;
+        }
+
+        /* 商家介绍 */
+        .business-intro {
+            padding: 40px;
+        }
+
+
+        /*產品圖片*/
+        .portfolio {
+            padding: 0; /* 移除左右间距 */
+        }
+
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            margin: 10px 0; /* 添加上下间距 */
+            width: 100%; /* 图片容器宽度占满父元素 */
+            height: 0; /* 初始高度为0，将在内部的 img 元素决定高度 */
+            padding-bottom: 100%; /* 使用 padding-bottom 来实现容器的高度与宽度相等（正方形） */
+            border-radius: 8px;
+        }
+
+            .image-container img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%; /* 图片占满容器宽度 */
+                height: 100%; /* 图片占满容器高度 */
+                object-fit: cover;
+            }
+
+        .product-title {
+            position: absolute;
+            top: 10px; /* 距离图片顶部的距离 */
+            left: 10px; /* 距离图片左侧的距离 */
+            font-weight: bold;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 48px;
+        }
+
+        .product-icon {
+            position: absolute;
+            top: 25%; /* 距离图片顶部的距离 */
+            left: 10%; /* 距离图片左侧的距离 */
+            transform: translateX(-50%);
+            font-size: 48px;
+            color: white;
+            display: none;
+        }
+
+        .image-container:hover .product-icon {
+            display: block;
+        }
+
+        /* 店铺據点清单 */
+        .store-locations {
+            padding: 0px;
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .store-locations-title {
+            text-align: left; /* 靠左对齐 */
+            font-size: 60px; /* 字体加大 */
+            font-weight: bold; /* 粗体字体 */
+            color: var(--color3);
+        }
+
+
+
+
+        .store-location-item {
+            border-radius: 10px; /* 圆角设置 */
+            overflow: hidden; /* 隐藏溢出内容 */
+            margin: 10px; /* 间隔 */
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); /* 阴影效果 */
+            width: 100%; /* 固定大小 */
+            max-width: 500px; /* 最大宽度 */
+        }
+
+            .store-location-item iframe {
+                width: 100%;
+                height: 200px; /* 地图的固定高度 */
+                border: none; /* 去掉边框 */
+            }
+
+        .store-location-name {
+            font-size: 24px; /* 字体加大 */
+            text-align: center;
+            margin-top: 20px; /* 添加顶部间距 */
+            color: var(--color3);
+        }
+
+        .store-location-details {
+            text-align: center; /* 将内容靠左对齐 */
+            margin-top: 20px; /* 添加顶部间距 */
+            margin-left: 20px;
+            color: var(--color3);
+        }
+
+
+
+        /* 預約照片 */
+        .order {
+            position: relative;
+            padding: 0px;
+        }
+
+        .image-overlay {
+            position: relative;
+            display: inline-block;
+            overflow: hidden;
+        }
+
+            .image-overlay img {
+                width: 100%;
+                height: 450px;
+                object-fit: cover;
+                vertical-align: middle;
+            }
+
+            .image-overlay:before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                border-radius: 8px;
+                background-color: rgba(255, 140, 0, 0.5); /* 透明黑色遮罩 */
+                opacity: 0; /* 初始透明度为0 */
+                transition: opacity 0.3s ease;
+            }
+
+            .image-overlay:before {
+                opacity: 1; /* 悬停时显示遮罩 */
+            }
+
+        .overlay-text-details {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            text-align: center;
+            z-index: 1; /* 确保文字在遮罩之上 */
+        }
+
+
+
+        /* Custom styles for the carousel container */
+        #carouselExampleFade {
+            max-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Add animation for image transitions */
+        .carousel-inner .carousel-item {
+            position: relative;
+            transition: opacity 0.5s;
+        }
+
+            /* Add shadow effect during transition */
+            .carousel-inner .carousel-item:not(.active) {
+                transform: translateX(100%);
+                opacity: 0;
+                box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3); /* 调整阴影属性 */
+            }
+
+
+        element.style {
+            --gradient: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0) 100%);
+        }
+
+
+
+        .impact-text__text {
+            font-size: 10vw; /* 使用vw单位来设置字体大小 */
+            margin: 0;
+        }
+
+        .impact-text__content h4 {
+            color: var(--color3);
+            font-weight: bold; /* 将标题文本设置为粗体 */
+        }
+
+        .video-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px; /* 圆角设置 */
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 长宽比影片的纵向空间占比（高度 / 宽度） */
+        }
+
+            .video-container iframe {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+        .shadow-box-color4 {
+            box-shadow: 20px 20px 20px #ebd5bf, -20px -20px 20px #fff9e1;
+        }
+    </style>
+    
+    <style>
+        /* 架構
+        */
+        section {
+            padding: 40px;
+            text-align: center;
+            margin-top: 20px; /* 上间距 */
+            margin-bottom: 20px; /* 下间距 */
+        }
+
+            section img {
+                max-width: 100%;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }
+
+
+
+    </style>
+    <style>
+        /* 样式用于广告视窗 */
+        #floating-ad {
+            position: fixed;
+            top:50%; /* 初始位置在底部，可以根据需要调整 */
+            right:5px;
+            z-index: 12000;
+            background-color: rgba(255, 255, 255, 0); /* 设置半透明白色背景 */
+            padding: 10px;
+            transition: top 0.5s ease; /* 添加平滑过渡效果 */
+        }
+
+        #floating-ad img{
+            width:125px;
+            height: 125px;
+        }
+        /* 样式用于关闭按钮 */
+        #close-button {
+            position: absolute; /* 使按钮脱离文档流，相对于其最近的已定位祖先定位 */
+            top: 0; /* 距离顶部0像素 */
+            right: 10; /* 距离右侧0像素 */
+            z-index: 12001;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+    </style>
+    <style>
+        .date-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 水平居中 */
+            text-align: center; /* 文本水平居中 */
+        }
+
+        .year-month {
+            font-size: 12px; /* 设置月份和年份的字体大小 */
+            letter-spacing: 2px;
+        }
+
+        .day {
+            font-size: 22px; /* 设置日期的字体大小 */
+            letter-spacing: 2px;
+        }
+        .new-title{
+            font-size: 18px; /* 设置日期的字体大小 */
+            letter-spacing: 5px;
+        }
+        .new-content{
+            font-size: 14px; /* 设置日期的字体大小 */
+            letter-spacing: 2px;
+        }
+
+        .new-image{
+            width:400px;
+            height:400px;
+            overflow: hidden;
+        }
+
+        #news-title1 {
+            color: var(--color3);
+            font-size: 30px; /* 设置日期的字体大小 */
+            letter-spacing: 5px;
+        }
+
+        #news-title2 {
+            font-size: 18px; /* 设置日期的字体大小 */
+            letter-spacing: 5px;
+        }
+
+        .line label::before,
+        .line label::after {
+            content: "";
+            position: relative;
+            display: inline-block;
+            width: 24px;
+            height: 1px;
+            background: #333;
+            margin: 0 10px;
+            top: -7px;
+        }
+
+        #prev-button{
+            margin: 0 10px;
+            font-size: 28px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+
+        #next-button {
+            margin: 0 10px;
+            font-size: 28px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+
+       #page-number {
+            font-size: 14px; /* 设置日期的字体大小 */
+            color: var(--color3);
+        }
+
+        #readmore-buttom{
+            margin: 10px 0;
+            font-size: 24px; /* 设置日期的字体大小 */
+            letter-spacing: 5px;
+        }
+        .news-row{
+            padding-top:10px;
+        }
+
+        .portfolio-locations-title {
+            text-align: left; /* 靠左对齐 */
+            font-size: 60px; /* 字体加大 */
+            font-weight: bold; /* 粗体字体 */
+            color: var(--color3);
+        }
+    </style>
+
+    <script>
+        //浮動廣告窗
+        //獲取物件
+        var closeButton = document.getElementById("close-button");
+        var ad = document.getElementById("ad-content");
+        //變數區
+        var lastScrollTop = 0;
+        var LastAdTop_pp = 50;
+        var isScrolling;
+
+        window.addEventListener("scroll", function () {
+            //取得滑動max_y
+            clearTimeout(isScrolling);
+
+            var documentHeight = Math.max(
+                document.body.scrollHeight,
+                document.body.offsetHeight,
+                document.documentElement.clientHeight,
+                document.documentElement.scrollHeight,
+                document.documentElement.offsetHeight
+            );
+            var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            var maxScrollY = documentHeight - windowHeight;
+            
+            //計算目前的ScrollY位於頁面的Top的%數
+            var currentScrollTop = window.scrollY;
+            var ScrollY_pp = (lastScrollTop-currentScrollTop) / (maxScrollY / 100);
+            const floatingAd = document.getElementById("floating-ad");
+            if (currentScrollTop > lastScrollTop) {
+                // 页面向下滚动
+                LastAdTop_pp = LastAdTop_pp + ScrollY_pp
+                floatingAd.style.top = LastAdTop_pp + '%';
+                
+            } else if (currentScrollTop < lastScrollTop) {
+                // 页面向上滚动
+                LastAdTop_pp = LastAdTop_pp + ScrollY_pp
+                floatingAd.style.top = LastAdTop_pp + '%';
+            }
+            lastScrollTop = currentScrollTop;
+            // 在滚动停止1秒后执行操作
+            isScrolling = setTimeout(function () {
+                floatingAd.style.top = '50%';
+                LastAdTop_pp=50;
+            }, 500); // 等待1秒后执行
+        });
+    </script>
+
+  
+</head>
+<body>
+
+
+    <div id="carouselExampleFade" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="3000">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+            <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="1" aria-label="Slide 2"></button>
+            <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="2" aria-label="Slide 3"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <div class="big-show">
+                    <img src="/dist/img/banner1.jpg" class="d-block w-100" alt="...">
+                </div>
+                <div class="sm-show">
+                    <img src="/dist/img/banner1-sm.jpg" class="d-block w-100" alt="...">
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="big-show">
+                    <img src="/dist/img/banner2.jpg" class="d-block w-100" alt="...">
+                </div>
+                <div class="sm-show">
+                    <img src="/dist/img/banner2-sm.jpg" class="d-block w-100" alt="...">
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="big-show">
+                    <img src="/dist/img/banner3.jpg" class="d-block w-100" alt="...">
+                </div>
+                <div class="sm-show">
+                    <img src="/dist/img/banner3-sm.jpg" class="d-block w-100" alt="...">
+                </div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleFade" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleFade" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+    <div class="center-container page-basetop">
+        <!--浮動廣告窗-->
+        <div id="floating-ad">
+            <div id="ad-content">
+                <a href="/ProductList">
+                    <img src="~/dist/img/adimg.png" alt="預約">
+                </a>
+                
+            </div>
+            <button id="close-button" type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <script>
+            const floatingAd = document.getElementById("floating-ad");
+            var closeButton = document.getElementById("close-button");
+            var ad = document.getElementById("ad-content");
+            closeButton.addEventListener("click", function () {
+                // 隐藏广告视窗
+                floatingAd.style.display = "none";
+            });
+            ad.addEventListener("click", function () {
+                // 廣告事件
+            });
+        </script>
+        <!-- 主要 -->
+        <div class="container animate__animated animate__fadeInRight">
+
+
+            <!-- 商家介绍 -->
+
+            <section class="business-intro">
+                <div class="impact-text impact-text--center ">
+                    <div class="snap-center">
+                        <h2 class="impact-text__text heading break-all">
+                            <impact-text reveal-js="" style="opacity: 1; transform: translateY(0px);">
+                                <span class="text-gradient" style="background-image: linear-gradient(180deg, rgba(255, 140, 0, 1), rgba(255, 140, 0, 0) 100%); color: transparent;">@myData.Name_short</span>
+                            </impact-text>
+                        </h2>
+                        <div class="impact-text__content">
+                            <div class="prose"><h4 class="ml12">融合自然美 綻放真光彩</h4></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
+            
+            <div class="video-container shadow-box-color4">
+                <iframe src="https://www.youtube.com/embed/Q0umGdlaEN8?playsinline=1&amp;autoplay=1&amp;controls=0&amp;mute=1&amp;loop=1&amp;playlist=Q0umGdlaEN8&amp;enablejsapi=1&amp;rel=0&amp;modestbranding=1" allow="autoplay; encrypted-media" allowfullscreen="allowfullscreen" data-gtm-yt-inspected-6="true" id="629994332" title="品牌形象影片"></iframe>
+            </div>
+
+            <section class="new">
+
+                <div id="news-title1">
+                    <label>最新消息</label>
+                </div>
+                <div id="news-title2" class="line">
+                    <label>WHAT'S NEWS</label>
+                </div>
+                <div class="navigation-buttons" style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
+                    <label id="prev-button" class="hvr-backward"><</label>
+                    <div id="page-number"></div>
+                    <label id="next-button" class="hvr-forward">></label>
+                </div>
+
+                <br>
+                <div id="news-container" class="animate-container">
+                    @foreach (var item in Model.newLists)
+                    {
+                        DateTime date = Convert.ToDateTime(item.PublishDate);
+                        CultureInfo culture = new CultureInfo("en-US");
+                        string englishMonth = date.ToString("MMMM", culture);
+
+                        <div class="row animate__animated news-row">
+                            <div class="col-md-6 big-show">
+                                <div class="date-container" style="display: flex;  align-items:start;">
+                                    <table>
+                                        <tr>
+                                            <th>
+                                                <div class="year-month">
+                                                    <span class="month">@englishMonth</span>
+                                                    <span>.</span>
+                                                    <span class="year">@date.ToString("yyyy")</span>
+                                                </div>
+                                            </th>
+                                            <td class="line">
+                                                <hr style="border: none; width: 40px;height:1px; background-color: black; margin: 10px 10px;">
+                                            </td>
+                                            <td>
+                                                <div class="new-title">
+                                                    @item.Title
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th class="text-center">
+                                                <div class="day">
+                                                    <span class="day-number">@date.ToString("dd")</span>
+                                                </div>
+                                            </th>
+                                            <td>
+                                            </td>
+                                            <td>
+                                                <div class="new-content">
+                                                    @item.Content
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6" style="text-align: right;">
+                                <div class="image-container fx-tobig">
+                                    @{
+                                        string imageData = item.Photo != null ? Convert.ToBase64String(item.Photo) : null;
+                                    }
+                                    @if (string.IsNullOrEmpty(imageData))
+                                    {
+                                        <img src="~/dist/img/user3-128x128.jpg" alt="圖片" class="new-image" />
+                                    }
+                                    else
+                                    {
+                                        <img src="data:image/jpeg;base64,@imageData" alt="圖片" class="new-image" />
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-6 sm-show">
+                                <div class="date-container" style="display: flex;  align-items:start;">
+                                    <table>
+                                        <tr>
+                                            <th>
+                                                <div class="new-title">
+                                                    @item.Title
+                                                    @if (User.Identity.IsAuthenticated)
+                                                    {
+                                                        string userTypeClaimValue = User.FindFirst("UserType")?.Value;
+                                                        if (!string.IsNullOrEmpty(userTypeClaimValue))
+                                                        {
+                                                            if (int.TryParse(userTypeClaimValue, out int userType))
+                                                            {
+                                                                if (userType < 2)
+                                                                {
+                                                                    <a asp-page="NewEdit" asp-route-id="@item.NewId">
+                                                                        <i class="fas fa-pencil-alt"></i>
+                                                                    </a>
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                </div>
+                                            </th>
+                                        </tr>
+                                        <tr>
+                                            <th>
+                                                <div class="year-month">
+                                                    <span class="month">@englishMonth</span>
+                                                    <span>.</span>
+                                                    <span class="year">@date.ToString("yyyy")</span>
+                                                    <span class="day-number">@date.ToString("dd")</span>
+                                                </div>
+
+                                            </th>
+                                        </tr>
+                                    </table>
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    
+                </div>
+                <div>
+                    <a id="readmore-buttom" href="/New" class="btn btn-dark">Read More</a>
+                </div>
+            </section>
+            <script>
+                $(document).ready(function () {
+                    // 初始化變數
+                    var newsContainer = $("#news-container");
+                    var prevButton = $("#prev-button");
+                    var nextButton = $("#next-button");
+                    var newsItems = newsContainer.find(".row");
+                    var currentIndex = 0;
+
+                    // 计算总页数
+                    var totalPages = Math.ceil(newsItems.length / 2); // 每页显示两条新闻
+
+                    // 初始化显示页数
+                    updatePageNumber(currentIndex + 1, totalPages);
+
+                    // 隱藏所有新聞項目
+                    newsItems.hide();
+
+                    // 顯示前兩筆新聞
+                    showNews(currentIndex, currentIndex + 1);
+
+                    // 上一筆按鈕的點擊事件
+                    prevButton.click(function () {
+                        if (currentIndex > 0) {
+                            currentIndex -= 2;
+                            newsItems.removeClass('animate__fadeInUp');
+                            newsItems.addClass('animate__fadeInDown');
+                            showNews(currentIndex, currentIndex + 1);
+                            updatePageNumber(currentIndex / 2 + 1, totalPages);
+                        }
+                    });
+
+                    // 下一筆按鈕的點擊事件
+                    nextButton.click(function () {
+                        if (currentIndex + 2 < newsItems.length) {
+                            currentIndex += 2;
+                            newsItems.removeClass('animate__fadeInDown');
+                            newsItems.addClass('animate__fadeInUp');
+                            showNews(currentIndex, currentIndex + 1);
+                            updatePageNumber(currentIndex / 2 + 1, totalPages);
+                        }
+                    });
+
+                    // 顯示新聞項目的函數
+                    function showNews(index1, index2) {
+                        newsItems.hide();
+                        newsItems.eq(index1).show();
+                        newsItems.eq(index2).show();
+                    }
+
+                    // 更新显示页数的函數
+                    function updatePageNumber(currentPage, totalPage) {
+                        $("#page-number").text(currentPage + '/' + totalPage);
+                    }
+                });
+
+            </script>
+
+
+            <section class="portfolio">
+                <h2 class="portfolio-locations-title">作品欣賞</h2>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="image-container shadow-box-color4 fx-tobig">
+                            <img src="/dist/img/prod-1.jpg" alt="作品1">
+                            <div class="product-title">睫出自然</div>
+                            <div class="product-icon">
+                                <i class="fas fa-chevron-circle-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="image-container shadow-box-color4 fx-tobig">
+                            <img src="/dist/img/prod-2.jpg" alt="作品2">
+                            <div class="product-title">最適眉型</div>
+                            <div class="product-icon">
+                                <i class="fas fa-chevron-circle-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="image-container shadow-box-color4 fx-tobig">
+                            <img src="/dist/img/prod-3.jpg" alt="作品3">
+                            <div class="product-title">濕潤唇色</div>
+                            <div class="product-icon">
+                                <i class="fas fa-chevron-circle-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
+
+
+            <!-- 店铺據点清单 -->
+            <section id="place-section" class="store-locations">
+                <h2 class="store-locations-title">店家據點</h2>
+                <div class="row">
+                    @foreach (var place in Model.places)
+                    {
+                        <div class="col-md-4">
+                            <div class="store-location-item shadow-box-color4 fx-tobig">
+                                @if (place.Placemapurl != null && place.Placemapurl != "")
+                                {
+                                    @Html.Raw(place.Placemapurl)
+                                }
+                                else
+                                {
+                                    <img src="/dist/img/shop2.jpg" style="height: 200px;">
+                                }
+                            </div>
+                            <div class="store-location-name">
+                                <p>@place.Placetitle</p>
+                            </div>
+                            <div class="store-location-details">
+                                <p class="store-location-address">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    @place.Placeaddress
+                                </p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+
+
+            <section class="order">
+                <div class="image-overlay shadow-box-color4">
+                    <img src="/dist/img/shop2.jpg" alt="店家照片1">
+
+                    <div class="overlay-text-details">
+                        <div id="order1">
+                            <h1 class="ml4">
+                                <span class="letters letters-1">現在</span>
+                                <span class="letters letters-2">立即</span>
+                                <span class="letters letters-3">預約!</span>
+                            </h1>
+                        </div>
+                        <div id="order2">
+                            <h5>歡迎光臨自然風美容，釋放純凈光彩，綻放自然之美。</h5>
+                            <p>
+                                <a href="/ProductList" class="btn btn-outline-light">立即預約</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
+        </div>
+
+    </div>
+</body>
+</html>
+
+<script>
+    // 文字動畫
+    var textWrapper = document.querySelector('.ml12');
+    textWrapper.innerHTML = textWrapper.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
+
+    anime.timeline({ loop: true })
+        .add({
+            targets: '.ml12 .letter',
+            translateX: [40, 0],
+            translateZ: 0,
+            opacity: [0, 1],
+            easing: "easeOutExpo",
+            duration: 1200,
+            delay: (el, i) => 500 + 30 * i
+        }).add({
+            targets: '.ml12 .letter',
+            translateX: [0, -30],
+            opacity: [1, 0],
+            easing: "easeInExpo",
+            duration: 1100,
+            delay: (el, i) => 100 + 30 * i
+        });
+    var ml4 = {};
+    ml4.opacityIn = [0, 1];
+    ml4.scaleIn = [0.2, 1];
+    ml4.scaleOut = 3;
+    ml4.durationIn = 800;
+    ml4.durationOut = 600;
+    ml4.delay = 500;
+
+    anime.timeline({ loop: true })
+        .add({
+            targets: '.ml4 .letters-1',
+            opacity: ml4.opacityIn,
+            scale: ml4.scaleIn,
+            duration: ml4.durationIn
+        }).add({
+            targets: '.ml4 .letters-1',
+            opacity: 0,
+            scale: ml4.scaleOut,
+            duration: ml4.durationOut,
+            easing: "easeInExpo",
+            delay: ml4.delay
+        }).add({
+            targets: '.ml4 .letters-2',
+            opacity: ml4.opacityIn,
+            scale: ml4.scaleIn,
+            duration: ml4.durationIn
+        }).add({
+            targets: '.ml4 .letters-2',
+            opacity: 0,
+            scale: ml4.scaleOut,
+            duration: ml4.durationOut,
+            easing: "easeInExpo",
+            delay: ml4.delay
+        }).add({
+            targets: '.ml4 .letters-3',
+            opacity: ml4.opacityIn,
+            scale: ml4.scaleIn,
+            duration: ml4.durationIn
+        }).add({
+            targets: '.ml4 .letters-3',
+            opacity: 0,
+            scale: ml4.scaleOut,
+            duration: ml4.durationOut,
+            easing: "easeInExpo",
+            delay: ml4.delay
+        }).add({
+            targets: '.ml4',
+            opacity: 0,
+            duration: 500,
+            delay: 500
+        });
+</script>

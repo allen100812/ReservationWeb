@@ -1,0 +1,389 @@
+﻿@page
+@model Web0524.Pages.ProductAddModel
+@{
+}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+@if (TempData.ContainsKey("add_error"))
+{
+    <script>
+        setTimeout(function () {
+            alert('該產品名稱已存在');
+        @(TempData.Remove("add_error"));
+        }, 100);
+    </script>
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        function validateImageSize(input) {
+            var maxSizeInBytes = 10 * 1024 * 1024; // 1MB，您可以根據需要調整此大小
+            var file = input.files[0];
+
+            if (file.size > maxSizeInBytes) {
+                alert('選擇的圖片大小超過限制。請選擇小於 10MB 的圖片。');
+                input.value = ''; // 清除已選擇的檔案
+            } else {
+                if (input.files && input.files[0]) {
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        var previewElement = document.getElementById('imagePreview');
+                        previewElement.setAttribute('src', e.target.result);
+                        previewElement.style.display = 'block ';
+                    };
+
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+        }
+        $(document).ready(function () {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+        $(document).ready(function () {
+            $('[data-toggle="popover"]').popover();
+        });
+    </script>
+    <style>
+        /* 新增樣式 */
+        .hot-label {
+            position: absolute;
+            top: 40px;
+            left: 25px;
+            background-color: red;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        /* 新上市標籤樣式 */
+        .new-label {
+            position: absolute;
+            top: 40px;
+            left: 25px;
+            background-color: #00cc66;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        /* 打折標籤樣式 */
+        .discount-label {
+            position: absolute;
+            top: 40px;
+            left: 25px;
+            background-color: #ffcc00;
+            color: black;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+    </style>
+    <style>
+        .form-group label {
+            color: var(--color3_2);
+        }
+
+        .infotext {
+            font-size: 14px;
+            color: var(--color3_2);
+        }
+    </style>
+    <style>
+        .product-div {
+            width: 100%;
+            height: 400px;
+            max-width: 100%; /* 限制最大宽度 */
+            border-radius: 20px;
+            box-shadow: 10px 10px 15px #ebd5bf, -10px -10px 15px #fff9e1;
+        }
+
+        .product-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 保持比例，显示完整图片 */
+            border-radius: 20px;
+            box-shadow: 10px 10px 15px #ebd5bf, -10px -10px 15px #fff9e1;
+        }
+
+        .money {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 18px;
+            color: #007bff; /* 适当的颜色 */
+        }
+
+        .order-button {
+            position: absolute;
+            top: 65%;
+            right: 30px;
+            font-size: 18px;
+            padding: 20px 30px; /* 调整内边距 */
+            border-radius: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container page-basetop">
+        <header>
+            <div class="animation-div">
+                <h2 class="header_text heading break-all slideInRight">
+                    新增產品
+                </h2>
+            </div>
+        </header>
+
+        <form method="post" enctype="multipart/form-data">
+            <div class="form-group" style="display: none;">
+                <label>產品編號</label>
+                <input asp-for="Product.Pid" class="form-control" type="number" />
+                <span asp-valPidation-for="Product.Pid" class="text-danger"></span>
+            </div>
+            <div>
+                <div class="col-md-4 product-item fx-tobig" style="padding-top:30px;">
+                    <div class="mb-3 product-list ">
+                        <div class="product-div">
+
+                            <img id="imagePreview" class="product-img"/>
+                            <a class="btn btn-warning order-button animate-on-scroll floater">
+                                立即預約
+                            </a>
+                            <!-- 新增 HOT 標籤的判斷 -->
+                            <span id="labelPreview"></span>
+
+                        </div>
+                        <div style="margin-top:20px">
+                            <h3 class="card-title" style="color: var(--color3);"><span id="Pname"></span></h3>
+                            <p class="card-text money">
+                                <i class="fas fa-dollar-sign"></i>&nbsp;&nbsp;
+                                <span id="formattedPrice"></span> <!-- 使用 <span> 元素来显示价格 -->
+                            </p>
+                            @*<p class="card-text" style="color: var(--color3_2);"><i class="fas fa-star"></i>&nbsp;&nbsp;@Model.Product.Content</p>*@
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="form-group alert alert-light " role="alert">
+                <table style="width:100%;">
+                    <tr>
+                        <th>
+                            <label>更換圖片</label>
+                        </th>
+                        <td style="width:70%;text-align:end;">
+                            <label for="newImage" style="font-weight:bold; font-size:20px;">＞</label>
+                            <input type="file" id="newImage" name="newImage" accept="image/*" style="display: none;" onchange="validateImageSize(this)" />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <div class="form-group alert alert-light alert-form-div" role="alert">
+                <table>
+                    <tr>
+                        <th>
+                            <label>產品類別:</label>
+                        </th>
+                        <td>
+                            <p class="infotext">有效分類產品，使顧客事半功倍找到合適的服務。</p>
+                            <select asp-for="Product.Pgid" class="form-control">
+                                @foreach (var pgroup in Model.Pgroups)
+                                {
+                                    <option value="@pgroup.Pgid">@pgroup.Pgname</option>
+                                }
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>產品名稱</label>
+                        </th>
+                        <td>
+                            <input asp-for="Product.Name" class="form-control" title="店鋪名稱字數需介於2到30之間" maxlength="30" minlength="2" required />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>產品標籤</label>
+                        </th>
+                        <td>
+                            <select asp-for="Product.Event" class="form-control" onchange="previewLabel(this)">
+                                <option value="0">無標籤</option>
+                                <option value="1">Hot熱門</option>
+                                <option value="2">New新上市</option>
+                                <option value="3">優惠中</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>
+                                排序字元
+                                <span class="text-dark" data-bs-toggle="popover" data-bs-content="自訂排序字元例如:A01、A02、B01...，店鋪排序順序會根據A-Z 0-9的順位排序。">
+                                    <i class="far fa-question-circle"></i>
+                                </span>
+                            </label>
+                        </th>
+                        <td>
+                            <input asp-for="Product.Porder" class="form-control" title="排序字元需介於2到5之間" maxlength="5" minlength="2" />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="form-group alert alert-light alert-form-div" role="alert">
+                <table>
+                    <tr>
+                        <th>
+                            <label>產品售價</label>
+                        </th>
+                        <td>
+                            <p class="infotext">*此售價將展示於產品清單上。</p>
+                            <input asp-for="Product.Price" class="form-control" type="number" min="0" required />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label>售價單位</label>
+                        </th>
+                        <td>
+                            <p class="infotext">*此售價單位將展示於產品清單上。</p>
+                            <input asp-for="Product.Unit" class="form-control" title="單位字數最多15字元" maxlength="15" required />
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>
+                            <label>服務時長(小時)</label>
+                        </th>
+                        <td>
+                            <input asp-for="Product.SpendTime" class="form-control" type="number" min="0.1" max="100" step="0.01" required />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="form-group alert alert-light alert-form-div" role="alert">
+                <table>
+                    <tr>
+                        <th>
+                            <label>描述</label>
+                        </th>
+                        <td>
+                            <p class="infotext">簡單描述您的產品，使顧客快速了解。</p>
+                            <textarea asp-for="Product.Content" class="form-control" title="產品描述字數最多200字元" maxlength="200" rows="4"></textarea>
+                        </td>
+                    </tr>
+
+                </table>
+                <br>
+                <br>
+                <div style="text-align:end"><button type="submit" class="btn btn-dark">新建產品</button></div>
+            </div>
+            
+        </form>
+        <script>
+            // 获取售价和单位输入框元素
+            const priceInput = document.querySelector('input[name="Product.Price"]');
+            const unitInput = document.querySelector('input[name="Product.Unit"]');
+            const nameInput = document.querySelector('input[name="Product.Name"]');
+            // 获取用于显示价格的<span>元素
+            const formattedPrice = document.getElementById('formattedPrice');
+            const Pname = document.getElementById('Pname');
+            // 添加输入事件监听器，以在输入框的值更改时更新<span>元素的内容
+            priceInput.addEventListener('blur', updateFormattedPrice);
+            unitInput.addEventListener('blur', updateFormattedPrice);
+            nameInput.addEventListener('blur', updatePname);
+            // 定义更新<span>元素内容的函数
+            function updateFormattedPrice() {
+                const priceValue = parseFloat(priceInput.value); // 转换为浮点数以处理小数点
+                const unitValue = unitInput.value;
+
+                if (!isNaN(priceValue)) { // 检查是否为有效数字
+                    // 使用 toLocaleString 方法将 priceValue 格式化为千分位数字
+                    const formattedPriceValue = priceValue.toLocaleString();
+
+                    // 将格式化后的售价和单位值更新到<span>元素中
+                    formattedPrice.textContent = formattedPriceValue + ' / ' + unitValue;
+                }
+            }
+            function updatePname() {
+                const nameValue = nameInput.value;
+                Pname.textContent = nameValue;
+            }
+        </script>
+        <script>
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl)
+            })
+        </script>
+        <script>
+            function previewLabel(selectElement) {
+                var selectedValue = selectElement.value;
+                var labelPreviewElement = document.getElementById("labelPreview");
+
+                if (selectedValue == 0) {
+                    labelPreviewElement.innerHTML = ""; // 無標籤，清空預覽
+                } else {
+                    var labelText = getLabelText(selectedValue);
+                    var labelClass = getLabelClass(selectedValue);
+                    var iconClass = getIconClass(selectedValue);
+                    labelPreviewElement.innerHTML = '<span class="' + labelClass + '"><i class="' + iconClass + '"></i>' + labelText + '</span>';
+                }
+            }
+
+            function getLabelText(value) {
+                switch (value) {
+                    case "1":
+                        return "Hot熱門";
+                    case "2":
+                        return "New新上市";
+                    case "3":
+                        return "優惠中";
+                    // 其他標籤的文字依此類推，自行新增
+                    default:
+                        return "";
+                }
+            }
+
+            function getLabelClass(value) {
+                switch (value) {
+                    case "1":
+                        return "hot-label";
+                    case "2":
+                        return "new-label";
+                    case "3":
+                        return "discount-label";
+                    // 其他標籤的樣式類名依此類推，自行新增
+                    default:
+                        return "";
+                }
+            }
+            function getIconClass(value) {
+                switch (value) {
+                    case "1":
+                        return "fab fa-hotjar";
+                    case "2":
+                        return "fas fa-flag";
+                    case "3":
+                        return "fas fa-tags";
+                    // 其他標籤的樣式類名依此類推，自行新增
+                    default:
+                        return "";
+                }
+            }
+
+            // 初始載入時預覽目前的標籤
+            window.onload = function () {
+                var selectElement = document.querySelector("select[name='Product.Event']");
+                previewLabel(selectElement);
+            };
+        </script>
+    </div>
+    
+</body>
+</html>

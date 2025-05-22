@@ -1,0 +1,681 @@
+﻿@using Web0524.Models
+@{
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+    var userService = (IUserService)ViewContext.HttpContext.RequestServices.GetService(typeof(IUserService));
+    var user = userService.GetUserById(userId);
+
+    // 在此处获取 My 数据
+    var myService = (IMyService)ViewContext.HttpContext.RequestServices.GetService(typeof(IMyService));
+    var myData = myService.GetBaseData();
+}
+
+<style>
+
+    .Text2{
+        color: #262220;
+    }
+
+    .Text1 {
+        color: #262220;
+        font-weight: bold;
+    }
+
+    .TextBack1 {
+        background-color: #f5f0b9;
+    }
+
+    .brand-text {
+        white-space: nowrap; /* 防止文字换行 */
+        overflow: hidden; /* 隐藏溢出的文本 */
+        text-overflow: ellipsis; /* 在溢出时显示省略号 */
+        max-width: 100%; /* 限制文本宽度不超过容器 */
+        font-size: 17px; /* 初始字体大小 */
+    }
+    .navbar-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000; /* 確保導航條在最上層 */
+        background-color: var(--color1_1); /* 設定導航條的背景顏色 */
+        backdrop-filter: blur(10px);
+    }
+    .navbar-expand-lg{
+        margin-left: 200px; /* 左邊的 padding 大小 */
+        margin-right: 200px; /* 右邊的 padding 大小 */
+    }
+    .navbar-expand-sm{
+
+    }
+    /* 添加動畫效果的類 */
+    /* 添加動畫效果的類 */
+    .animated-link {
+        position: relative;
+        transition: transform 0.3s ease-in-out;
+        display: inline-block;
+    }
+
+        .animated-link:hover {
+            transform: scale(1.1);
+        }
+    .navbar-center {
+        max-width: max-content;
+        grid-area: logo;
+        display: block;
+        position: relative;
+    }
+
+    .main-sidebar {
+        width: 250px; /* 調整您的側邊清單寬度 */
+        position: absolute; /* 絕對定位 */
+        top: 0; /* 上邊距為0 */
+        left: 0; /* 左邊距為0 */
+        bottom: 0; /* 下邊距為0，使側邊清單覆蓋整個高度 */
+        background-color: var(--color3);
+        overflow-y: auto; /* 超過側邊清單高度時啟用垂直滾動 */
+    }
+
+
+    footer {
+        background-color: #f8f8f8;
+        padding: 10px;
+        text-align: center;
+
+    }
+
+        footer p {
+            font-size: 14px;
+            margin: 0;
+        }
+
+    .footer-container {
+        margin-top: 50px; /* 上间距 */
+        padding: 40px;
+        color: var(--color3_2);
+    }
+
+    .footer-container-title {
+        color: var(--color3);
+    }
+
+    .footer__aside-bottom {
+        font-size: 20px;
+        display: flex;
+        justify-content: center; /* 水平居中对齐 */
+        align-items: center; /* 垂直居中对齐 */
+        color: var(--color3);
+    }
+
+    .footer__aside-top {
+        font-size: 24px;
+        display: flex;
+        justify-content: center; /* 水平居中对齐 */
+        align-items: center; /* 垂直居中对齐 */
+        color: var(--color3);
+    }
+
+    .social-media {
+        list-style: none;
+        display: flex;
+        gap: 20px; /* 调整图标之间的间距 */
+    }
+
+        .social-media li {
+            flex: 0 0 auto;
+        }
+
+    .icon-a{
+        text-decoration: none;
+        color: var(--color3_2);
+    }
+
+}
+</style>
+
+
+<!DOCTYPE html>
+<html lang="zh-tw">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@myData.Name</title>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/dist/css/adminlte.min.css">
+    <!-- 其他 meta 標籤和連結 -->
+    <link rel="stylesheet" href="~/css/Share.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .modal-text {
+            color: var(--color3);
+        }
+
+        .modal-title {
+            color: var(--color3);
+        }
+    </style>
+    <script>
+        function showContactModal() {
+            $('#contactModal').modal('show');
+        }
+    </script>
+</head>
+
+<body class="hold-transition">
+    <div class="wrapper d-flex flex-column">
+        <div class="navbar-wrapper">
+            <!-- Navbar -->
+             <!-- 大螢幕 -->
+            <nav class="navbar navbar-expand-lg big-show">
+                <div class="container-fluid">
+                    <a href="index" class="nav-item animated-link">
+                        <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;">
+                        <span style="color: var(--color2);">@myData.Name</span>
+                    </a>
+                    <div class="collapse navbar-collapse" id="navbarNavDropdown" style="flex: 1; display: flex; justify-content: center; align-items: center; ">
+                        <ul class="navbar-nav" style="color: var(--color2);">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="#" style="color: var(--color2);">首頁</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
+                                    預約服務
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li class="dropdown-item">
+                                        <a asp-page="ProductList" class="nav-link">
+                                            <i class="fas fa-clipboard-list nav-icon Text2 icon-width"></i>
+                                            <span class="Text2">所有課程&服務</span>
+                                        </a>
+                                    </li>
+                                    <li class="dropdown-item">
+                                        <a asp-page="Order" class="nav-link">
+                                            <i class="fas fa-clipboard-check nav-icon Text2 icon-width"></i>
+                                            <span class="Text2">我的預約清單</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
+                                    作品欣賞
+                                </a>
+                                <ul class="dropdown-menu">
+                                     <li class="dropdown-item">
+                                        <a href="@myData.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
+                                            <i class="fab fa-instagram nav-icon Text2 icon-width"></i>
+                                            <span class="Text2">作品集</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
+                                    關於 @myData.Name_short
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li class="dropdown-item">
+                                        <a asp-page="about" class="nav-link">
+                                            <i class="far fa-address-card nav-icon Text2 icon-width"></i>
+                                            <span class="Text2">關於我們</span>
+                                        </a>
+                                    </li>
+                                    <li class="dropdown-item">
+                                        <a href="Index#place-section" class="nav-link">
+                                            <i class="fas fa-map-pin nav-icon Text2 icon-width"></i>
+                                            <span class="Text2">商家據點</span>
+                                        </a>
+                                    </li>   
+                                    <li class="dropdown-item">
+                                        <Button onclick="showContactModal()" class="nav-link">
+                                            <i class="far fa-comment-dots nav-icon Text2 icon-width"></i>
+                                            <span class="Text2">聯絡我們</span>
+                                        </Button>
+                                    </li>
+                                </ul>
+                            </li>
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                var userType = User.FindFirst("UserType")?.Value;
+                                if (userType == "1" || userType == "2")
+                                {
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
+                                            管理員專區
+                                        </a>
+                                        <ul class="dropdown-menu">
+                                            <li class="dropdown-item">
+                                                <a asp-page="UserList" class="nav-link">
+                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                    <span class="Text2">會員管理</span>
+                                                </a>
+                                            </li>
+                                            <li class="dropdown-item">
+                                                <a asp-page="PlaceList_m" class="nav-link">
+                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                    <span class="Text2">店鋪管理</span>
+                                                </a>
+                                            </li>
+                                            <li class="dropdown-item">
+                                                <a asp-page="ProductList_m" class="nav-link">
+                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                    <span class="Text2">產品管理</span>
+                                                </a>
+                                            </li>
+                                            <li class="dropdown-item">
+                                                <a asp-page="OrdersetList_m" class="nav-link">
+                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                    <span class="Text2">預約單查詢</span>
+                                                </a>
+                                            </li>
+                                            <li class="dropdown-item">
+                                                <a asp-page="Ordersetcalendar_m" class="nav-link">
+                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                    <span class="Text2">預約行事曆</span>
+                                                </a>
+                                            </li>
+                                            <li class="dropdown-item">
+                                                <a asp-page="Report" class="nav-link">
+                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                    <span class="Text2">報表檢視</span>
+                                                </a>
+                                            </li>
+                                            <li class="dropdown-item">
+                                                <a asp-page="BaseDataEdit" class="nav-link">
+                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                    <span class="Text2">網站設定</span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                }
+                                
+                            }
+                        </ul>
+                    </div>
+
+                    <!-- Sidebar user panel (optional) -->
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <!-- User is authenticated, display the user's photo -->
+                        <div class="dropdown">
+                            <a class="dark dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <img src="@(user.Photo != null ? $"data:image/jpeg;base64,{Convert.ToBase64String(user.Photo)}" : "dist/img/user1-128x128.jpg")" alt="User Photo"
+                                     style="width: 32px; height: 32px; object-fit: cover; object-position: center;" class="imagePreview_img">
+                                <span style="color: var(--color2)">@User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value</span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="UserEdit?id=@User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value">
+                                    <i class="fas fa-user-edit"></i> 編輯個人資料
+                                </a>
+                                <a class="dropdown-item" href="/Account/Logout">
+                                    <i class="fas fa-sign-out-alt"></i> 登出
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <a asp-page="/Account/Login" class="nav-link d-flex align-items-center" style="color: var(--color2)">
+                            <i class="nav-icon fas fa-user"></i>
+                            &nbsp;登入
+                        </a>
+                    }
+                </div>
+
+
+
+
+            </nav>
+            <!-- 小螢幕 -->
+            <nav class="navbar navbar-expand-sm sm-show">
+                <ul class="nav" style="width:100%">
+                    <li class="nav-item text-left" style="flex: 1; display: flex; justify-content: flex-start; align-items: center;">
+
+                        <button type="button" class="nav-link animated-link" style="color: var(--color2)" data-bs-toggle="modal" data-bs-target="#sidebar">
+                            <i class="fas fa-bars"></i> 選單
+                        </button>
+
+                    </li>
+                    <li class="nav-item text-center" style="flex: 1; display: flex; justify-content: center; align-items: center;">
+                        <!-- Brand Logo -->
+                        <a href="index" class="nav-item animated-link">
+                            <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;">
+                        </a>
+                    </li>
+                    <li class="nav-item text-right" style="flex: 1; display: flex; justify-content: flex-end; align-items: center;">
+                        <!-- Sidebar user panel (optional) -->
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <!-- User is authenticated, display the user's photo -->
+                            <div class="dropdown">
+                                <a class="dark dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <img src="@(user.Photo != null ? $"data:image/jpeg;base64,{Convert.ToBase64String(user.Photo)}" : "dist/img/user1-128x128.jpg")" alt="User Photo"
+                                         style="width: 32px; height: 32px; object-fit: cover; object-position: center;" class="imagePreview_img">
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
+                                    <a class="dropdown-item" href="UserEdit?id=@User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value">
+                                        <i class="fas fa-user-edit"></i> 編輯個人資料
+                                    </a>
+                                    <a class="dropdown-item" href="/Account/Logout">
+                                        <i class="fas fa-sign-out-alt"></i> 登出
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <a asp-page="/Account/Login" class="nav-link d-flex align-items-center" style="color: var(--color2)">
+                                <i class="nav-icon fas fa-user"></i>
+                            </a>
+                        }
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <div class="modal" id="sidebar" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">選單</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <nav class="mt-2">
+                            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                                <!-- Add icons to the links using the .nav-icon class with font-awesome or any other icon font library -->
+                                <li class="nav-item">
+                                    <a asp-page="Index" class="nav-link ">
+                                        <i class="nav-icon fas fa-home Text2 font-weight-bold"></i>
+                                        <p class="Text2 font-weight-bold">首頁</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item menu-open">
+                                    <a href="#" class="nav-link Text1">
+                                        <p class="Text1">
+                                            預約服務
+                                            <i class="right fas fa-angle-left"></i>
+                                        </p>
+                                    </a>
+                                    <ul class="nav nav-treeview">
+                                        <li class="nav-item">
+                                            <a asp-page="ProductList" class="nav-link">
+                                                <i class="fas fa-clipboard-list nav-icon Text2 icon-width"></i>
+                                                <span class="Text2">所有課程&服務</span>
+                                            </a>
+                                        </li>
+
+                                        <li class="nav-item">
+                                            <a asp-page="Order" class="nav-link">
+                                                <i class="fas fa-clipboard-check nav-icon Text2 icon-width"></i>
+                                                <span class="Text2">我的預約清單</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item menu-open">
+                                    <a href="#" class="nav-link">
+                                        <p class="Text1">
+                                            作品欣賞
+                                            <i class="right fas fa-angle-left"></i>
+                                        </p>
+                                    </a>
+                                    <ul class="nav nav-treeview">
+                                        <li class="nav-item">
+                                            <a href="@myData.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
+                                                <i class="fab fa-instagram nav-icon Text2 icon-width"></i>
+                                                <span class="Text2">作品集</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item menu-open">
+                                    <a href="#" class="nav-link">
+                                        <p class="Text1">
+                                            關於 @myData.Name_short
+                                            <i class="right fas fa-angle-left"></i>
+                                        </p>
+                                    </a>
+                                    <ul class="nav nav-treeview">
+                                        <li class="nav-item">
+                                            <a asp-page="about" class="nav-link">
+                                                <i class="far fa-address-card nav-icon Text2 icon-width"></i>
+                                                <span class="Text2">關於我們</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href="Index#place-section" class="nav-link">
+                                                <i class="fas fa-map-pin nav-icon Text2 icon-width"></i>
+                                                <span class="Text2">商家據點</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <Button onclick="showContactModal()" class="nav-link">
+                                                <i class="far fa-comment-dots nav-icon Text2 icon-width"></i>
+                                                <span class="Text2">聯絡我們</span>
+                                            </Button>
+                                        </li>
+                                    </ul>
+                                </li>
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    var userType = User.FindFirst("UserType")?.Value;
+                                    if (userType == "1" || userType == "2")
+                                    {
+                                        <li class="nav-item menu-open ">
+
+                                            <a href="#" class="nav-link ">
+                                                <i class="nav-icon fas fa-user-shield Text1"></i>
+                                                <p class="Text1">
+                                                    管理員專區
+                                                    <i class="right fas fa-angle-left"></i>
+                                                </p>
+
+                                            </a>
+                                            <ul class="nav nav-treeview">
+                                                <li class="nav-item">
+                                                    <a asp-page="UserList" class="nav-link">
+                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                        <span class="Text2">會員管理</span>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a asp-page="PlaceList_m" class="nav-link">
+                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                        <span class="Text2">店鋪管理</span>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a asp-page="ProductList_m" class="nav-link">
+                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                        <span class="Text2">產品管理</span>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a asp-page="OrdersetList_m" class="nav-link">
+                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                        <span class="Text2">預約單查詢</span>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a asp-page="Ordersetcalendar_m" class="nav-link">
+                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                        <span class="Text2">預約行事曆</span>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a asp-page="Report" class="nav-link">
+                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                        <span class="Text2">報表檢視</span>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a asp-page="BaseDataEdit" class="nav-link">
+                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
+                                                        <span class="Text2">網站設定</span>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <!-- You can add additional menu items here if needed -->
+                                }
+                            </ul>
+
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="modal fade" id="contactModal" tabindex="-1" role="dialog" aria-labelledby="contactModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;margin-right: 10px;">
+                        <h4 class="modal-title" id="contactModalLabel">@myData.Name</h4>
+
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-4 d-flex justify-content-center align-items-center">
+                                <a href="@myData.Line_Url" target="_blank">
+                                    <img src="\dist\img\Lineqrcode.png" alt="Line QR Code" width="150">
+                                </a>
+                            </div>
+                            <div class="col-md-8" style="padding-top:10px;">
+                                <!-- 這裡顯示 Orderset.Phone -->
+                                <div type="phone"><h5 class="modal-text"><i class="fas fa-phone"></i> @myData.Phone</h5></div>
+
+                                <!-- 這裡顯示 Orderset.Email -->
+                                <div type="text"><h5 class="modal-text"><i class="fab fa-line"></i> @myData.Line_Url</h5></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Wrapper. Contains page content -->
+        <div class="content-div" style="background-color:var(--color4)">
+
+            <!-- Main content -->
+            <div>
+                @RenderBody()
+                <div class="footer">
+                    <div class="footer-container">
+
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div>
+                                    <p class="footer-container-title">-</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div>
+                                    <p class="footer-container-title">About Us</p>
+                                    <ul class="v-stack gap-3" role="list">
+                                        <li><a href="/ProductList" class="inline-block link-faded break-all icon-a">服務預約</a></li>
+                                        <li><a href="/Order" class="inline-block link-faded break-all icon-a">查看我的預約</a></li>
+                                        <li><a href="/UserAdd" class="inline-block link-faded break-all icon-a">加入會員</a></li>
+                                        <li><a href="/about" class="inline-block link-faded break-all icon-a">關於我們</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div>
+                                    <p class="footer-container-title">Shop Info</p>
+                                    <ul class="v-stack gap-3" role="list">
+                                        <li><a href="/info1" class="inline-block link-faded break-all icon-a">防詐騙宣導</a></li>
+                                        <li><a href="/info2" class="inline-block link-faded break-all icon-a">隱私權保護</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div>
+                                    <p class="footer-container-title">EXPERIMENT FOR A FUTURE</p>
+                                    <div class="prose text-subdued">
+                                        <p>我們走在所有人的最前面，<br>擁有著不放棄也不退縮的精神。<br></p>
+                                        <p>我們不只是設計產品，<br>而是將自己想說的話融入產品。<br></p>
+                                        <p>Future Lab. "拉近與未來的距離"</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer__aside-top">
+                    <ul class="social-media" role="list">
+                        @if (myData.Fb_Url != null && myData.Fb_Url != "")
+                        {
+                            <li>
+                                <a href="@myData.Fb_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Facebook 上追蹤">
+                                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        }
+                        @if (myData.Ig_Url != null && myData.Ig_Url != "")
+                        {
+                            <li>
+                                <a href="@myData.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
+                                    <i class="fab fa-instagram" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        }
+                        @if (myData.Yt_Url != null && myData.Yt_Url != "")
+                        {
+                            <li>
+                                <a href="@myData.Yt_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 YouTube 上追蹤">
+                                    <i class="fab fa-youtube" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        }
+                        @if (myData.Tk_Url != null && myData.Tk_Url != "")
+                        {
+                            <li>
+                                <a href="@myData.Tk_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 TikTok 上追蹤">
+                                    <i class="fab fa-tiktok" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        }
+                        @if (myData.Line_Url != null && myData.Line_Url != "")
+                        {
+                            <li>
+                                <a href="@myData.Line_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 LINE 上追蹤">
+                                    <i class="fab fa-line" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+                <div class="footer__aside-bottom">
+                    <p class="footer__copyright text-sm text-subdued">© 2023, @myData.Name Inc. 由 SuperiorSeed 技術支援</p>
+                </div>
+
+            </div>
+            <!-- /.content -->
+        </div>
+
+        <!-- /.content-wrapper -->
+    </div>
+
+</body>
+<!-- ./wrapper -->
+<!-- REQUIRED SCRIPTS -->
+<!-- jQuery -->
+<script src="/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/dist/js/adminlte.min.js"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</html>

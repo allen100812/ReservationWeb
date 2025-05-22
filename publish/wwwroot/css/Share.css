@@ -1,0 +1,161 @@
+﻿/* 定義自定義變數 */
+:root {
+    --color1: rgb(50, 50, 50);
+    --color1_1: rgb(50, 50, 50,0.7);
+    --color2: rgb(255, 255, 255);
+    --color3: rgb(252, 110, 32);
+    --color3_2: rgb(250, 127, 60);
+    --color4: rgb(255, 231, 208);
+    --color_money: #17a2b8;
+}
+/* 自動換行 */
+.wrap-text {
+    white-space: pre-line; /* 允许换行，保留换行符 */
+    word-wrap: break-word; /* 在单词内部换行 */
+}
+.icon-width {
+    width: 1.2em; /* 一个字符宽度 */
+}
+/* 設定圓形大頭貼 */
+.imagePreview_div {
+    width: 200px;
+    height: 200px;
+    overflow: hidden;
+    border-radius: 50%;
+}
+/* 顯示圓形大頭貼 */
+.imagePreview_img {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.page-basetop {
+    margin-top: 70px; /* 顶部间距 */
+    min-height: 100vh;*/ /* 最小高度为视口的高度 */
+}
+.header_text {
+    text-align: center;
+    padding: 20px;
+    font-size: 28px; /* 使用vw单位来设置字体大小 */
+    margin: 0;
+    color: var(--color3);
+}
+.fx-tobig {
+    transition: transform 0.3s ease;
+}
+.fx-tobig:hover {
+    transform: scale(1.05);
+}
+
+
+/*漸變文字*/
+.text-gradient {
+    background-image: var(--gradient);
+    color: #0000;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+*, :before, :after {
+    box-sizing: border-box;
+    border-style: solid;
+    border-width: 0;
+    border-color: rgb(var(--text-color) / .12);
+}
+
+/*常用動畫區*/
+.animation-div {
+    overflow: hidden;
+    position: relative;
+}
+/*1.左插入*/
+.slideInRight {
+    position: relative;
+    animation: slideInRight 1s forwards;
+}
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+
+
+/* 默认情况下，.row1显示，.row2隐藏 */
+.row-group-b {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    display: block;
+}
+
+.row-group-s {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    display: none;
+}
+/* 在小屏幕下，.row1隐藏，.row2显示 */
+@media (max-width: 1366px) {
+    .row-group-b {
+        display: none;
+    }
+
+    .row-group-s {
+        display: block;
+    }
+}
+
+/* 在大屏幕上显示new-title和new-content */
+.big-show {
+    display: block;
+}
+
+.sm-show {
+    display: none;
+}
+/* 在小屏幕上隐藏new-content */
+@media (max-width: 1366px) {
+    .sm-show {
+        display: block;
+    }
+
+    .big-show {
+        display: none;
+    }
+}
+
+/*填寫表單的格式*/
+.alert-form-div table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.alert-form-div tr {
+    border-bottom: 1px solid #ccc;
+    padding: 20px;
+}
+
+.alert-form-div th {
+    color: var(--color3);
+    width: 30%;
+    padding: 10px;
+}
+
+.alert-form-div td {
+    color: var(--color3_2);
+    width: 70%;
+    padding: 10px;
+}
+
+
+
+
+

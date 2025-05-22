@@ -1,0 +1,17 @@
+{
+  "My": {
+    "Fb_Url":"",
+    "Ig_Url":"",
+    "Yt_Url":"",
+    "Tk_Url":"",
+    "Line_Url":"",
+
+    "Name_short":"",
+    "Name":"",
+    "Phone":"",
+    "Email":"",
+    "WebURL":"",
+    "public" :"",
+    "LineBotURL": ""
+  }
+}

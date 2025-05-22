@@ -1,0 +1,256 @@
+﻿@page
+@model Web0524.Pages.ReportModel
+@{
+}
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html lang="en">
+<head>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js" integrity="sha384-Rx+T1VzGupg4BHQYs2gCW9It+akI2MM/mndMCy36UVfodzcJcF0GGLxZIzObiEfa" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/compressorjs/1.0.7/compressor.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   
+
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美容工作室介紹</title>
+    <style>
+
+        .card-header {
+            text-align:center;
+        }
+        .card-body {
+            text-align: center;
+            padding: 35px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container page-basetop">
+
+
+        <iframe title="Report Section" width="800" height="636" src="https://app.powerbi.com/view?r=eyJrIjoiYzI3OTAzZDUtOGIzNi00ZWNkLWE0ZjUtMzQ4OGIyZTNhOWQ4IiwidCI6IjJhMmNiY2ZiLWI5NGQtNDU0OS1hN2IzLTZlMmE5YWUxYTFhMiIsImMiOjEwfQ%3D%3D" frameborder="0" allowFullScreen="true"></iframe>
+
+
+
+
+        <div class="card">
+            <div class="card-header">
+                <h4>年度銷售走勢</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="myLineChart" width="100%" height="100%"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <canvas id="myBarChart" width="100%" height="50%"></canvas>
+                            </div>
+                            <div class="col-md-12">
+                                <canvas id="myBarChart2" width="100%" height="50%"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JavaScript 部分 -->
+        <script>
+            // 從後端C#模型中獲取數據
+            var yearReports = @Html.Raw(Json.Serialize(Model.YearReports));
+            console.log(yearReports);
+            // 整理數據，以月份為標籤，計算每個月份的總數量
+            var dataByMonth = {};
+            yearReports.forEach(function (report) {
+                var month = report.month + '月'; // 在月份後面加上"月"
+                
+                if (!dataByMonth[month]) {
+                    dataByMonth[month] = 0;
+                }
+                dataByMonth[month] += report.num;
+            });
+            console.log(dataByMonth);
+            // 提取月份和總數量數據
+            var labels = Object.keys(dataByMonth);
+            var sumNumData = labels.map(function (label) {
+                return dataByMonth[label];
+            });
+            console.log(sumNumData);
+            // 獲取 canvas 元素的引用
+            var ctx = document.getElementById('myLineChart').getContext('2d');
+
+            // 創建折線圖
+            var myLineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '預約單量',
+                        data: sumNumData,
+                        borderColor: 'rgba(255, 165, 0, 0.5)', // 半透明橘色
+                        backgroundColor: 'rgba(255, 165, 0, 0.5)', // 半透明橘色的填充色
+                        borderWidth: 8 // 折線寬度加粗
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: false,
+                            },
+                            ticks: {
+                                font: {
+                                    size: 16 // 调整Y轴刻度字体大小
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true, // 显示Y轴标题
+                                text: '(預約量)', // 自定义Y轴标题的文本
+                                font: {
+                                    size: 16 // 调整Y轴标题字体大小
+                                }
+                            },
+                            grid: {
+                                display: false // 取消水平格线
+                            },
+                            ticks: {
+                                font: {
+                                    size: 16 // 调整Y轴刻度字体大小
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // 隱藏圖例
+                        }
+                    }
+                }
+            });
+        </script>
+
+        <script>
+            // 使用从后端传递的数据 yearReportsData
+            var rawData = @Html.Raw(Json.Serialize(Model.YearReports));
+
+            // 整理数据，以place为标签，计算每个place的总数量
+            var dataByPlace = {};
+            rawData.forEach(function (report) {
+                var place = report.place;
+                if (!dataByPlace[place]) {
+                    dataByPlace[place] = 0;
+                }
+                dataByPlace[place] += report.num;
+            });
+
+            // 提取place和总数量数据
+            var places = Object.keys(dataByPlace);
+            var sumNumData = places.map(function (place) {
+                return dataByPlace[place];
+            });
+
+            // 获取 canvas 元素的引用
+            var ctx = document.getElementById('myBarChart').getContext('2d');
+
+            // 创建长条图表
+            var myBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: places,
+                    datasets: [{
+                        label: '總數量',
+                        data: sumNumData,
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)', // 半透明粉红色
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // 隱藏圖例
+                        }
+                    }
+                }
+            });
+        </script>
+
+        <script>
+            // 使用从后端传递的数据 yearReportsData
+            var rawData = @Html.Raw(Json.Serialize(Model.YearReports));
+
+            // 整理数据，以place为标签，计算每个place的总数量
+            var dataByProduct = {};
+            rawData.forEach(function (report) {
+                var product = report.product;
+                if (!dataByProduct[product]) {
+                    dataByProduct[product] = 0;
+                }
+                dataByProduct[product] += report.num;
+            });
+
+            // 提取place和总数量数据
+            var products = Object.keys(dataByProduct);
+            var sumNumData = products.map(function (product) {
+                return dataByProduct[product];
+            });
+
+            // 获取 canvas 元素的引用
+            var ctx = document.getElementById('myBarChart2').getContext('2d');
+
+            // 创建长条图表
+            var myBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: products,
+                    datasets: [{
+                        label: '總數量',
+                        data: sumNumData,
+                        backgroundColor: 'rgba(0, 128, 0, 0.5)', // 半透明绿色
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // 隱藏圖例
+                        }
+                    }
+                }
+            });
+        </script>
+    </div>
+
+
+</body>
+</html>
