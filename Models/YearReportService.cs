@@ -22,13 +22,13 @@ namespace Web0524.Models
         }
         public IEnumerable<YearReport> GetYearReport_MonthSaleSumForm(string year)
         {
-            var sql = "select month(Date) as 'Month',count(*) as 'Num' from OrdersetTB Where year(Date) = @Year Group by month(Date) order by month(Date)";
+            var sql = "select month(Date) as 'Month',count(*) as 'Num' from OrderTB Where year(Date) = @Year Group by month(Date) order by month(Date)";
 
             return _dbConnection.Query<YearReport>(sql, new { Year = year });
         }
         public IEnumerable<YearReport> GetYearReport(string year)
         {
-            var sql = "select month(Date) as 'Month',b.Placetitle as 'Place',c.Name as 'Product',count(*) as 'Num' from OrdersetTB a ";
+            var sql = "select month(Date) as 'Month',b.Placetitle as 'Place',c.Name as 'Product',count(*) as 'Num' from OrderTB a ";
             sql = sql + " left join PlaceTB b on a.Placeid=b.Placeid left join ProductTB c on a.Pid=c.Pid";
             sql = sql + " Where year(Date) = @Year";
             sql = sql + " Group by b.Placetitle,month(Date),c.Name ";

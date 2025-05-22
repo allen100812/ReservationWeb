@@ -64,7 +64,7 @@ builder.Services.AddSingleton<IReservationService, ReservationService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IOrdersetService, OrdersetService>();
+builder.Services.AddScoped<IOrderService, orderService>();
 builder.Services.AddScoped<IPgroupService, PgroupService>();
 builder.Services.AddScoped<IPlaceService, PlaceService>();
 builder.Services.AddScoped<IYearReportService, YearReportService>();

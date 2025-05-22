@@ -73,7 +73,7 @@ namespace Web0524.Models
         {
             //檢測是否有重複帳號
             Product Product_temp = GetProductByName(Product.Name);
-            if (Product_temp == null || Product_temp.Pid == Product.Pid)
+            if (Product_temp == null || Product_temp.ProductId == Product.ProductId)
             {
                 var sql = "UPDATE ProductTB SET Name = @Name, Price = @Price,Unit=@Unit,Content=@Content,Photo=@Photo,OrderSw=@OrderSw,Pgid=@Pgid,Event=@Event,Porder=@Porder,SpendTime=@SpendTime WHERE Pid = @Pid";
                 var affectedRows = _dbConnection.Execute(sql, Product);

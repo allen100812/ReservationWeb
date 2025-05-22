@@ -59,15 +59,15 @@ namespace Web0524.Pages
             DateTime today = DateTime.Today;
 
             // 模擬設計師與服務
-            var designer = new Reservation_Designer
+            var designer = new Designer
             {
                 DesignerId = designerId,
                 Name = "設計師小美",
-                ScheduleRules = new List<Reservation_ScheduleRule>
+                ScheduleRules = new List<Designer_ProductScheduleRule>
         {
-            new Reservation_ScheduleRule { ServiceId = 1, DurationMinutes = 60, MaxCustomers = 1 },
-            new Reservation_ScheduleRule { ServiceId = 2, DurationMinutes = 40, MaxCustomers = 2 },
-            new Reservation_ScheduleRule { ServiceId = 3, DurationMinutes = 20, MaxCustomers = 1 },
+            new Designer_ProductScheduleRule { ProductId = 1, DurationMinutes = 60, MaxCustomers = 1 },
+            new Designer_ProductScheduleRule { ProductId = 2, DurationMinutes = 40, MaxCustomers = 2 },
+            new Designer_ProductScheduleRule { ProductId = 3, DurationMinutes = 20, MaxCustomers = 1 },
         },
                 FixedHolidays = new List<DateTime>
         {
@@ -81,21 +81,21 @@ namespace Web0524.Pages
 
             // 模擬預約（含可重複時段）
             _reservationService.Orders.Clear();
-            _reservationService.Orders.AddRange(new List<Reservation_Order>
+            _reservationService.Orders.AddRange(new List<Order>
     {
-        new Reservation_Order
+        new Order
         {
             OrderId = 1,
             DesignerId = designerId,
-            ServiceId = 1,
+            ProductId = 1,
             ReservationDateTime = today.AddHours(15),
             Status = OrderStatus.Confirmed
         },
-        new Reservation_Order
+        new Order
         {
             OrderId = 2,
             DesignerId = designerId,
-            ServiceId = 2,
+            ProductId = 2,
             ReservationDateTime = today.AddHours(16).AddMinutes(20),
             Status = OrderStatus.Confirmed
         }
@@ -128,14 +128,14 @@ namespace Web0524.Pages
                 .Where(o => o.DesignerId == designerId && o.ReservationDateTime.Date == today && o.Status != OrderStatus.Cancelled)
                 .OrderBy(o => o.ReservationDateTime))
             {
-                var rule = designer.ScheduleRules.First(r => r.ServiceId == o.ServiceId);
+                var rule = designer.ScheduleRules.First(r => r.ProductId == o.ProductId);
                 string timeRange = $"{o.ReservationDateTime:HH:mm} ~ {o.ReservationDateTime.AddMinutes(rule.DurationMinutes):HH:mm}";
-                string serviceName = o.ServiceId switch
+                string serviceName = o.ProductId switch
                 {
                     1 => "A",
                     2 => "B",
                     3 => "C",
-                    _ => $"服務{o.ServiceId}"
+                    _ => $"服務{o.ProductId}"
                 };
                 ReservationTestResult += $"- {timeRange} 服務：{serviceName}\n";
             }
@@ -146,7 +146,7 @@ namespace Web0524.Pages
             foreach (var slot in serviceSlots)
             {
                 string timeStr = slot.StartTime.ToString("HH:mm");
-                string serviceStr = string.Join(", ", slot.AvailableServiceIds.Select(id =>
+                string serviceStr = string.Join(", ", slot.AvailableProductIds.Select(id =>
                 {
                     return id switch
                     {
