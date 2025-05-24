@@ -9,25 +9,58 @@ namespace Web0524.Models
     public interface IOrderService
     {
 
-        int AddOrder(Order order);
+        int CreateOrder(Order order);
+
+        // 更新訂單
         bool UpdateOrder(Order order);
-        bool UpdateOrderEvent(string sid, string Event);
-        bool DeleteOrder(string Sid);
-        bool UpdateExpired();
-        Order GetOrderById(string Sid);
 
-        int GetOrderByPlaceCount(string Placeid);
-        IEnumerable<Order> GetOrderByDate(DateTime Date,string Sid);
+        // 刪除訂單（依 ID）
+        bool DeleteOrder(int orderId);
 
-        IEnumerable<Order> GetOrderInDate(DateTime DateStart, DateTime DateEnd, string Sid);
-        IEnumerable<Order> GetOrderByPid(string Pid);
-        IEnumerable<Order> GetOrderByUid(string Uid);
+        // 取得所有訂單
+        IEnumerable<Order> GetAllOrders();
 
-        int GetOrderByUidCountToday(string Uid, DateTime NowTime);
+        // 依訂單 ID 查詢
+        Order GetOrderById(int orderId);
 
-        bool GetOrderByUidInMinute(string Uid, DateTime NowTime);
-        IEnumerable<Order> GetOrderByKey(string key);
-        IEnumerable<Order> GetOrderTB();
+        // 依用戶 ID 查詢所有訂單
+        IEnumerable<Order> GetOrdersByUser(string uid);
+
+        // 依設計師 ID 查詢所有訂單
+        IEnumerable<Order> GetOrdersByDesigner(int designerId);
+
+        // 依產品 ID 查詢所有訂單
+        IEnumerable<Order> GetOrdersByProduct(int productId);
+
+        // 依狀態查詢
+        IEnumerable<Order> GetOrdersByStatus(OrderStatus status);
+
+        // 依時間區間查詢（預約時間）
+        IEnumerable<Order> GetOrdersByReservationRange(DateTime start, DateTime end);
+
+        // 依下單時間區間查詢
+        IEnumerable<Order> GetOrdersByOrderDateRange(DateTime start, DateTime end);
+
+        // 統計：某位設計師某天的預約筆數
+        int CountReservationsByDesignerAndDate(int designerId, DateTime date);
+
+        // 統計：每日總預約數（可用於月曆檢視）
+        Dictionary<DateTime, int> GetDailyReservationCount(DateTime start, DateTime end);
+
+        // 統計：總營收（可篩選日期區間）
+        double GetTotalRevenue(DateTime? start = null, DateTime? end = null);
+
+        // 變更訂單狀態
+        bool ChangeOrderStatus(int orderId, OrderStatus newStatus);
+
+        // 設定訂單備註
+        bool UpdateOrderRemark(int orderId, string remark);
+
+        // 驗證是否已存在某用戶在某時間的預約
+        bool HasUserReservation(string uid, DateTime reservationDateTime);
+
+        // 驗證某設計師在該時間是否已有預約
+        bool IsDesignerAvailable(int designerId, DateTime reservationDateTime);
     }
     public class orderService: IOrderService
     {
@@ -36,119 +69,133 @@ namespace Web0524.Models
         {
             _dbConnection = dbConnection;
         }
-        public Order GetOrderById(string Sid)
+        public int CreateOrder(Order order)
         {
-            var sql = "SELECT a.Sid, a.Pid, b.Photo AS Photo, b.Name AS Pname, c.Phone, c.Line, c.Email, b.Price, ISNULL(b.Unit, '') AS Unit, a.Date, a.Time, a.Event AS Event, ISNULL(c.id, '') AS Uid, ISNULL(c.Name, '無') AS Uname, a.Placeid,a.Orderdate FROM OrderTB a";
-            sql = sql + " LEFT JOIN ProductTB b ON a.Pid = b.Pid";
-            sql = sql + " LEFT JOIN UserTB c ON a.id = c.id";
-            sql = sql + " WHERE a.Sid = @Sid";
-            return _dbConnection.QueryFirstOrDefault<Order>(sql, new { Sid = Sid });
-
-        }
-        public int GetOrderByPlaceCount(string Placeid)
-        {
-            var sql = "SELECT count(*) FROM OrderTB where Placeid=@Placeid";
-            return _dbConnection.QueryFirstOrDefault<int>(sql, new { Placeid = Placeid });
-
-        }
-        public IEnumerable<Order> GetOrderByDate(DateTime Date,string Sid)
-        {
-            string DateStr = Date.ToString("yyyy-MM-dd");
-            var sql = "SELECT a.Sid, a.Pid, b.Photo AS Photo, b.Name AS Pname, b.SpendTime as SpendTime, c.Phone AS phone, c.Line, c.Email, b.Price, ISNULL(b.Unit, '') AS Unit, a.Date, a.Time, a.Event AS Event, ISNULL(c.id, '') AS Uid, ISNULL(c.Name, '無') AS Uname, a.Placeid,a.Orderdate FROM OrderTB a";
-            sql = sql + " LEFT JOIN ProductTB b ON a.Pid = b.Pid";
-            sql = sql + " LEFT JOIN UserTB c ON a.id = c.id";
-            sql = sql + " WHERE a.Date = @DateStr AND a.Sid <> @Sid";
-            return _dbConnection.Query<Order>(sql, new { DateStr = DateStr, Sid = Sid });
-        }
-        public IEnumerable<Order> GetOrderInDate(DateTime DateStart, DateTime DateEnd, string Sid)
-        {
-            string DateStrStart = DateStart.ToString("yyyy-MM-dd");
-            string DateStrEnd = DateEnd.ToString("yyyy-MM-dd");
-            var sql = "SELECT a.Sid, a.Pid, b.Photo AS Photo, b.Name AS Pname, b.SpendTime as SpendTime, c.Phone AS phone, c.Line, c.Email, b.Price, ISNULL(b.Unit, '') AS Unit, a.Date, a.Time, a.Event AS Event, ISNULL(c.id, '') AS Uid, ISNULL(c.Name, '無') AS Uname, a.Placeid,a.Orderdate FROM OrderTB a";
-            sql = sql + " LEFT JOIN ProductTB b ON a.Pid = b.Pid";
-            sql = sql + " LEFT JOIN UserTB c ON a.id = c.id";
-            sql = sql + " WHERE a.Date BETWEEN @DateStrStart AND @DateStrEnd AND a.Sid <> @Sid";
-            return _dbConnection.Query<Order>(sql, new { DateStrStart = DateStrStart, DateStrEnd = DateStrEnd, Sid = Sid });
-        }
-        public IEnumerable<Order> GetOrderByPid(string Pid)
-        {
-            var sql = "Select a.Sid,a.Pid,b.Photo as Photo,b.Name as Pname, b.SpendTime as SpendTime,c.Phone,c.Line,c.Email,b.Price,Isnull(b.Unit,'') as Unit,a.Date,a.Time,a.Event as Event,isnull(c.id,'') as Uid,isnull(c.Name,'無') as Uname a.Placeid,a.Orderdate From OrderTB a";
-            sql = sql + " Left Join ProductTB b on a.Pid=b.Pid ";
-            sql = sql + " Left Join UserTB c on a.id=c.id ";
-            sql = sql + " WHERE Pid = @Pid";
-            return _dbConnection.Query<Order>(sql, new { Pid = Pid });
-        }
-        public IEnumerable<Order> GetOrderByUid(string Uid)
-        {
-            var sql = "SELECT a.Sid, a.Pid, b.Photo AS Photo, b.Name AS Pname, b.SpendTime as SpendTime, c.Phone, c.Line, c.Email, b.Price, ISNULL(b.Unit, '') AS Unit, a.Date, a.Time, a.Event AS Event, ISNULL(c.Id, '') AS Uid, ISNULL(c.Name, '無') AS Uname, a.Placeid,a.Orderdate FROM OrderTB a";
-            sql = sql + " LEFT JOIN ProductTB b ON a.Pid = b.Pid";
-            sql = sql + " LEFT JOIN UserTB c ON a.Id = c.Id";
-            sql = sql + " WHERE a.Id = @Uid";
-            return _dbConnection.Query<Order>(sql, new { Uid = Uid });
-        }
-        public int GetOrderByUidCountToday(string Uid, DateTime NowTime)
-        {
-            string NowTimeStr = NowTime.ToString("yyyy/MM/dd");
-            var sql = "SELECT count(*) FROM OrderTB Where id=@Uid and FORMAT(Orderdate, 'yyyy/MM/dd')=@NowTimeStr";
-            var count = _dbConnection.ExecuteScalar<int>(sql, new { Uid = Uid, NowTimeStr = NowTimeStr });
-            return count;
-        }
-        public IEnumerable<Order> GetOrderByKey(string key)
-        {
-            var sql = "Select a.Sid,a.Pid,b.Photo as Photo,b.Name as Pname, b.SpendTime as SpendTime,c.Phone,c.Line,c.Email,b.Price,Isnull(b.Unit,'') as Unit,a.Date,a.Time,a.Event as Event,isnull(c.id,'') as Uid,isnull(c.Name,'無') as Uname ,a.Placeid,a.Orderdate From OrderTB a";
-            sql = sql + " Left Join ProductTB b on a.Pid=b.Pid ";
-            sql = sql + " Left Join UserTB c on a.id=c.id ";
-            sql += " WHERE CONCAT('S' + RIGHT('000000' + CAST(a.Sid AS VARCHAR(6)), 6),b.Name, FORMAT(a.Date, 'yyyy/M/d'), FORMAT(a.Time, 'H:m'), (CASE a.Event WHEN 0 THEN '待接受' WHEN 1 THEN '已接受' WHEN 9 THEN '已取消' WHEN 10 THEN '未接受' WHEN 11 THEN '已完成' WHEN 19 THEN '已取消' END), ISNULL(c.Name, '無')) LIKE CONCAT('%', @Key, '%')";
-            return _dbConnection.Query<Order>(sql, new { Key = key });
-        }
-        public IEnumerable<Order> GetOrderTB()
-        {
-            var sql = "SELECT a.Sid, a.Pid, b.Photo AS Photo, b.Name AS Pname, b.SpendTime as SpendTime, c.Phone, c.Line, c.Email, b.Price, ISNULL(b.Unit, '') AS Unit, a.Date, a.Time, a.Event AS Event, ISNULL(c.id, '') AS Uid, ISNULL(c.Name, '無') AS Uname, a.Placeid,a.Orderdate FROM OrderTB a";
-            sql = sql + " LEFT JOIN ProductTB b ON a.Pid = b.Pid";
-            sql = sql + " LEFT JOIN UserTB c ON a.id = c.id";
-            return _dbConnection.Query<Order>(sql);
-
+            var sql = @"
+            INSERT INTO OrderTB (Status, DesignerId, ProductId, Price, PaymentMethod, ReservationDateTime, Uid, Remark, Orderdate)
+            VALUES (@Status, @DesignerId, @ProductId, @Price, @PaymentMethod, @ReservationDateTime, @Uid, @Remark, @Orderdate)";
+            return _dbConnection.Execute(sql, order);
         }
 
-        public bool GetOrderByUidInMinute(string Uid,DateTime NowTime)
-        {
-            string NowTimeStr = NowTime.ToString("yyyy/MM/dd HH:mm");
-            var sql = "SELECT count(*) FROM OrderTB Where id=@Uid and FORMAT(Orderdate, 'yyyy/MM/dd HH:mm')=@NowTimeStr";
-            var count = _dbConnection.ExecuteScalar<int>(sql, new { Uid = Uid, NowTimeStr = NowTimeStr });
-            return count > 0;
-        }
-        public int AddOrder(Order order)
-        {
-            var sql = "INSERT INTO OrderTB (Pid, Date, Time, Event, id, Placeid, Orderdate) VALUES (@Pid, @Date, @Time, 0, @Uid, @Placeid, (SELECT CONVERT(DATETIMEOFFSET, SYSDATETIMEOFFSET() AT TIME ZONE 'Taipei Standard Time'))); SELECT CAST(SCOPE_IDENTITY() as int);";
-            var insertedId = _dbConnection.ExecuteScalar<int>(sql, order);
-            return insertedId;
-        }
         public bool UpdateOrder(Order order)
         {
-            var sql = "UPDATE OrderTB SET Pid=@Pid,Date=@Date,Time=@Time,Event=@Event,id=@id,Placeid=@Placeid WHERE Sid = @Sid";
-            var affectedRows = _dbConnection.Execute(sql, order);
-            return affectedRows > 0;
+            var sql = @"
+            UPDATE OrderTB
+            SET Status = @Status,
+                DesignerId = @DesignerId,
+                ProductId = @ProductId,
+                Price = @Price,
+                PaymentMethod = @PaymentMethod,
+                ReservationDateTime = @ReservationDateTime,
+                Uid = @Uid,
+                Remark = @Remark,
+                Orderdate = @Orderdate
+            WHERE OrderId = @OrderId";
+            return _dbConnection.Execute(sql, order) > 0;
         }
-        public bool UpdateOrderEvent(string sid,string Event)
+
+        public bool DeleteOrder(int orderId)
         {
-            var sql = "UPDATE OrderTB set Event=@Event WHERE Sid = @Sid";
-            var parameters = new { Event = Event, Sid = sid };
-            var affectedRows = _dbConnection.Execute(sql, parameters);
-            return affectedRows > 0;
+            var sql = "DELETE FROM OrderTB WHERE OrderId = @OrderId";
+            return _dbConnection.Execute(sql, new { OrderId = orderId }) > 0;
         }
-        public bool DeleteOrder(string Sid)
+
+        public IEnumerable<Order> GetAllOrders()
         {
-            var sql = "DELETE FROM OrderTB WHERE Sid= @Sid";
-            var affectedRows = _dbConnection.Execute(sql, new { Sid = Sid });
-            return affectedRows > 0;
+            var sql = "SELECT * FROM OrderTB";
+            return _dbConnection.Query<Order>(sql);
         }
-        public bool UpdateExpired()
+
+        public Order GetOrderById(int orderId)
         {
-            var sql = "update  OrderTB set [Event] = 10 Where Date < DATEADD(DAY, DATEDIFF(DAY, 0, dateadd(hh,8,getdate())), '00:00') and Event = 0";
-            sql = sql+ " update  OrderTB set [Event] = 11 Where Date < DATEADD(DAY, DATEDIFF(DAY, 0, dateadd(hh,8,getdate())), '00:00') and Event = 1 ";
-            sql = sql + " update  OrderTB set [Event] = 19 Where Date < DATEADD(DAY, DATEDIFF(DAY, 0, dateadd(hh,8,getdate())), '00:00') and Event = 9 ";
-            var affectedRows = _dbConnection.Execute(sql);
-            return affectedRows > 0;
+            var sql = "SELECT * FROM OrderTB WHERE OrderId = @OrderId";
+            return _dbConnection.QueryFirstOrDefault<Order>(sql, new { OrderId = orderId });
+        }
+
+        public IEnumerable<Order> GetOrdersByUser(string uid)
+        {
+            var sql = "SELECT * FROM OrderTB WHERE Uid = @Uid";
+            return _dbConnection.Query<Order>(sql, new { Uid = uid });
+        }
+
+        public IEnumerable<Order> GetOrdersByDesigner(int designerId)
+        {
+            var sql = "SELECT * FROM OrderTB WHERE DesignerId = @DesignerId";
+            return _dbConnection.Query<Order>(sql, new { DesignerId = designerId });
+        }
+
+        public IEnumerable<Order> GetOrdersByProduct(int productId)
+        {
+            var sql = "SELECT * FROM OrderTB WHERE ProductId = @ProductId";
+            return _dbConnection.Query<Order>(sql, new { ProductId = productId });
+        }
+
+        public IEnumerable<Order> GetOrdersByStatus(OrderStatus status)
+        {
+            var sql = "SELECT * FROM OrderTB WHERE Status = @Status";
+            return _dbConnection.Query<Order>(sql, new { Status = status });
+        }
+
+        public IEnumerable<Order> GetOrdersByReservationRange(DateTime start, DateTime end)
+        {
+            var sql = "SELECT * FROM OrderTB WHERE ReservationDateTime BETWEEN @Start AND @End";
+            return _dbConnection.Query<Order>(sql, new { Start = start, End = end });
+        }
+
+        public IEnumerable<Order> GetOrdersByOrderDateRange(DateTime start, DateTime end)
+        {
+            var sql = "SELECT * FROM OrderTB WHERE Orderdate BETWEEN @Start AND @End";
+            return _dbConnection.Query<Order>(sql, new { Start = start, End = end });
+        }
+
+        public int CountReservationsByDesignerAndDate(int designerId, DateTime date)
+        {
+            var sql = "SELECT COUNT(*) FROM OrderTB WHERE DesignerId = @DesignerId AND CAST(ReservationDateTime AS DATE) = @Date";
+            return _dbConnection.ExecuteScalar<int>(sql, new { DesignerId = designerId, Date = date.Date });
+        }
+
+        public Dictionary<DateTime, int> GetDailyReservationCount(DateTime start, DateTime end)
+        {
+            var sql = @"
+            SELECT CAST(ReservationDateTime AS DATE) AS Date, COUNT(*) AS Count
+            FROM OrderTB
+            WHERE ReservationDateTime BETWEEN @Start AND @End
+            GROUP BY CAST(ReservationDateTime AS DATE)";
+            return _dbConnection.Query(sql, new { Start = start, End = end })
+                .ToDictionary(row => (DateTime)row.Date, row => (int)row.Count);
+        }
+
+        public double GetTotalRevenue(DateTime? start = null, DateTime? end = null)
+        {
+            string sql = "SELECT SUM(Price) FROM OrderTB WHERE 1=1";
+            if (start.HasValue && end.HasValue)
+                sql += " AND Orderdate BETWEEN @Start AND @End";
+
+            return _dbConnection.ExecuteScalar<double>(sql, new { Start = start, End = end });
+        }
+
+        public bool ChangeOrderStatus(int orderId, OrderStatus newStatus)
+        {
+            var sql = "UPDATE OrderTB SET Status = @Status WHERE OrderId = @OrderId";
+            return _dbConnection.Execute(sql, new { OrderId = orderId, Status = newStatus }) > 0;
+        }
+
+        public bool UpdateOrderRemark(int orderId, string remark)
+        {
+            var sql = "UPDATE OrderTB SET Remark = @Remark WHERE OrderId = @OrderId";
+            return _dbConnection.Execute(sql, new { OrderId = orderId, Remark = remark }) > 0;
+        }
+
+        public bool HasUserReservation(string uid, DateTime reservationDateTime)
+        {
+            var sql = "SELECT COUNT(*) FROM OrderTB WHERE Uid = @Uid AND ReservationDateTime = @ReservationDateTime";
+            return _dbConnection.ExecuteScalar<int>(sql, new { Uid = uid, ReservationDateTime = reservationDateTime }) > 0;
+        }
+
+        public bool IsDesignerAvailable(int designerId, DateTime reservationDateTime)
+        {
+            var sql = "SELECT COUNT(*) FROM OrderTB WHERE DesignerId = @DesignerId AND ReservationDateTime = @ReservationDateTime";
+            return _dbConnection.ExecuteScalar<int>(sql, new { DesignerId = designerId, ReservationDateTime = reservationDateTime }) == 0;
         }
     }
 }

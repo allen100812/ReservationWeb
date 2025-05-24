@@ -6,34 +6,41 @@ namespace Web0524.Models
 {
     public class Order
     {
-        public int? OrderId { get; set; } //原本的public int OrderId { get; set; }
-        public OrderStatus Status { get; set; } = OrderStatus.Pending; //訂單狀態
-        public int DesignerId { get; set; } //設計師名稱
+        [Required(ErrorMessage = "未提供訂單編號")]
+        public int OrderId { get; set; }
 
-        [Required(ErrorMessage = "為選擇產品")]
+        [Required(ErrorMessage = "未設定訂單狀態")]
+        public OrderStatus Status { get; set; }
+
+        [Required(ErrorMessage = "未選擇設計師")]
+        public int DesignerId { get; set; }
+
+        [Required(ErrorMessage = "未選擇產品")]
         [DataType(DataType.Text)]
-        public int? ProductId { get; set; } //原本的public int ServiceId { get; set; } //服務項目
+        public int ProductId { get; set; }
 
-        [BindNever] // 設定 Photo 屬性在模型繫結時不會受到影響
-        //public byte[] Photo { get; set; }
-        public string? Pname { get; set; }
-        public double? Price { get; set; }
-        public string? Unit { get; set; }
-        [Required(ErrorMessage = "未選擇日期")]
+        [Required(ErrorMessage = "未設定金額")]
+        [DataType(DataType.Currency)]
+        public double Price { get; set; }
+
+        [Required(ErrorMessage = "未設定支付模式")]
+        [DataType(DataType.Currency)]
+        public int PaymentMethod { get; set; }
+
+        [Required(ErrorMessage = "未選擇預約日期")]
+        [DataType(DataType.Date)]
+        public DateTime ReservationDateTime { get; set; }
+
+        [Required(ErrorMessage = "未指定用戶")]
         [DataType(DataType.Text)]
-        public DateTime ReservationDateTime { get; set; } //原本的public DateTime ReservationDateTime { get; set; } //預約時間
-        [Required(ErrorMessage = "未選擇時間")]
-        [DataType(DataType.Text)]
-        //public TimeSpan? Time { get; set; }
-        //public string? Event { get; set; }
-        public string? Uid { get; set; }
-        public string? Remark { get; set; }
-        public DateTime? Orderdate { get; set; }
+        public string Uid { get; set; } 
 
-        public string? CustomerReviews { get; set; } //客戶反饋
-        
-        public string? Source { get; set; } //預約來源
+        [DataType(DataType.MultilineText)]
+        public string Remark { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "下單時間不正確")]
+        [DataType(DataType.DateTime)]
+        public DateTime Orderdate { get; set; }
     }
     public enum OrderStatus
     {

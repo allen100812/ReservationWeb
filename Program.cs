@@ -9,6 +9,7 @@ using System.Data;
 using System.Diagnostics;
 using Web0524.Models;
 using Web0524.Controllers;
+using Microsoft.Extensions.DependencyInjection;
 
 
 
@@ -59,9 +60,7 @@ builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(configuration.GetConnectionString("WebDB")));
 
 
-builder.Services.AddSingleton<IReservationService, ReservationService>();
-
-
+builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, orderService>();

@@ -5,12 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Web0524.Models;
 using static Web0524.Models.Marketing;
-using static Web0524.Models.Report;
-
-using static Web0524.Models.Reservation;
-
-
-
 namespace Web0524.Models
 {
 
@@ -44,8 +38,6 @@ namespace Web0524.Models
         List<(string serviceOrDesigner, double cancelRate)> GetCancelRateReport();
         // 熱門時段：分析每天哪個時段預約最多
         List<(string hour, int count)> GetPeakHours();
-        // 預約來源：如 LINE、網站、自動推薦等
-        List<(string source, int count)> GetOrderSources();
 
         // 各優惠券的發放數與使用率統計
         List<(string code, int totalIssued, int usedCount)> GetCouponUsageStats();
@@ -105,7 +97,7 @@ namespace Web0524.Models
                     Year = year,
                     Month = month,
                     OrderCount = Orders.Count(o => o.ReservationDateTime.Year == year && o.ReservationDateTime.Month == month),
-                    TotalRevenue = Orders.Where(o => o.ReservationDateTime.Year == year && o.ReservationDateTime.Month == month).Sum(o => o.Price).Value
+                    TotalRevenue = Orders.Where(o => o.ReservationDateTime.Year == year && o.ReservationDateTime.Month == month).Sum(o => o.Price)
                 }).ToList();
         }
 
@@ -144,7 +136,7 @@ namespace Web0524.Models
                     {
                         DesignerName = designerName,
                         OrderCount = g.Count(),
-                        TotalRevenue = g.Sum(o => o.Price).Value
+                        TotalRevenue = g.Sum(o => o.Price)
                     };
                 }).ToList();
         }
@@ -225,16 +217,6 @@ namespace Web0524.Models
                 .ToList();
         }
 
-        // 預約來源：如 LINE、網站、自動推薦等
-        public List<(string source, int count)> GetOrderSources()
-        {
-            return Orders
-                .GroupBy(o => o.Source ?? "未知")
-                .Select(g => (Source: g.Key, Count: g.Count()))
-                .OrderByDescending(g => g.Count)
-                .ToList();
-        }
-
         // 各優惠券的發放數與使用率統計
         public List<(string code, int totalIssued, int usedCount)> GetCouponUsageStats()
         {
@@ -250,13 +232,14 @@ namespace Web0524.Models
         // 單月營收總額
         public double GetMonthlyRevenue(int year, int month) =>
             Orders.Where(o => o.ReservationDateTime.Year == year && o.ReservationDateTime.Month == month)
-                  .Sum(o => o.Price).Value;
+                  .Sum(o => o.Price);
 
         // 顧客終身價值（LTV）：累積消費金額
         public List<(string uid, double ltv)> GetUserLTV() =>
             Orders.GroupBy(o => o.Uid)
-                .Select(g => (g.Key, Total: g.Sum(o => o.Price.Value)))
-                .ToList();
+                  .Select(g => (uid: g.Key, ltv: g.Sum(o => o.Price)))
+                  .ToList();
+
 
         // 流失會員清單：在指定天數內無預約者
         public List<User> GetInactiveMembers(int inactiveDays)

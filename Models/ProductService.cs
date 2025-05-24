@@ -8,20 +8,56 @@ namespace Web0524.Models
 {
     public interface IProductService
     {
-        bool AddProduct(Product product);
+        // 新增產品
+        int CreateProduct(Product product);
+
+        // 更新產品
         bool UpdateProduct(Product product);
-        bool UpdateProductOrderSw(int pid, int orderSw);
-        bool UpdateProductOrderPlaceid(int pid, string placeid);
 
-        bool UpdateProductGroup(int pid, int pgid);
-        bool DeleteProduct(string Pid);
-        
-        Product GetProductById(string Pid);
-        Product GetProductByName(string Pname);
-        IEnumerable<Product> GetProductTB();
+        // 刪除產品（依編號）
+        bool DeleteProduct(int productId);
 
-        IEnumerable<Product> GetProductTB_PlaceNotNull();
-        IEnumerable<Product> GetProductByPgid(string Pgid);
+        // 取得所有產品
+        IEnumerable<Product> GetAllProducts();
+
+        // 依產品編號取得單筆資料
+        Product GetProductById(int productId);
+
+        // 依產品名稱模糊搜尋
+        IEnumerable<Product> SearchProductsByName(string keyword);
+
+        // 依產品群組查詢
+        IEnumerable<Product> GetProductsByGroup(int pgid);
+
+        // 依產品狀態查詢（啟用中 / 停用）
+        IEnumerable<Product> GetProductsByState(int productState);
+
+        // 設定產品狀態（上架、下架）
+        bool ChangeProductState(int productId, int newState);
+
+        // 設定產品排序代碼（ProductOrder）
+        bool UpdateProductOrder(int productId, string productOrder);
+
+        // 驗證產品名稱是否重複（用於新增/編輯）
+        bool IsProductNameDuplicate(string productName, int? excludeProductId = null);
+
+        // 取得推薦產品（價格最高前 N 筆 / 狀態為啟用）
+        IEnumerable<Product> GetTopProductsByPrice(int topN);
+
+        // 統計：產品總數
+        int CountAllProducts();
+
+        // 統計：各群組產品數量
+        Dictionary<int, int> GetProductCountByGroup();
+
+        // 批次更新產品狀態
+        int BulkUpdateProductState(List<int> productIds, int newState);
+
+        // 批次刪除產品
+        int BulkDeleteProducts(List<int> productIds);
+
+        //還原產品
+        bool RestoreProduct(int productId);
     }
     public class ProductService: IProductService
     {
@@ -30,87 +66,123 @@ namespace Web0524.Models
         {
             _dbConnection = dbConnection;
         }
-        public Product GetProductById(string Pid)
+        public int CreateProduct(Product product)
         {
-            var sql = "SELECT a.*,b.pgname,b.pgcontent,b.pgorder FROM ProductTB a left join PgroupTB b on a.Pgid=b.Pgid WHERE Pid = @Pid";
-            return _dbConnection.QueryFirstOrDefault<Product>(sql, new { Pid = Pid });
+            var sql = @"
+            INSERT INTO ProductTB (PGid, ProductState, Name, Price, Content, Photo, ProductOrder, IsDeleted)
+            VALUES (@PGid, @ProductState, @Name, @Price, @Content, @Photo, @ProductOrder, 0);
+            SELECT CAST(SCOPE_IDENTITY() AS INT);";
+            return _dbConnection.ExecuteScalar<int>(sql, product);
         }
-        public Product GetProductByName(string name)
+
+        public bool UpdateProduct(Product product)
         {
-            var sql = "SELECT a.*,b.pgname,b.pgcontent,b.pgorder FROM ProductTB a left join PgroupTB b on a.Pgid=b.Pgid WHERE name = @name";
-            return _dbConnection.QueryFirstOrDefault<Product>(sql, new { name = name });
+            var sql = @"
+            UPDATE ProductTB
+            SET PGid = @PGid,
+                ProductState = @ProductState,
+                Name = @Name,
+                Price = @Price,
+                Content = @Content,
+                Photo = @Photo,
+                ProductOrder = @ProductOrder
+            WHERE ProductId = @ProductId AND IsDeleted = 0";
+            return _dbConnection.Execute(sql, product) > 0;
         }
-        public IEnumerable<Product> GetProductTB()
+
+        public bool DeleteProduct(int productId)
         {
-            var sql = "SELECT a.*,b.pgname,b.pgcontent,b.pgorder FROM ProductTB a left join PgroupTB b on a.Pgid=b.Pgid Where Porder <> 'off' Order by Pgorder,Porder";
+            var sql = "UPDATE ProductTB SET IsDeleted = 1 WHERE ProductId = @ProductId";
+            return _dbConnection.Execute(sql, new { ProductId = productId }) > 0;
+        }
+
+        public IEnumerable<Product> GetAllProducts()
+        {
+            var sql = "SELECT * FROM ProductTB WHERE IsDeleted = 0";
             return _dbConnection.Query<Product>(sql);
         }
-        public IEnumerable<Product> GetProductTB_PlaceNotNull()
+
+        public Product GetProductById(int productId)
         {
-            var sql = "SELECT a.*,b.pgname,b.pgcontent,b.pgorder FROM ProductTB a left join PgroupTB b on a.Pgid=b.Pgid Where Porder <> 'off' and EXISTS (SELECT 1 FROM PlaceTB AS Pl WHERE CHARINDEX(CONVERT(NVARCHAR, a.pid), Pl.Placepid) > 0 and Pl.Placeorder <> 'off') Order by a.Pgorder,a.Porder";
-            return _dbConnection.Query<Product>(sql);
+            var sql = "SELECT * FROM ProductTB WHERE ProductId = @ProductId AND IsDeleted = 0";
+            return _dbConnection.QueryFirstOrDefault<Product>(sql, new { ProductId = productId });
         }
-        public IEnumerable<Product> GetProductByPgid(string Pgid)
+
+        public IEnumerable<Product> SearchProductsByName(string keyword)
         {
-            var sql = "SELECT a.*,b.pgname,b.pgcontent,b.pgorder FROM ProductTB a left join PgroupTB b on a.Pgid=b.Pgid Where Porder <> 'off' and a.Pgid=@Pgid and EXISTS (SELECT 1 FROM PlaceTB AS Pl WHERE CHARINDEX(CONVERT(NVARCHAR, a.pid), Pl.Placepid) > 0) Order by Pgorder,Porder";
-            return _dbConnection.Query<Product>(sql, new { Pgid = Pgid });
+            var sql = "SELECT * FROM ProductTB WHERE Name LIKE @Keyword AND IsDeleted = 0";
+            return _dbConnection.Query<Product>(sql, new { Keyword = $"%{keyword}%" });
         }
-        public bool AddProduct(Product product)
+
+        public IEnumerable<Product> GetProductsByGroup(int pgid)
         {
-            //檢測是否有重複帳號
-            if (GetProductByName(product.Name) == null)
-            {
-                var sql = "INSERT INTO ProductTB (Name, Price,Unit,Content,Photo,OrderSw,Pgid,Event,Porder,SpendTime) VALUES (@Name, @Price,@Unit,@Content,@Photo,1,@Pgid,@Event,@Porder,@SpendTime)";
-                var affectedRows = _dbConnection.Execute(sql, product);
-                return affectedRows > 0;
-            }
-            else
-            {
-                return false;
-            }
+            var sql = "SELECT * FROM ProductTB WHERE PGid = @PGid AND IsDeleted = 0";
+            return _dbConnection.Query<Product>(sql, new { PGid = pgid });
         }
-        public bool UpdateProduct(Product Product)
+
+        public IEnumerable<Product> GetProductsByState(int productState)
         {
-            //檢測是否有重複帳號
-            Product Product_temp = GetProductByName(Product.Name);
-            if (Product_temp == null || Product_temp.ProductId == Product.ProductId)
-            {
-                var sql = "UPDATE ProductTB SET Name = @Name, Price = @Price,Unit=@Unit,Content=@Content,Photo=@Photo,OrderSw=@OrderSw,Pgid=@Pgid,Event=@Event,Porder=@Porder,SpendTime=@SpendTime WHERE Pid = @Pid";
-                var affectedRows = _dbConnection.Execute(sql, Product);
-                return affectedRows > 0;
-            }
-            else
-            {
-                return false;
-            }
+            var sql = "SELECT * FROM ProductTB WHERE ProductState = @ProductState AND IsDeleted = 0";
+            return _dbConnection.Query<Product>(sql, new { ProductState = productState });
         }
-        public bool UpdateProductOrderSw(int pid, int orderSw)
+
+        public bool ChangeProductState(int productId, int newState)
         {
-            var sql = "UPDATE ProductTB SET OrderSw = @OrderSw WHERE Pid = @Pid";
-            var parameters = new { OrderSw = orderSw, Pid = pid };
-            var affectedRows = _dbConnection.Execute(sql, parameters);
-            return affectedRows > 0;
+            var sql = "UPDATE ProductTB SET ProductState = @NewState WHERE ProductId = @ProductId AND IsDeleted = 0";
+            return _dbConnection.Execute(sql, new { ProductId = productId, NewState = newState }) > 0;
         }
-        public bool UpdateProductOrderPlaceid(int pid, string placeid)
+
+        public bool UpdateProductOrder(int productId, string productOrder)
         {
-            var sql = "UPDATE ProductTB SET Placeid = @Placeid WHERE Pid = @Pid";
-            var parameters = new {Placeid = placeid, Pid = pid };
-            var affectedRows = _dbConnection.Execute(sql, parameters);
-            return affectedRows > 0;
+            var sql = "UPDATE ProductTB SET ProductOrder = @ProductOrder WHERE ProductId = @ProductId AND IsDeleted = 0";
+            return _dbConnection.Execute(sql, new { ProductId = productId, ProductOrder = productOrder }) > 0;
         }
-        public bool UpdateProductGroup(int pid, int pgid)
+
+        public bool IsProductNameDuplicate(string productName, int? excludeProductId = null)
         {
-            var sql = "UPDATE ProductTB SET Pgid = @pgid WHERE Pid = @Pid";
-            var parameters = new { Pgid = pgid, Pid = pid };
-            var affectedRows = _dbConnection.Execute(sql, parameters);
-            return affectedRows > 0;
+            var sql = "SELECT COUNT(*) FROM ProductTB WHERE Name = @ProductName AND IsDeleted = 0";
+            if (excludeProductId.HasValue)
+                sql += " AND ProductId <> @ExcludeProductId";
+
+            var count = _dbConnection.ExecuteScalar<int>(sql, new { ProductName = productName, ExcludeProductId = excludeProductId });
+            return count > 0;
         }
-        public bool DeleteProduct(string Pid)
+
+        public IEnumerable<Product> GetTopProductsByPrice(int topN)
         {
-            int pid = int.Parse(Pid);
-            var sql = "UPDATE ProductTB SET Name = '(Del)'+Name,Porder='off' WHERE Pid= @Pid";
-            var affectedRows = _dbConnection.Execute(sql, new { Pid = pid });
-            return affectedRows > 0;
+            var sql = $"SELECT TOP (@TopN) * FROM ProductTB WHERE ProductState = 1 AND IsDeleted = 0 ORDER BY Price DESC";
+            return _dbConnection.Query<Product>(sql, new { TopN = topN });
         }
+
+        public int CountAllProducts()
+        {
+            var sql = "SELECT COUNT(*) FROM ProductTB WHERE IsDeleted = 0";
+            return _dbConnection.ExecuteScalar<int>(sql);
+        }
+
+        public Dictionary<int, int> GetProductCountByGroup()
+        {
+            var sql = "SELECT PGid, COUNT(*) AS Count FROM ProductTB WHERE IsDeleted = 0 GROUP BY PGid";
+            return _dbConnection.Query(sql).ToDictionary(r => (int)r.PGid, r => (int)r.Count);
+        }
+
+        public int BulkUpdateProductState(List<int> productIds, int newState)
+        {
+            var sql = "UPDATE ProductTB SET ProductState = @NewState WHERE ProductId IN @ProductIds AND IsDeleted = 0";
+            return _dbConnection.Execute(sql, new { ProductIds = productIds, NewState = newState });
+        }
+
+        public int BulkDeleteProducts(List<int> productIds)
+        {
+            var sql = "UPDATE ProductTB SET IsDeleted = 1 WHERE ProductId IN @ProductIds";
+            return _dbConnection.Execute(sql, new { ProductIds = productIds });
+        }
+
+        public bool RestoreProduct(int productId)
+        {
+            var sql = "UPDATE ProductTB SET IsDeleted = 0 WHERE ProductId = @ProductId";
+            return _dbConnection.Execute(sql, new { ProductId = productId }) > 0;
+        }
+
     }
 }

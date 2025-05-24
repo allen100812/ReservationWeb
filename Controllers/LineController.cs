@@ -88,7 +88,9 @@ namespace WebApplication1
                     user = _userService.GetUserById(uid);
                     if (user != null)
                     {
-                        _userService.UpdateUser_LineUserId(user.Id, userid);
+                        //_userService.UpdateUser_LineUserId(user.Id, userid);
+
+
                         // Variables
                         var message = new TextMessage() { Text = "綁定成功!\n我們會將透過這個官方帳號通知您預約狀況與預約提醒。" };
                         // PushMessage

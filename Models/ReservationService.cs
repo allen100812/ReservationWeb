@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.Data;
 using System.Linq;
+using Dapper;
+
 
 namespace Web0524.Models
 {
     public interface IReservationService
     {
-        // 基礎資料：設計師、排班、預約單
-        List<Designer> Designers { get; set; }
-        List<Designer_Shift> Shifts { get; set; }
-        List<Order> Orders { get; set; }
+
 
         // 判斷是否為固定休假日
         bool Reservation_IsFixedHoliday(int designerId, DateTime date);
@@ -74,116 +74,165 @@ namespace Web0524.Models
 
     public class ReservationService : IReservationService
     {
-        public List<Designer> Designers { get; set; } = new();
-        public List<Designer_Shift> Shifts { get; set; } = new();
-        public List<Order> Orders { get; set; } = new();
 
 
-        // 根據訂單 ID 取得單筆訂單
+        private readonly IDbConnection _dbConnection;
+
+        public ReservationService(IDbConnection dbConnection)
+        {
+            _dbConnection = dbConnection;
+        }
+
         public Order? GetOrderById(int orderId)
         {
-            return Orders.FirstOrDefault(o => o.OrderId == orderId);
+            var sql = "SELECT * FROM OrderTB WHERE OrderId = @OrderId";
+            return _dbConnection.QueryFirstOrDefault<Order>(sql, new { OrderId = orderId });
         }
 
-        // 取消預約（將狀態設為 Cancelled）
         public bool CancelOrder(int orderId)
         {
-            var order = GetOrderById(orderId);
-            if (order == null) return false;
-            order.Status = OrderStatus.Cancelled;
-            return true;
+            var sql = "UPDATE OrderTB SET Status = @Status WHERE OrderId = @OrderId";
+            return _dbConnection.Execute(sql, new { OrderId = orderId, Status = OrderStatus.Cancelled }) > 0;
         }
 
-        // 取得所有預約訂單清單
         public List<Order> GetAllOrders()
         {
-            return Orders.ToList();
+            return _dbConnection.Query<Order>("SELECT * FROM OrderTB").ToList();
         }
 
-        // 取得所有設計師清單
         public List<Designer> GetAllDesigners()
         {
-            return Designers.ToList();
+            var designers = _dbConnection.Query<Designer>("SELECT * FROM DesignerTB WHERE IsDeleted = 0").ToList();
+            foreach (var d in designers)
+            {
+                d.ScheduleRules = _dbConnection.Query<Designer_ProductScheduleRule>(
+                    "SELECT * FROM DesignerScheduleRuleTB WHERE DesignerId = @DesignerId",
+                    new { DesignerId = d.DesignerId }).ToList();
+
+                d.FixedHolidays = _dbConnection.Query<DateTime>(
+                    "SELECT HolidayDate FROM DesignerHolidayTB WHERE DesignerId = @DesignerId",
+                    new { DesignerId = d.DesignerId }).ToList();
+            }
+            return designers;
         }
 
-        // 依設計師 ID 取得設計師資料
         public Designer? GetDesignerById(int designerId)
         {
-            return Designers.FirstOrDefault(d => d.DesignerId == designerId);
+            var sql = "SELECT * FROM DesignerTB WHERE DesignerId = @DesignerId AND IsDeleted = 0";
+            var designer = _dbConnection.QueryFirstOrDefault<Designer>(sql, new { DesignerId = designerId });
+            if (designer != null)
+            {
+                designer.ScheduleRules = _dbConnection.Query<Designer_ProductScheduleRule>(
+                    "SELECT * FROM DesignerScheduleRuleTB WHERE DesignerId = @DesignerId",
+                    new { DesignerId = designerId }).ToList();
+
+                designer.FixedHolidays = _dbConnection.Query<DateTime>(
+                    "SELECT HolidayDate FROM DesignerHolidayTB WHERE DesignerId = @DesignerId",
+                    new { DesignerId = designerId }).ToList();
+            }
+            return designer;
         }
 
-        // 新增設計師
         public bool AddDesigner(Designer designer)
         {
-            if (GetDesignerById(designer.DesignerId) != null) return false;
-            Designers.Add(designer);
-            return true;
+            var sql = "INSERT INTO DesignerTB (Name, Nickname, IsDeleted) VALUES (@Name, @Nickname, 0)";
+            return _dbConnection.Execute(sql, designer) > 0;
         }
 
-        // 更新設計師資料
         public bool UpdateDesigner(Designer designer)
         {
-            var existing = GetDesignerById(designer.DesignerId);
-            if (existing == null) return false;
-            Designers.Remove(existing);
-            Designers.Add(designer);
-            return true;
+            var sql = "UPDATE DesignerTB SET Name = @Name, Nickname = @Nickname WHERE DesignerId = @DesignerId AND IsDeleted = 0";
+            return _dbConnection.Execute(sql, designer) > 0;
         }
 
-        // 刪除設計師
         public bool DeleteDesigner(int designerId)
         {
-            var existing = GetDesignerById(designerId);
-            if (existing == null) return false;
-            Designers.Remove(existing);
-            return true;
+            var sql = "UPDATE DesignerTB SET IsDeleted = 1 WHERE DesignerId = @DesignerId";
+            return _dbConnection.Execute(sql, new { DesignerId = designerId }) > 0;
         }
 
-        // 新增排班資料
         public bool AddShift(Designer_Shift shift)
         {
-            if (Shifts.Any(s => s.DesignerId == shift.DesignerId && s.ShiftDate.Date == shift.ShiftDate.Date)) return false;
-            Shifts.Add(shift);
-            return true;
+            var exists = _dbConnection.ExecuteScalar<int>(
+                "SELECT COUNT(*) FROM DesignerShiftTB WHERE DesignerId = @DesignerId AND ShiftDate = @ShiftDate",
+                new { shift.DesignerId, shift.ShiftDate });
+
+            if (exists > 0) return false;
+
+            var sql = "INSERT INTO DesignerShiftTB (DesignerId, ShiftDate, IsDayOff) VALUES (@DesignerId, @ShiftDate, @IsDayOff)";
+            return _dbConnection.Execute(sql, shift) > 0;
         }
 
-        // 移除指定日期的排班
         public bool RemoveShift(int designerId, DateTime shiftDate)
         {
-            var existing = Shifts.FirstOrDefault(s => s.DesignerId == designerId && s.ShiftDate.Date == shiftDate.Date);
-            if (existing == null) return false;
-            Shifts.Remove(existing);
-            return true;
+            var sql = "DELETE FROM DesignerShiftTB WHERE DesignerId = @DesignerId AND ShiftDate = @ShiftDate";
+            return _dbConnection.Execute(sql, new { DesignerId = designerId, ShiftDate = shiftDate.Date }) > 0;
         }
 
-        // 取得指定日期的所有排班紀錄
         public List<Designer_Shift> GetShiftsForDay(DateTime date)
         {
-            return Shifts.Where(s => s.ShiftDate.Date == date.Date).ToList();
+            var sql = "SELECT * FROM DesignerShiftTB WHERE ShiftDate = @Date";
+            return _dbConnection.Query<Designer_Shift>(sql, new { Date = date.Date }).ToList();
         }
 
-        // 依會員 ID 取得所有該會員預約紀錄
         public List<Order> GetOrdersByMemberId(string uid)
         {
-            return Orders.Where(o => o.Uid == uid).ToList();
+            var sql = "SELECT * FROM OrderTB WHERE Uid = @Uid";
+            return _dbConnection.Query<Order>(sql, new { Uid = uid }).ToList();
         }
 
-        // 取得當日是否為固定休假日
         public bool Reservation_IsFixedHoliday(int designerId, DateTime date)
         {
-            var designer = Designers.FirstOrDefault(d => d.DesignerId == designerId);
-            return designer?.FixedHolidays.Any(h => h.Date == date.Date) ?? false;
+            var sql = "SELECT COUNT(*) FROM DesignerHolidayTB WHERE DesignerId = @DesignerId AND HolidayDate = @Date";
+            return _dbConnection.ExecuteScalar<int>(sql, new { DesignerId = designerId, Date = date.Date }) > 0;
         }
 
-        // 取得當日是否為排休
         public bool Reservation_IsDayOff(int designerId, DateTime date)
         {
-            return Shifts.Any(s => s.DesignerId == designerId && s.ShiftDate.Date == date.Date && s.IsDayOff);
+            var sql = "SELECT COUNT(*) FROM DesignerShiftTB WHERE DesignerId = @DesignerId AND ShiftDate = @Date AND IsDayOff = 1";
+            return _dbConnection.ExecuteScalar<int>(sql, new { DesignerId = designerId, Date = date.Date }) > 0;
         }
+
+        public bool UpdateOrderStatus(int orderId, OrderStatus newStatus)
+        {
+            var sql = "UPDATE OrderTB SET Status = @Status WHERE OrderId = @OrderId";
+            return _dbConnection.Execute(sql, new { OrderId = orderId, Status = newStatus }) > 0;
+        }
+
+        public List<Order> GetOrdersForDay(int designerId, DateTime date)
+        {
+            var sql = "SELECT * FROM OrderTB WHERE DesignerId = @DesignerId AND CAST(ReservationDateTime AS DATE) = @Date";
+            return _dbConnection.Query<Order>(sql, new { DesignerId = designerId, Date = date.Date }).ToList();
+        }
+
+        public Order? CreateOrder(int designerId, int productId, DateTime time)
+        {
+            if (!IsSlotAvailable(designerId, productId, time)) return null;
+
+            var sql = @"INSERT INTO OrderTB (DesignerId, ProductId, ReservationDateTime, Status)
+                    VALUES (@DesignerId, @ProductId, @ReservationDateTime, @Status);
+                    SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            int newId = _dbConnection.ExecuteScalar<int>(sql, new
+            {
+                DesignerId = designerId,
+                ProductId = productId,
+                ReservationDateTime = time,
+                Status = OrderStatus.Confirmed
+            });
+
+            return GetOrderById(newId);
+        }
+
+
 
         // 檢查某時段是否可預約指定產品
         public bool IsSlotAvailable(int designerId, int productId, DateTime time)
         {
+            List<Designer> Designers = GetAllDesigners().ToList();
+            List<Designer_Shift> Shifts = GetShiftsForDay(time).ToList();
+            List<Order> Orders = GetOrdersForDay(designerId, time).ToList();
+
             var designer = Designers.FirstOrDefault(d => d.DesignerId == designerId);
             if (designer == null) return false;
 
@@ -234,6 +283,11 @@ namespace Web0524.Models
 
         public List<Reservation_AvailableServiceSlot> GetAvailableServiceSlots(int designerId, DateTime date, int cooldownMinutes, int advanceMinutes)
         {
+            List<Designer> Designers =GetAllDesigners().ToList();
+            List<Designer_Shift> Shifts = GetShiftsForDay(date).ToList();
+            List<Order> Orders = GetOrdersForDay(designerId,date).ToList();
+
+
             List<Reservation_AvailableServiceSlot> result = new();
             var designer = Designers.FirstOrDefault(d => d.DesignerId == designerId);
             if (designer == null) return result;
@@ -248,7 +302,8 @@ namespace Web0524.Models
 
             for (DateTime t = dayStart; t.AddMinutes(10) <= dayEnd; t = t.AddMinutes(10))
             {
-                if (t < earliestAvailableTime) continue;
+                if (date.Date == DateTime.Today && t < earliestAvailableTime) continue;
+
 
                 var availableProductIds = new List<int>();
 
@@ -309,40 +364,7 @@ namespace Web0524.Models
             return result;
         }
 
-        // 建立新預約訂單
-        public Order? CreateOrder(int designerId, int ProductId, DateTime time)
-        {
-            if (!IsSlotAvailable(designerId, ProductId, time)) return null;
+   
 
-            var newOrder = new Order
-            {
-                OrderId = Orders.Count + 1,
-                DesignerId = designerId,
-                ProductId = ProductId,
-                ReservationDateTime = time,
-                Status = OrderStatus.Confirmed
-            };
-
-            Orders.Add(newOrder);
-            return newOrder;
-        }
-
-        // 更新訂單狀態
-        public bool UpdateOrderStatus(int orderId, OrderStatus newStatus)
-        {
-            var order = Orders.FirstOrDefault(o => o.OrderId == orderId);
-            if (order == null) return false;
-
-            order.Status = newStatus;
-            return true;
-        }
-
-        // 查詢當日所有訂單
-        public List<Order> GetOrdersForDay(int designerId, DateTime date)
-        {
-            return Orders.Where(o =>
-                o.DesignerId == designerId &&
-                o.ReservationDateTime.Date == date.Date).ToList();
-        }
     }
 }
