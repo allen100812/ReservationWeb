@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-public class LineMessageSender
+public class ng_LineMessageSender
 {
     private readonly HttpClient httpClient;
     private const string LineMessagingApiUrl = "https://api.line.me/v2/bot/message/push";
@@ -16,7 +16,7 @@ public class LineMessageSender
     // string Token = "ESAVvIKbHra6txvAg897oc7ceSBgUgn7Gc35o4LPyfkYKIZg6JehkyXsTacCmDPAj1tsKCnaZSrgZJyT5ntx7fWRTPQdDdXEgAg6vfWFPYMioQw7Af0Ef0eUbxEa4/DLEbOfeA7rmDQQhallAehYZAdB04t89/1O/w1cDnyilFU=";
     // LineMessageSender lineMessageSender = new LineMessageSender(Token);
     // lineMessageSender.SendMessage("Udf96f6192a32d72329c908a69805aa9e", "測試訊息");
-    public LineMessageSender()
+    public ng_LineMessageSender()
     {
         httpClient = new HttpClient();
     }

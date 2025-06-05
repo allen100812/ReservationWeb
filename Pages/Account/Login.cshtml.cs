@@ -13,6 +13,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using System.Text;
 
 namespace Web0524.Pages.Account
 {
@@ -20,13 +21,13 @@ namespace Web0524.Pages.Account
     {
         private readonly IUserService _userService;
         private readonly IConfiguration _config;
-
-        public LoginModel(IUserService userService, IConfiguration config)
+        private readonly LineMessageService _lineService;
+        public LoginModel(IUserService userService, IConfiguration config, LineMessageService lineService)
         {
             _userService = userService;
             _config = config;
+            _lineService = lineService;
         }
-
         [BindProperty]
         public User? UserModel { get; set; }
 
@@ -104,8 +105,9 @@ namespace Web0524.Pages.Account
             string idToken = tokenResult.id_token;
 
             var payload = idToken.Split('.')[1];
-            var jsonBytes = Convert.FromBase64String(payload + new string('=', 4 - payload.Length % 4));
-            var userInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+            var jsonPayload = Base64UrlDecode(payload);
+            var userInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(jsonPayload);
+
 
             var lineUserId = userInfo["sub"].ToString();
             var name = userInfo.ContainsKey("name") ? userInfo["name"].ToString() : "LineUser";
@@ -123,7 +125,7 @@ namespace Web0524.Pages.Account
                     Password = Guid.NewGuid().ToString("N"), // 給定亂數密碼避免登入
                     UserType = "Line",
                     Email = email,
-                    LineUserId = lineUserId,
+                    LineUserId = lineUserId, //"Udf96f6192a32d72329c908a69805aa9e",
                     OrderNum = 0,
                     CancelNum = 0,
 
@@ -148,9 +150,33 @@ namespace Web0524.Pages.Account
     };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+            if (!string.IsNullOrEmpty(lineUserId))
+            {
+                var success = await _lineService.SendSecureLineMessageAsync(lineUserId, "登入完成");
+                TempData["Result"] = success ? "訊息已發送！" : "發送失敗。";
+            }
+
 
             return RedirectToPage("/Index");
+        }
+
+
+        string Base64UrlDecode(string base64Url)
+        {
+            string padded = base64Url
+                .Replace('-', '+')
+                .Replace('_', '/');
+
+            switch (padded.Length % 4)
+            {
+                case 2: padded += "=="; break;
+                case 3: padded += "="; break;
+            }
+
+            return Encoding.UTF8.GetString(Convert.FromBase64String(padded));
         }
 
     }

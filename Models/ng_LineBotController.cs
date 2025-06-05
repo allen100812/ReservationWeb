@@ -7,16 +7,16 @@ using Microsoft.Extensions.Logging;
 
 [ApiController]
 [Route("api/linebot")]
-public class LineBotController : ControllerBase
+public class ng_LineBotController : ControllerBase
 {
-    private readonly ILogger<LineBotController> _logger;
-    private readonly LineMessageSender _lineMessageSender;
+    private readonly ILogger<ng_LineBotController> _logger;
+    private readonly ng_LineMessageSender _lineMessageSender;
 
-    public LineBotController(ILogger<LineBotController> logger)
+    public ng_LineBotController(ILogger<ng_LineBotController> logger)
     {
         _logger = logger;
         string channelAccessToken = "ESAVvIKbHra6txvAg897oc7ceSBgUgn7Gc35o4LPyfkYKIZg6JehkyXsTacCmDPAj1tsKCnaZSrgZJyT5ntx7fWRTPQdDdXEgAg6vfWFPYMioQw7Af0Ef0eUbxEa4/DLEbOfeA7rmDQQhallAehYZAdB04t89/1O/w1cDnyilFU=";
-        _lineMessageSender = new LineMessageSender();
+        _lineMessageSender = new ng_LineMessageSender();
     }
 
     [HttpPost]

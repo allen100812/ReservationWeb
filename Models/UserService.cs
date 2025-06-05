@@ -52,7 +52,13 @@ namespace Web0524.Models
         }
         public IEnumerable<User> GetUserTB()
         {
-            var sql = @"SELECT * FROM UserTB WHERE UserType <> 9 AND IsDeleted = 0 ORDER BY UserType ASC";
+            var sql = @"
+SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
+       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role AS RoleString, Permissions AS PermissionsJson, IsDeleted
+FROM UserTB
+WHERE UserType <> 9 AND IsDeleted = 0
+ORDER BY UserType ASC";
+
             var users = _dbConnection.Query<User>(sql).ToList();
             foreach (var user in users)
                 MapUserPermissions(user);
@@ -62,14 +68,24 @@ namespace Web0524.Models
 
         public User? GetUserById(string id)
         {
-            var sql = "SELECT * FROM UserTB WHERE Id = @Id AND IsDeleted = 0";
+            var sql = @"
+SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
+       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role AS RoleString, Permissions AS PermissionsJson, IsDeleted
+FROM UserTB
+WHERE Id = @Id AND IsDeleted = 0";
+
             var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id });
             return MapUserPermissions(user);
         }
 
         public User? GetUserByLineUserId(string lineUserId)
         {
-            var sql = "SELECT * FROM UserTB WHERE LineUserId = @lineUserId AND IsDeleted = 0";
+            var sql = @"
+SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
+       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role AS RoleString, Permissions AS PermissionsJson, IsDeleted
+FROM UserTB
+WHERE LineUserId = @lineUserId AND IsDeleted = 0";
+
             var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { lineUserId });
             return MapUserPermissions(user);
         }
@@ -161,7 +177,12 @@ namespace Web0524.Models
 
         public User UserLogin(string id, string pwd)
         {
-            var sql = "SELECT * FROM UserTB WHERE Id = @Id AND Password = @Password AND UserType <> 9 AND IsDeleted = 0";
+            var sql = @"
+SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
+       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role AS RoleString, Permissions AS PermissionsJson, IsDeleted
+FROM UserTB
+WHERE Id = @Id AND Password = @Password AND UserType <> 9 AND IsDeleted = 0";
+
             var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id, Password = pwd });
             return MapUserPermissions(user);
         }

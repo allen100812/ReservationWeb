@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Web0524.Models
 {
@@ -89,9 +91,17 @@ namespace Web0524.Models
 
         // 新增角色與權限
         public UserRole Role { get; set; } = UserRole.Member;
-        public Permission Permissions { get; set; } = new Permission();
 
-        // 對應資料表欄位用
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped] // 告訴 EF / Dapper 不要對映這個欄位
+        public Permission Permissions
+        {
+            get => string.IsNullOrEmpty(PermissionsJson)
+                ? new Permission()
+                : JsonConvert.DeserializeObject<Permission>(PermissionsJson) ?? new Permission();
+            set => PermissionsJson = JsonConvert.SerializeObject(value);
+        }
+
+
         public string RoleString { get; set; } = "Member";
         public string PermissionsJson { get; set; } = "{}";
     }

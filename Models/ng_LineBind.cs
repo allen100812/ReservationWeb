@@ -1,6 +1,6 @@
 ﻿namespace Web0524.Models
 {
-    public class LineBind
+    public class ng_LineBind
     {
         public void Test123()
         {
