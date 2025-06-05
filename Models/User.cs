@@ -40,6 +40,19 @@ namespace Web0524.Models
         public bool CanApprove { get; set; } = false;
         public bool CanManageUsers { get; set; } = false;
     }
+
+    public class PermissionSet
+    {
+        public int Id { get; set; }  // 權限ID
+        public string Name { get; set; } = "";  // 權限名稱（例如「管理員權限」）
+
+        public bool CanView { get; set; } = false;
+        public bool CanEdit { get; set; } = false;
+        public bool CanDelete { get; set; } = false;
+        public bool CanApprove { get; set; } = false;
+        public bool CanManageUsers { get; set; } = false;
+    }
+
     public class User
     {
         [Required(ErrorMessage = "帳號必填")]
@@ -90,19 +103,8 @@ namespace Web0524.Models
         public bool IsDeleted { get; set; } = false;
 
         // 新增角色與權限
-        public UserRole Role { get; set; } = UserRole.Member;
-
-        [System.ComponentModel.DataAnnotations.Schema.NotMapped] // 告訴 EF / Dapper 不要對映這個欄位
-        public Permission Permissions
-        {
-            get => string.IsNullOrEmpty(PermissionsJson)
-                ? new Permission()
-                : JsonConvert.DeserializeObject<Permission>(PermissionsJson) ?? new Permission();
-            set => PermissionsJson = JsonConvert.SerializeObject(value);
-        }
-
-
-        public string RoleString { get; set; } = "Member";
-        public string PermissionsJson { get; set; } = "{}";
+        public string Role { get; set; } = "Member";
+        //public string RoleString { get; set; } = "Member";
+        public int PermissionSetId { get; set; } = 0;
     }
 }

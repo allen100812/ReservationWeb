@@ -11,106 +11,148 @@
 {
     <script>
         alert('感謝您，登入後可以立即享受我們的服務。');
-        // 顯示警告後清除TempData
         setTimeout(function () {
         @(TempData.Remove("add_success"));
         }, 100);
     </script>
 }
-<html lang="zh-tw">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@ViewData["MyName"] | 會員登入</title>
 
-    <!-- Google Font: Source Sans Pro -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="../../plugins/fontawesome-free/css/all.min.css">
-    <!-- icheck bootstrap -->
-    <link rel="stylesheet" href="../../plugins/icheck-bootstrap/icheck-bootstrap.min.css">
-    <!-- Theme style -->
-    <link rel="stylesheet" href="../../dist/css/adminlte.min.css">
+    <!-- ChatGPT Style -->
+    <link rel="stylesheet" href="/assets/root-DertGWcZ.css">
+    <link rel="stylesheet" href="/assets/AuthStepLayout-D1Ycd_TU.css">
+    <link rel="stylesheet" href="/assets/branding-D5M_DFHW.css">
+    <link rel="stylesheet" href="/assets/Button-DEcOZt8f.css">
+    <link rel="stylesheet" href="/assets/TextInput-DliBbVLE.css">
 
-    <script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="~/lib/fontawesome/css/all.min.css" rel="stylesheet" />
 
-        function checkPasswordMatch() {
-            var password = document.getElementById("password").value;
-            var confirmPassword = document.getElementById("confirmPassword").value;
-
-            if (password !== confirmPassword) {
-                document.getElementById("passwordError").innerHTML = "兩次輸入密碼不一致";
-            } else {
-                document.getElementById("passwordError").innerHTML = "";
-            }
+    <script type="text/javascript" src="https://auth.openai.com/sentinel/sdk.js" async defer></script>
+    <style>
+        body {
+            background-color: #fff;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
         }
-        function validateForm() {
-            var password = document.getElementById("password").value;
-            var confirmPassword = document.getElementById("confirmPassword").value;
 
-            if (password !== confirmPassword) {
-                document.getElementById("passwordError").innerHTML = "兩次輸入密碼不一致";
-                return false; // 阻止表单提交
-            } else {
-                document.getElementById("passwordError").innerHTML = "";
-                return true; // 允许表单提交
+        .form-container {
+            max-width: 400px;
+            margin: 80px auto;
+        }
+
+        .logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+            .logo img {
+                height: 40px;
             }
-    </script>
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+            .divider::before, .divider::after {
+                content: "";
+                flex: 1;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            .divider:not(:empty)::before {
+                margin-right: .75em;
+            }
+
+            .divider:not(:empty)::after {
+                margin-left: .75em;
+            }
+
+        .btn-outline-secondary img {
+            height: 20px;
+            margin-right: 8px;
+        }
+    </style>
 </head>
-<body class="hold-transition login-page">
 
-
-    <div class="login-box">
-        <div class="login-logo">
-            <a href="../../"><b>@ViewData["MyName"]</b></a>
-        </div>
-        <!-- /.login-logo -->
-        <div class="card">
-            <div class="card-body login-card-body">
-                <p class="login-box-msg">登入美麗旅程，展現自信風采。</p>
-
-                <form method="post">
-                    <div class="input-group mt-3">
-                        <input asp-for="UserModel.Id" class="form-control">
-                        <div class="input-group-append">
-                            <div class="input-group-text">
-                                <span class="fas fa-user"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <span asp-validation-for="UserModel.Id" class="text-danger"></span>
-                    <div class="input-group mt-3">
-                        <input asp-for="UserModel.Password" class="form-control">
-                        <div class="input-group-append">
-                            <div class="input-group-text">
-                                <span class="fas fa-lock"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <span asp-validation-for="UserModel.Password" class="text-danger"></span>
-                    <div class="row mt-3 d-flex justify-content-between">
-                        <!-- /.col -->
-                        <div class="col-4">
-                            <button type="submit" class="btn btn-primary btn-block">登入</button>
-                        </div>
-                        <div class="text-center mt-4">
-                            <a href="/Account/Login?handler=LineLogin" class="btn btn-success btn-block mt-3">
-                                <i class="fab fa-line"></i> 使用 LINE 登入
-                            </a>
-
-                        </div>
-
-
-                        <!-- /.col -->
-                    </div>
-                </form>
-                <div class="text-danger">@ViewData["ErrorMsg"]</div>
-                
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="logo text-center mb-3">
+                <img src="~/dist/img/MyLogo.png" alt="My Logo">
             </div>
-            <!-- /.login-card-body -->
+
+            <h4 class="text-center mb-2">歡迎回來</h4>
+            <p class="text-center text-muted mb-4" style="font-size: 14px;">
+                建議您使用 LINE 登入，我們將透過 LINE 傳送預約提醒，讓您隨時掌握服務進度。
+            </p>
+
+            <!-- LINE 登入按鈕 -->
+            <div class="mb-3">
+                <a href="/Account/Login?handler=LineLogin" class="btn btn-success w-100 mb-2">
+                    <i class="fab fa-line"></i> <span class="m-2">使用 LINE 登入</span>
+                </a>
+            </div>
+
+            <!-- 切換密碼登入按鈕 -->
+            <div class="mb-3">
+                <button class="btn btn-outline-secondary w-100" type="button" id="toggle-account-login">
+                    <i class="fas fa-envelope text-primary"></i> <span class="m-2">使用 Email 登入</span>
+                </button>
+
+
+            </div>
+
+            <!-- 帳號密碼區塊（預設隱藏） -->
+            <div id="account-login-form" style="display: none;">
+                <form method="post">
+                    <div class="mb-3">
+                        <input asp-for="UserModel.Id" class="form-control" placeholder="信箱Email">
+                        <span asp-validation-for="UserModel.Id" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <input asp-for="UserModel.Password" type="password" class="form-control" placeholder="密碼">
+                        <span asp-validation-for="UserModel.Password" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-100 mb-2">登入</button>
+                </form>
+                <div class="text-danger mt-3">@ViewData["ErrorMsg"]</div>
+            </div>
+
+            <!-- 分隔線 -->
+            <div class="divider text-center text-muted my-3">或</div>
+
+            <!-- 加入會員連結 -->
+            <div class="text-center mb-3">
+                <small>還沒加入會員？<a href="/Account/Register">立即加入</a></small>
+            </div>
+
+
+            <!-- 切換登入區塊的 JS -->
+            <script>
+                document.getElementById('toggle-account-login').addEventListener('click', function () {
+                    const form = document.getElementById('account-login-form');
+                    form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+                });
+            </script>
+
+
+@*             <button class="btn btn-outline-secondary w-100 mb-2">
+                <img src="https://cdn-icons-png.flaticon.com/512/732/732S221.png" alt="Microsoft"> Continue with Microsoft Account
+            </button>
+            <button class="btn btn-outline-secondary w-100">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" alt="Apple"> Continue with Apple
+            </button> *@
         </div>
     </div>
-
-
 </body>
+
 </html>

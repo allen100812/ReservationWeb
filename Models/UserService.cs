@@ -1,16 +1,13 @@
 ﻿using Dapper;
-using Newtonsoft.Json;
 using System.Data;
-
-
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Web0524.Models
 {
-
     public class UserPointStr
     {
         public double Rate_s { get; set; }
-
         public double Rate_e { get; set; }
         public string Str1 { get; set; }
         public string Str2 { get; set; }
@@ -22,83 +19,72 @@ namespace Web0524.Models
             Str1 = str1;
             Str2 = str2;
         }
-
     }
+
     public interface IUserService
     {
-
         IEnumerable<User> GetUserTB();
         User? GetUserById(string id);
         bool CreateUser(User user);
         bool UpdateUser(User user);
         bool DeleteUser(string id);
-        User UserLogin(string id,string pwd);
-
+        User UserLogin(string id, string pwd);
         bool RestoreUser(string id);
-
-
         User? GetUserByLineUserId(string lineUserId);
-
-
-
     }
 
     public class UserService : IUserService
     {
         private readonly IDbConnection _dbConnection;
+
         public UserService(IDbConnection dbConnection)
         {
             _dbConnection = dbConnection;
         }
+
         public IEnumerable<User> GetUserTB()
         {
             var sql = @"
 SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
-       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role AS RoleString, Permissions AS PermissionsJson, IsDeleted
+       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role, PermissionSetId, IsDeleted
 FROM UserTB
 WHERE UserType <> 9 AND IsDeleted = 0
 ORDER BY UserType ASC";
 
-            var users = _dbConnection.Query<User>(sql).ToList();
-            foreach (var user in users)
-                MapUserPermissions(user);
-            return users;
+            return _dbConnection.Query<User>(sql).ToList();
         }
-
 
         public User? GetUserById(string id)
         {
             var sql = @"
 SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
-       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role AS RoleString, Permissions AS PermissionsJson, IsDeleted
+       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role, PermissionSetId, IsDeleted
 FROM UserTB
 WHERE Id = @Id AND IsDeleted = 0";
 
-            var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id });
-            return MapUserPermissions(user);
+            return _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id });
         }
 
         public User? GetUserByLineUserId(string lineUserId)
         {
             var sql = @"
 SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
-       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role AS RoleString, Permissions AS PermissionsJson, IsDeleted
+       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role, PermissionSetId, IsDeleted
 FROM UserTB
 WHERE LineUserId = @lineUserId AND IsDeleted = 0";
 
-            var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { lineUserId });
-            return MapUserPermissions(user);
+            return _dbConnection.QueryFirstOrDefault<User>(sql, new { lineUserId });
         }
 
         public bool CreateUser(User user)
         {
             var sql = @"
-        INSERT INTO UserTB
-        (Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
-         OrderNum, CancelNum, Remark, Birthday, LineUserId, Role, Permissions, IsDeleted)
-        VALUES
-        (@Id, @Name, @Password, @UserType, @Address, @Phone, @Email, @Line, @Photo,
-         @OrderNum, @CancelNum, @Remark, @Birthday, @LineUserId, @RoleString, @PermissionsJson, 0)";
+INSERT INTO UserTB
+(Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
+ OrderNum, CancelNum, Remark, Birthday, LineUserId, Role, PermissionSetId, IsDeleted)
+VALUES
+(@Id, @Name, @Password, @UserType, @Address, @Phone, @Email, @Line, @Photo,
+ @OrderNum, @CancelNum, @Remark, @Birthday, @LineUserId, @Role, @PermissionSetId, 0)";
 
             var param = new
             {
@@ -116,34 +102,33 @@ WHERE LineUserId = @lineUserId AND IsDeleted = 0";
                 user.Remark,
                 user.Birthday,
                 user.LineUserId,
-                RoleString = user.Role.ToString(),
-                PermissionsJson = JsonConvert.SerializeObject(user.Permissions)
+                user.Role,
+                user.PermissionSetId
             };
 
             return _dbConnection.Execute(sql, param) > 0;
         }
-
 
         public bool UpdateUser(User user)
         {
             var sql = @"
-        UPDATE UserTB SET
-            Name = @Name,
-            Password = @Password,
-            UserType = @UserType,
-            Address = @Address,
-            Phone = @Phone,
-            Email = @Email,
-            Line = @Line,
-            Photo = @Photo,
-            OrderNum = @OrderNum,
-            CancelNum = @CancelNum,
-            Remark = @Remark,
-            Birthday = @Birthday,
-            LineUserId = @LineUserId,
-            Role = @RoleString,
-            Permissions = @PermissionsJson
-        WHERE Id = @Id AND IsDeleted = 0";
+UPDATE UserTB SET
+    Name = @Name,
+    Password = @Password,
+    UserType = @UserType,
+    Address = @Address,
+    Phone = @Phone,
+    Email = @Email,
+    Line = @Line,
+    Photo = @Photo,
+    OrderNum = @OrderNum,
+    CancelNum = @CancelNum,
+    Remark = @Remark,
+    Birthday = @Birthday,
+    LineUserId = @LineUserId,
+    Role = @Role,
+    PermissionSetId = @PermissionSetId
+WHERE Id = @Id AND IsDeleted = 0";
 
             var param = new
             {
@@ -161,13 +146,12 @@ WHERE LineUserId = @lineUserId AND IsDeleted = 0";
                 user.Remark,
                 user.Birthday,
                 user.LineUserId,
-                RoleString = user.Role.ToString(),
-                PermissionsJson = JsonConvert.SerializeObject(user.Permissions)
+                user.Role,
+                user.PermissionSetId
             };
 
             return _dbConnection.Execute(sql, param) > 0;
         }
-
 
         public bool DeleteUser(string id)
         {
@@ -179,53 +163,17 @@ WHERE LineUserId = @lineUserId AND IsDeleted = 0";
         {
             var sql = @"
 SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
-       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role AS RoleString, Permissions AS PermissionsJson, IsDeleted
+       OrderNum, CancelNum, Remark, Birthday, LineUserId, Role, PermissionSetId, IsDeleted
 FROM UserTB
 WHERE Id = @Id AND Password = @Password AND UserType <> 9 AND IsDeleted = 0";
 
-            var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id, Password = pwd });
-            return MapUserPermissions(user);
+            return _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id, Password = pwd });
         }
-
 
         public bool RestoreUser(string id)
         {
             var sql = "UPDATE UserTB SET IsDeleted = 0 WHERE Id = @Id";
             return _dbConnection.Execute(sql, new { Id = id }) > 0;
         }
-
-
-
-        private User? MapUserPermissions(User? user)
-        {
-            if (user == null) return null;
-
-            // 先宣告 role 變數
-            UserRole role;
-
-            if (!string.IsNullOrEmpty(user.RoleString))
-                Enum.TryParse(user.RoleString, out role);
-            else
-                role = UserRole.Member;
-
-            user.Role = role;
-
-            if (!string.IsNullOrEmpty(user.PermissionsJson))
-            {
-                try
-                {
-                    user.Permissions = JsonConvert.DeserializeObject<Permission>(user.PermissionsJson) ?? new Permission();
-                }
-                catch
-                {
-                    user.Permissions = new Permission();
-                }
-            }
-
-            return user;
-        }
-
-
     }
-
 }

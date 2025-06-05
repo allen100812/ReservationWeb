@@ -95,12 +95,16 @@
   <ItemGroup>
     <PackageReference Include="bootstrap" Version="5.3.1" />
     <PackageReference Include="BootstrapIcons.AspNetCore" Version="1.9.2" />
+    <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
     <PackageReference Include="Dapper" Version="2.0.143" />
     <PackageReference Include="font-awesome" Version="4.7.0" />
+    <PackageReference Include="FontAwesome" Version="4.7.0" />
     <PackageReference Include="Hangfire" Version="1.8.5" />
+    <PackageReference Include="MailKit" Version="3.5.0" />
     <PackageReference Include="MDP.AspNetCore" Version="6.1.5" />
     <PackageReference Include="MDP.DevKit.LineMessaging" Version="6.1.5" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.1" />
+    <PackageReference Include="MimeKit" Version="3.6.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Quartz" Version="3.7.0" />
     <PackageReference Include="Quartz.Extensions.Hosting" Version="3.7.0" />

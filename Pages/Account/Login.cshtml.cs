@@ -37,17 +37,19 @@ namespace Web0524.Pages.Account
 
         public IActionResult OnPost()
         {
+            Console.WriteLine("1");
             var validationContext = new ValidationContext(UserModel);
             var validationResults = new List<ValidationResult>();
-            bool isValid = Validator.TryValidateObject(UserModel, validationContext, validationResults, true);
-
+            bool isValid = (UserModel.Id != null && UserModel.Id != "") && (UserModel.Password != null && UserModel.Password != "");
+            Console.WriteLine("2");
             if (!isValid)
                 return Page();
-
+            Console.WriteLine("3");
             UserModel = _userService.UserLogin(UserModel.Id, UserModel.Password);
             string base64String;
             if (UserModel != null)
             {
+                Console.WriteLine("4");
                 if (UserModel.Photo != null)
                     base64String = Convert.ToBase64String(UserModel.Photo);
                 else
@@ -66,6 +68,7 @@ namespace Web0524.Pages.Account
             }
             else
             {
+                Console.WriteLine("5");
                 ViewData["ErrorMsg"] = "登入帳號或密碼錯誤!!";
             }
 
@@ -130,12 +133,8 @@ namespace Web0524.Pages.Account
                     CancelNum = 0,
 
                     // 加上角色與權限
-                    Role = UserRole.Member,
-                    Permissions = PermissionHelper.GetPermissionsForRole(UserRole.Member),
-
-                    // 底層資料表映射
-                    RoleString = UserRole.Member.ToString(),
-                    PermissionsJson = JsonConvert.SerializeObject(PermissionHelper.GetPermissionsForRole(UserRole.Member))
+                    Role = "Member",
+                    PermissionSetId = 0,
                 };
 
                 _userService.CreateUser(user);
