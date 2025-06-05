@@ -1,254 +1,226 @@
-﻿
-// ReportService.cs（完整補齊 + 中文註解）
+﻿// ReportService.cs（從 MSSQL 資料庫撈資料的完整版本）
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
-using Web0524.Models;
-using static Web0524.Models.Marketing;
+using Dapper;
+
 namespace Web0524.Models
 {
-
-
-    // 報表服務介面，定義系統中各類報表方法
     public interface IReportService
     {
-        // 系統總覽：會員總數、當月活躍會員、預約數、使用過優惠券數、總點數
         ReportSummary GetOverallSummary();
-        // 月預約報表：依年份統計每月預約數與營收
         List<MonthlyOrderReport> GetMonthlyOrderStats(int year);
-        // 點數排行榜：累積點數最多的會員
         List<User> GetTopPointUsers(int topN);
-        // 使用最多的優惠券排行
         List<Coupon> GetMostUsedCoupons(int topN);
-        // 設計師績效：各設計師的預約數與營收
         List<DesignerPerformance> GetDesignerPerformance();
-        // 熱門服務：被預約最多次的服務
         List<ServicePopularity> GetPopularServices(int topN);
-
-        // 活躍會員：依總金額排序的會員
         List<User> GetActiveMembers(int topN);
-        // 當日/當月壽星會員名單
         List<User> GetBirthdayMembers(bool todayOnly);
-        // 首次預約會員統計
         int GetFirstTimeUserCount(DateTime startDate, DateTime endDate);
-
-        // 單日預約明細（可配合設計師/服務條件過濾）
         List<Order> GetDailyOrders(DateTime date);
-        // 預約取消率：設計師與服務的取消率統計
         List<(string serviceOrDesigner, double cancelRate)> GetCancelRateReport();
-        // 熱門時段：分析每天哪個時段預約最多
         List<(string hour, int count)> GetPeakHours();
-
-        // 各優惠券的發放數與使用率統計
         List<(string code, int totalIssued, int usedCount)> GetCouponUsageStats();
-        // 單月營收總額
         double GetMonthlyRevenue(int year, int month);
-        // 顧客終身價值（LTV）：累積消費金額
         List<(string uid, double ltv)> GetUserLTV();
-        // 流失會員清單：在指定天數內無預約者
         List<User> GetInactiveMembers(int inactiveDays);
-
-
     }
 
     public class ReportService : IReportService
     {
-        private readonly List<User> Users;
-        private readonly List<Order> Orders;
-        private readonly List<PointLog> PointLogs;
-        private readonly List<MemberCoupon> MemberCoupons;
-        private readonly List<Coupon> Coupons;
-        private readonly List<Designer> Designers;
-        private readonly List<Product> Services;
+        private readonly IDbConnection _db;
 
-        public ReportService(List<User> users, List<Order> orders, List<PointLog> pointLogs,
-                             List<MemberCoupon> memberCoupons, List<Coupon> coupons,
-                             List<Designer> designers, List<Product> services)
+        public ReportService(IDbConnection dbConnection)
         {
-            Users = users;
-            Orders = orders;
-            PointLogs = pointLogs;
-            MemberCoupons = memberCoupons;
-            Coupons = coupons;
-            Designers = designers;
-            Services = services;
+            _db = dbConnection;
         }
 
-        // 系統總覽：會員總數、當月活躍會員、預約數、使用過優惠券數、總點數
         public ReportSummary GetOverallSummary()
         {
             var now = DateTime.Now;
             return new ReportSummary
             {
-                TotalUsers = Users.Count,
-                ActiveUsersThisMonth = Orders.Where(o => o.ReservationDateTime.Year == now.Year && o.ReservationDateTime.Month == now.Month).Select(o => o.Uid).Distinct().Count(),
-                TotalOrders = Orders.Count,
-                UsedCoupons = MemberCoupons.Count(c => c.IsUsed),
-                TotalPoints = PointLogs.Sum(p => p.Points)
+                TotalUsers = _db.ExecuteScalar<int>("SELECT COUNT(*) FROM UserTB"),
+                ActiveUsersThisMonth = _db.ExecuteScalar<int>(@"
+                    SELECT COUNT(DISTINCT Uid) FROM OrderTB 
+                    WHERE YEAR(ReservationDateTime) = @Year AND MONTH(ReservationDateTime) = @Month",
+                    new { Year = now.Year, Month = now.Month }),
+                TotalOrders = _db.ExecuteScalar<int>("SELECT COUNT(*) FROM OrderTB"),
+                UsedCoupons = _db.ExecuteScalar<int>("SELECT COUNT(*) FROM MemberCouponTB WHERE IsUsed = 1"),
+                TotalPoints = _db.ExecuteScalar<int>("SELECT ISNULL(SUM(Points), 0) FROM PointLogTB")
             };
         }
 
-        // 月預約報表：依年份統計每月預約數與營收
         public List<MonthlyOrderReport> GetMonthlyOrderStats(int year)
         {
-            return Enumerable.Range(1, 12)
-                .Select(month => new MonthlyOrderReport
-                {
-                    Year = year,
-                    Month = month,
-                    OrderCount = Orders.Count(o => o.ReservationDateTime.Year == year && o.ReservationDateTime.Month == month),
-                    TotalRevenue = Orders.Where(o => o.ReservationDateTime.Year == year && o.ReservationDateTime.Month == month).Sum(o => o.Price)
-                }).ToList();
+            var list = new List<MonthlyOrderReport>();
+            for (int month = 1; month <= 12; month++)
+            {
+                var orderCount = _db.ExecuteScalar<int>("SELECT COUNT(*) FROM OrderTB WHERE YEAR(ReservationDateTime) = @Year AND MONTH(ReservationDateTime) = @Month", new { Year = year, Month = month });
+                var revenue = _db.ExecuteScalar<decimal>("SELECT ISNULL(SUM(Price), 0) FROM OrderTB WHERE YEAR(ReservationDateTime) = @Year AND MONTH(ReservationDateTime) = @Month", new { Year = year, Month = month });
+                list.Add(new MonthlyOrderReport { Year = year, Month = month, OrderCount = orderCount, TotalRevenue = (double)revenue });
+            }
+            return list;
         }
 
-        // 點數排行榜：累積點數最多的會員
         public List<User> GetTopPointUsers(int topN)
         {
-            return PointLogs.GroupBy(p => p.MemberId)
-                .Select(g => new { MemberId = g.Key, Total = g.Sum(p => p.Points) })
-                .OrderByDescending(g => g.Total)
-                .Take(topN)
-                .Join(Users, g => g.MemberId, u => u.Id, (g, u) => u)
-                .ToList();
+            var sql = @"
+                SELECT TOP (@TopN) u.*
+                FROM (
+                    SELECT MemberId, SUM(Points) AS TotalPoints
+                    FROM PointLogTB
+                    GROUP BY MemberId
+                ) AS p
+                JOIN UserTB u ON u.Id = p.MemberId
+                ORDER BY p.TotalPoints DESC";
+            return _db.Query<User>(sql, new { TopN = topN }).ToList();
         }
 
-        // 使用最多的優惠券排行
         public List<Coupon> GetMostUsedCoupons(int topN)
         {
-            return MemberCoupons
-                .Where(c => c.IsUsed)
-                .GroupBy(c => c.CouponId)
-                .OrderByDescending(g => g.Count())
-                .Take(topN)
-                .Select(g => Coupons.FirstOrDefault(c => c.CouponId == g.Key))
-                .Where(c => c != null)
-                .ToList();
+            var sql = @"
+                SELECT TOP (@TopN) c.*
+                FROM MemberCouponTB mc
+                JOIN CouponTB c ON c.CouponId = mc.CouponId
+                WHERE mc.IsUsed = 1
+                GROUP BY c.CouponId, c.Title, c.Code, c.DiscountAmount, c.MinAmount, c.ValidFrom, c.ValidTo, c.ForFirstTimeUser, c.IsActive
+                ORDER BY COUNT(*) DESC";
+            return _db.Query<Coupon>(sql, new { TopN = topN }).ToList();
         }
 
-        // 設計師績效：各設計師的預約數與營收
         public List<DesignerPerformance> GetDesignerPerformance()
         {
-            return Orders.GroupBy(o => o.DesignerId)
-                .Select(g =>
-                {
-                    var designerName = Designers.FirstOrDefault(d => d.DesignerId == g.Key)?.Name ?? "未知";
-                    return new DesignerPerformance
-                    {
-                        DesignerName = designerName,
-                        OrderCount = g.Count(),
-                        TotalRevenue = g.Sum(o => o.Price)
-                    };
-                }).ToList();
+            var sql = @"
+                SELECT d.Name AS DesignerName, COUNT(o.OrderId) AS OrderCount, SUM(o.Price) AS TotalRevenue
+                FROM OrderTB o
+                JOIN DesignerTB d ON o.DesignerId = d.DesignerId
+                GROUP BY d.Name";
+            return _db.Query<DesignerPerformance>(sql).ToList();
         }
 
-        // 熱門服務：被預約最多次的服務
         public List<ServicePopularity> GetPopularServices(int topN)
         {
-            return Orders.GroupBy(o => o.ProductId)
-                .OrderByDescending(g => g.Count())
-                .Take(topN)
-                .Select(g =>
-                {
-                    var name = Services.FirstOrDefault(s => s.ProductId == g.Key)?.Name ?? "未知";
-                    return new ServicePopularity
-                    {
-                        ServiceName = name,
-                        OrderCount = g.Count()
-                    };
-                }).ToList();
+            var sql = @"
+                SELECT TOP (@TopN) p.Name AS ServiceName, COUNT(o.OrderId) AS OrderCount
+                FROM OrderTB o
+                JOIN ProductTB p ON o.ProductId = p.ProductId
+                GROUP BY p.Name
+                ORDER BY COUNT(o.OrderId) DESC";
+            return _db.Query<ServicePopularity>(sql, new { TopN = topN }).ToList();
         }
 
-        // 活躍會員：依總金額排序的會員
-        public List<User> GetActiveMembers(int topN) =>
-            Orders.GroupBy(o => o.Uid)
-                .Select(g => new { Uid = g.Key, Total = g.Sum(o => o.Price) })
-                .OrderByDescending(g => g.Total)
-                .Take(topN)
-                .Join(Users, g => g.Uid, u => u.Id, (g, u) => u)
-                .ToList();
+        public List<User> GetActiveMembers(int topN)
+        {
+            var sql = @"
+                SELECT TOP (@TopN) u.*
+                FROM (
+                    SELECT Uid, SUM(Price) AS TotalAmount
+                    FROM OrderTB
+                    GROUP BY Uid
+                ) AS t
+                JOIN UserTB u ON u.Id = t.Uid
+                ORDER BY t.TotalAmount DESC";
+            return _db.Query<User>(sql, new { TopN = topN }).ToList();
+        }
 
-        // 當日/當月壽星會員名單
         public List<User> GetBirthdayMembers(bool todayOnly)
         {
+            string sql = todayOnly
+                ? "SELECT * FROM UserTB WHERE MONTH(Birthday) = @Month AND DAY(Birthday) = @Day"
+                : "SELECT * FROM UserTB WHERE MONTH(Birthday) = @Month";
+
             var today = DateTime.Today;
-            return Users.Where(u => u.Birthday != null &&
-                (todayOnly
-                    ? u.Birthday.Value.Month == today.Month && u.Birthday.Value.Day == today.Day
-                    : u.Birthday.Value.Month == today.Month))
-                .ToList();
+            return _db.Query<User>(sql, new { Month = today.Month, Day = today.Day }).ToList();
         }
 
-        // 首次預約會員統計
         public int GetFirstTimeUserCount(DateTime startDate, DateTime endDate)
         {
-            var firstOrders = Orders.GroupBy(o => o.Uid).Select(g => g.Min(o => o.ReservationDateTime));
-            return firstOrders.Count(t => t >= startDate && t <= endDate);
+            var sql = @"
+                SELECT COUNT(*) FROM (
+                    SELECT Uid, MIN(ReservationDateTime) AS FirstTime
+                    FROM OrderTB
+                    GROUP BY Uid
+                ) AS firstOrders
+                WHERE FirstTime BETWEEN @StartDate AND @EndDate";
+            return _db.ExecuteScalar<int>(sql, new { StartDate = startDate, EndDate = endDate });
         }
 
-        // 單日預約明細（可配合設計師/服務條件過濾）
-        public List<Order> GetDailyOrders(DateTime date) =>
-            Orders.Where(o => o.ReservationDateTime.Date == date.Date).ToList();
+        public List<Order> GetDailyOrders(DateTime date)
+        {
+            var sql = "SELECT * FROM OrderTB WHERE CAST(ReservationDateTime AS DATE) = @Date";
+            return _db.Query<Order>(sql, new { Date = date.Date }).ToList();
+        }
 
-        // 預約取消率：設計師與服務的取消率統計
         public List<(string serviceOrDesigner, double cancelRate)> GetCancelRateReport()
         {
-            var designerRates = Orders
-                .GroupBy(o => o.DesignerId)
-                .Select(g => (Designer: Designers.FirstOrDefault(d => d.DesignerId == g.Key)?.Name ?? "未知",
-                              Rate: (double)g.Count(o => o.Status == OrderStatus.Cancelled) / g.Count()))
-                .ToList();
+            var result = new List<(string, double)>();
 
-            var serviceRates = Orders
-                .GroupBy(o => o.ProductId)
-                .Select(g => (Service: Services.FirstOrDefault(s => s.ProductId == g.Key)?.Name ?? "未知",
-                              Rate: (double)g.Count(o => o.Status == OrderStatus.Cancelled) / g.Count()))
-                .ToList();
+            var designerSql = @"
+                SELECT d.Name AS Name, 
+                       CAST(SUM(CASE WHEN o.Status = 2 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS CancelRate
+                FROM OrderTB o
+                JOIN DesignerTB d ON o.DesignerId = d.DesignerId
+                GROUP BY d.Name";
+            result.AddRange(_db.Query<(string, double)>(designerSql));
 
-            return designerRates.Concat(serviceRates).ToList();
+            var serviceSql = @"
+                SELECT p.Name AS Name, 
+                       CAST(SUM(CASE WHEN o.Status = 2 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS CancelRate
+                FROM OrderTB o
+                JOIN ProductTB p ON o.ProductId = p.ProductId
+                GROUP BY p.Name";
+            result.AddRange(_db.Query<(string, double)>(serviceSql));
+
+            return result;
         }
 
-        // 熱門時段：分析每天哪個時段預約最多
         public List<(string hour, int count)> GetPeakHours()
         {
-            return Orders
-                .GroupBy(o => o.ReservationDateTime.ToString("HH:00"))
-                .Select(g => (Hour: g.Key, Count: g.Count()))
-                .OrderByDescending(g => g.Count)
-                .ToList();
+            var sql = @"
+                SELECT FORMAT(ReservationDateTime, 'HH:00') AS Hour,
+                       COUNT(*) AS Count
+                FROM OrderTB
+                GROUP BY FORMAT(ReservationDateTime, 'HH:00')
+                ORDER BY Count DESC";
+            return _db.Query<(string, int)>(sql).ToList();
         }
 
-        // 各優惠券的發放數與使用率統計
         public List<(string code, int totalIssued, int usedCount)> GetCouponUsageStats()
         {
-            return MemberCoupons
-                .GroupBy(mc => mc.CouponId)
-                .Select(g =>
-                {
-                    var coupon = Coupons.FirstOrDefault(c => c.CouponId == g.Key);
-                    return (coupon?.Code ?? "", g.Count(), g.Count(mc => mc.IsUsed));
-                }).ToList();
+            var sql = @"
+                SELECT c.Code, COUNT(*) AS totalIssued,
+                       SUM(CASE WHEN mc.IsUsed = 1 THEN 1 ELSE 0 END) AS usedCount
+                FROM MemberCouponTB mc
+                JOIN CouponTB c ON mc.CouponId = c.CouponId
+                GROUP BY c.Code";
+            return _db.Query<(string, int, int)>(sql).ToList();
         }
 
-        // 單月營收總額
-        public double GetMonthlyRevenue(int year, int month) =>
-            Orders.Where(o => o.ReservationDateTime.Year == year && o.ReservationDateTime.Month == month)
-                  .Sum(o => o.Price);
+        public double GetMonthlyRevenue(int year, int month)
+        {
+            var sql = "SELECT ISNULL(SUM(Price), 0) FROM OrderTB WHERE YEAR(ReservationDateTime) = @Year AND MONTH(ReservationDateTime) = @Month";
+            return _db.ExecuteScalar<double>(sql, new { Year = year, Month = month });
+        }
 
-        // 顧客終身價值（LTV）：累積消費金額
-        public List<(string uid, double ltv)> GetUserLTV() =>
-            Orders.GroupBy(o => o.Uid)
-                  .Select(g => (uid: g.Key, ltv: g.Sum(o => o.Price)))
-                  .ToList();
+        public List<(string uid, double ltv)> GetUserLTV()
+        {
+            var sql = @"
+                SELECT Uid, SUM(Price) AS LTV
+                FROM OrderTB
+                GROUP BY Uid";
+            return _db.Query<(string, double)>(sql).ToList();
+        }
 
-
-        // 流失會員清單：在指定天數內無預約者
         public List<User> GetInactiveMembers(int inactiveDays)
         {
-            var cutoff = DateTime.Today.AddDays(-inactiveDays);
-            var activeIds = Orders.Where(o => o.ReservationDateTime > cutoff).Select(o => o.Uid).Distinct().ToHashSet();
-            return Users.Where(u => !activeIds.Contains(u.Id)).ToList();
+            var sql = @"
+                SELECT * FROM UserTB
+                WHERE Id NOT IN (
+                    SELECT DISTINCT Uid FROM OrderTB WHERE ReservationDateTime > @Cutoff
+                )";
+            return _db.Query<User>(sql, new { Cutoff = DateTime.Today.AddDays(-inactiveDays) }).ToList();
         }
-
-
     }
 }

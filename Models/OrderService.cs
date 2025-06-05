@@ -9,7 +9,7 @@ namespace Web0524.Models
     public interface IOrderService
     {
 
-        int CreateOrder(Order order);
+        Order CreateOrder(Order order);
 
         // 更新訂單
         bool UpdateOrder(Order order);
@@ -69,13 +69,20 @@ namespace Web0524.Models
         {
             _dbConnection = dbConnection;
         }
-        public int CreateOrder(Order order)
+        public Order CreateOrder(Order order)
         {
             var sql = @"
-            INSERT INTO OrderTB (Status, DesignerId, ProductId, Price, PaymentMethod, ReservationDateTime, Uid, Remark, Orderdate)
-            VALUES (@Status, @DesignerId, @ProductId, @Price, @PaymentMethod, @ReservationDateTime, @Uid, @Remark, @Orderdate)";
-            return _dbConnection.Execute(sql, order);
+        INSERT INTO OrderTB 
+        (Status, DesignerId, ProductId, Price, PaymentMethod, ReservationDateTime, Uid, Remark, Orderdate)
+        VALUES 
+        (@Status, @DesignerId, @ProductId, @Price, @PaymentMethod, @ReservationDateTime, @Uid, @Remark, @Orderdate);
+        SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            var newId = _dbConnection.ExecuteScalar<int>(sql, order);
+            order.OrderId = newId;
+            return order;
         }
+
 
         public bool UpdateOrder(Order order)
         {

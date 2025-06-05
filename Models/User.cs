@@ -2,6 +2,42 @@
 
 namespace Web0524.Models
 {
+
+    public static class PermissionHelper
+    {
+        public static Permission GetPermissionsForRole(UserRole role)
+        {
+            return role switch
+            {
+                UserRole.Developer => new Permission { CanView = true, CanEdit = true, CanDelete = true, CanApprove = true, CanManageUsers = true },
+                UserRole.SuperAdmin => new Permission { CanView = true, CanEdit = true, CanDelete = true, CanApprove = true, CanManageUsers = true },
+                UserRole.Admin => new Permission { CanView = true, CanEdit = true, CanDelete = true, CanManageUsers = true },
+                UserRole.Editor => new Permission { CanView = true, CanEdit = true },
+                UserRole.VipMember => new Permission { CanView = true },
+                UserRole.Member => new Permission { CanView = true },
+                _ => new Permission()
+            };
+        }
+    }
+
+    public enum UserRole
+    {
+        Developer,       // 開發者
+        SuperAdmin,      // 最高管理員
+        Admin,           // 管理員
+        Editor,          // 小編
+        VipMember,       // VIP會員
+        Member           // 一般會員
+    }
+
+    public class Permission
+    {
+        public bool CanView { get; set; } = false;
+        public bool CanEdit { get; set; } = false;
+        public bool CanDelete { get; set; } = false;
+        public bool CanApprove { get; set; } = false;
+        public bool CanManageUsers { get; set; } = false;
+    }
     public class User
     {
         [Required(ErrorMessage = "帳號必填")]
@@ -49,6 +85,14 @@ namespace Web0524.Models
         [Required(ErrorMessage = "取消數必填")]
         public int CancelNum { get; set; } = 0;
 
-        public bool IsDeleted { get; set; } = false; // 假刪除欄位
+        public bool IsDeleted { get; set; } = false;
+
+        // 新增角色與權限
+        public UserRole Role { get; set; } = UserRole.Member;
+        public Permission Permissions { get; set; } = new Permission();
+
+        // 對應資料表欄位用
+        public string RoleString { get; set; } = "Member";
+        public string PermissionsJson { get; set; } = "{}";
     }
 }

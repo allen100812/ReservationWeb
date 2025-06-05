@@ -17,7 +17,7 @@ namespace Web0524.Models
         public string Nickname { get; set; } = string.Empty;
 
         public List<Designer_ProductScheduleRule> ScheduleRules { get; set; } = new();
-        public List<DateTime> FixedHolidays { get; set; } = new();
+        public List<string> FixedHolidays { get; set; } = new();
 
         public bool IsDeleted { get; set; } = false; // 假刪除欄位
     }

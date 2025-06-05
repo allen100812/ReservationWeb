@@ -1,5 +1,9 @@
 ﻿using Dapper;
+using Newtonsoft.Json;
 using System.Data;
+
+
+
 namespace Web0524.Models
 {
 
@@ -32,6 +36,11 @@ namespace Web0524.Models
 
         bool RestoreUser(string id);
 
+
+        User? GetUserByLineUserId(string lineUserId);
+
+
+
     }
 
     public class UserService : IUserService
@@ -43,17 +52,26 @@ namespace Web0524.Models
         }
         public IEnumerable<User> GetUserTB()
         {
-            var sql = @"
-        SELECT * FROM UserTB
-        WHERE UserType <> 9 AND IsDeleted = 0
-        ORDER BY UserType ASC";
-            return _dbConnection.Query<User>(sql);
+            var sql = @"SELECT * FROM UserTB WHERE UserType <> 9 AND IsDeleted = 0 ORDER BY UserType ASC";
+            var users = _dbConnection.Query<User>(sql).ToList();
+            foreach (var user in users)
+                MapUserPermissions(user);
+            return users;
         }
+
 
         public User? GetUserById(string id)
         {
             var sql = "SELECT * FROM UserTB WHERE Id = @Id AND IsDeleted = 0";
-            return _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id });
+            var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id });
+            return MapUserPermissions(user);
+        }
+
+        public User? GetUserByLineUserId(string lineUserId)
+        {
+            var sql = "SELECT * FROM UserTB WHERE LineUserId = @lineUserId AND IsDeleted = 0";
+            var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { lineUserId });
+            return MapUserPermissions(user);
         }
 
         public bool CreateUser(User user)
@@ -61,12 +79,34 @@ namespace Web0524.Models
             var sql = @"
         INSERT INTO UserTB
         (Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
-         OrderNum, CancelNum, Remark, Birthday, LineUserId, IsDeleted)
+         OrderNum, CancelNum, Remark, Birthday, LineUserId, Role, Permissions, IsDeleted)
         VALUES
         (@Id, @Name, @Password, @UserType, @Address, @Phone, @Email, @Line, @Photo,
-         @OrderNum, @CancelNum, @Remark, @Birthday, @LineUserId, 0)";
-            return _dbConnection.Execute(sql, user) > 0;
+         @OrderNum, @CancelNum, @Remark, @Birthday, @LineUserId, @RoleString, @PermissionsJson, 0)";
+
+            var param = new
+            {
+                user.Id,
+                user.Name,
+                user.Password,
+                user.UserType,
+                user.Address,
+                user.Phone,
+                user.Email,
+                user.Line,
+                user.Photo,
+                user.OrderNum,
+                user.CancelNum,
+                user.Remark,
+                user.Birthday,
+                user.LineUserId,
+                RoleString = user.Role.ToString(),
+                PermissionsJson = JsonConvert.SerializeObject(user.Permissions)
+            };
+
+            return _dbConnection.Execute(sql, param) > 0;
         }
+
 
         public bool UpdateUser(User user)
         {
@@ -84,10 +124,34 @@ namespace Web0524.Models
             CancelNum = @CancelNum,
             Remark = @Remark,
             Birthday = @Birthday,
-            LineUserId = @LineUserId
+            LineUserId = @LineUserId,
+            Role = @RoleString,
+            Permissions = @PermissionsJson
         WHERE Id = @Id AND IsDeleted = 0";
-            return _dbConnection.Execute(sql, user) > 0;
+
+            var param = new
+            {
+                user.Id,
+                user.Name,
+                user.Password,
+                user.UserType,
+                user.Address,
+                user.Phone,
+                user.Email,
+                user.Line,
+                user.Photo,
+                user.OrderNum,
+                user.CancelNum,
+                user.Remark,
+                user.Birthday,
+                user.LineUserId,
+                RoleString = user.Role.ToString(),
+                PermissionsJson = JsonConvert.SerializeObject(user.Permissions)
+            };
+
+            return _dbConnection.Execute(sql, param) > 0;
         }
+
 
         public bool DeleteUser(string id)
         {
@@ -98,14 +162,48 @@ namespace Web0524.Models
         public User UserLogin(string id, string pwd)
         {
             var sql = "SELECT * FROM UserTB WHERE Id = @Id AND Password = @Password AND UserType <> 9 AND IsDeleted = 0";
-            return _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id, Password = pwd });
+            var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = id, Password = pwd });
+            return MapUserPermissions(user);
         }
+
 
         public bool RestoreUser(string id)
         {
             var sql = "UPDATE UserTB SET IsDeleted = 0 WHERE Id = @Id";
             return _dbConnection.Execute(sql, new { Id = id }) > 0;
         }
+
+
+
+        private User? MapUserPermissions(User? user)
+        {
+            if (user == null) return null;
+
+            // 先宣告 role 變數
+            UserRole role;
+
+            if (!string.IsNullOrEmpty(user.RoleString))
+                Enum.TryParse(user.RoleString, out role);
+            else
+                role = UserRole.Member;
+
+            user.Role = role;
+
+            if (!string.IsNullOrEmpty(user.PermissionsJson))
+            {
+                try
+                {
+                    user.Permissions = JsonConvert.DeserializeObject<Permission>(user.PermissionsJson) ?? new Permission();
+                }
+                catch
+                {
+                    user.Permissions = new Permission();
+                }
+            }
+
+            return user;
+        }
+
 
     }
 

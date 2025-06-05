@@ -1,11 +1,5 @@
 ﻿namespace Web0524.Models
 {
-    public class Marketing
-    {
-
-    }
-
-
     // 優惠券主檔
     public class Coupon
     {

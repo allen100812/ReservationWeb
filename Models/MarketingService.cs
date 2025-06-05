@@ -36,84 +36,76 @@ namespace Web0524.Models
         bool MarkCouponUsed(string memberId, int couponId);
 
         // 新增優惠券（後台）
-        void AddSystemCoupon(Coupon coupon);
+        Coupon AddSystemCoupon(Coupon coupon);
+
+        bool UpdateCoupon(Coupon coupon);
+
+        bool DeleteCoupon(int couponId);
+
     }
 
     public class MarketingService : IMarketingService
     {
-        private List<Coupon> Coupons = new(); // 優惠券清單（模擬資料）
-        private List<MemberCoupon> MemberCoupons = new(); // 會員擁有的優惠券
-        private List<PointLog> PointLogs = new(); // 點數紀錄清單
-        private List<User> Users = new(); // 使用者清單
+        private readonly IDbConnection _db;
 
-        // 取得會員目前可用的所有優惠券
+        public MarketingService(IDbConnection dbConnection)
+        {
+            _db = dbConnection;
+        }
+
         public List<Coupon> GetAvailableCoupons(string memberId)
         {
-            var now = DateTime.Now;
-            var owned = MemberCoupons.Where(mc => mc.MemberId == memberId && !mc.IsUsed)
-                                     .Select(mc => mc.CouponId)
-                                     .ToList();
-            return Coupons.Where(c => owned.Contains(c.CouponId) && c.IsActive && now >= c.ValidFrom && now <= c.ValidTo)
-                          .ToList();
+            var sql = @"
+            SELECT c.* 
+            FROM CouponTB c
+            JOIN MemberCouponTB mc ON c.CouponId = mc.CouponId
+            WHERE mc.MemberId = @memberId AND mc.IsUsed = 0 AND c.IsActive = 1
+              AND GETDATE() BETWEEN c.ValidFrom AND c.ValidTo";
+            return _db.Query<Coupon>(sql, new { memberId }).ToList();
         }
 
-        // 會員兌換優惠券碼
         public bool RedeemCoupon(string memberId, string code)
         {
-            var coupon = Coupons.FirstOrDefault(c => c.Code == code && c.IsActive && DateTime.Now <= c.ValidTo);
+            var coupon = _db.QueryFirstOrDefault<Coupon>(
+                "SELECT * FROM CouponTB WHERE Code = @code AND IsActive = 1 AND ValidTo >= GETDATE()",
+                new { code });
+
             if (coupon == null) return false;
 
-            if (MemberCoupons.Any(mc => mc.MemberId == memberId && mc.CouponId == coupon.CouponId))
-                return false;
+            var exists = _db.ExecuteScalar<int>(
+                "SELECT COUNT(*) FROM MemberCouponTB WHERE MemberId = @memberId AND CouponId = @couponId",
+                new { memberId, couponId = coupon.CouponId });
 
-            MemberCoupons.Add(new MemberCoupon
-            {
-                Id = MemberCoupons.Count + 1,
-                MemberId = memberId,
-                CouponId = coupon.CouponId,
-                IsUsed = false
-            });
-            return true;
+            if (exists > 0) return false;
+
+            var insertSql = @"
+            INSERT INTO MemberCouponTB (MemberId, CouponId, IsUsed)
+            VALUES (@memberId, @couponId, 0)";
+            return _db.Execute(insertSql, new { memberId, couponId = coupon.CouponId }) > 0;
         }
 
-        // 取得會員目前累積點數
         public int GetMemberPoints(string memberId)
         {
-            return PointLogs.Where(p => p.MemberId == memberId).Sum(p => p.Points);
+            return _db.ExecuteScalar<int>(
+                "SELECT ISNULL(SUM(Points), 0) FROM PointLogTB WHERE MemberId = @memberId",
+                new { memberId });
         }
 
-        // 增加點數
         public void AddPoints(string memberId, int points, string action)
         {
-            PointLogs.Add(new PointLog
-            {
-                Id = PointLogs.Count + 1,
-                MemberId = memberId,
-                Points = points,
-                Action = action,
-                CreateTime = DateTime.Now,
-                Remark = string.Empty
-            });
+            var sql = @"
+            INSERT INTO PointLogTB (MemberId, Points, Action, CreateTime, Remark)
+            VALUES (@memberId, @points, @action, GETDATE(), '')";
+            _db.Execute(sql, new { memberId, points, action });
         }
 
-        // 扣除點數
         public bool DeductPoints(string memberId, int points, string action)
         {
             if (GetMemberPoints(memberId) < points) return false;
-
-            PointLogs.Add(new PointLog
-            {
-                Id = PointLogs.Count + 1,
-                MemberId = memberId,
-                Points = -points,
-                Action = action,
-                CreateTime = DateTime.Now,
-                Remark = string.Empty
-            });
+            AddPoints(memberId, -points, action);
             return true;
         }
 
-        // 判斷會員等級
         public string GetMemberLevel(string memberId)
         {
             int points = GetMemberPoints(memberId);
@@ -123,55 +115,90 @@ namespace Web0524.Models
             return "銅級";
         }
 
-        // 查詢會員點數使用紀錄
         public List<PointLog> GetPointHistory(string memberId)
         {
-            return PointLogs.Where(p => p.MemberId == memberId)
-                            .OrderByDescending(p => p.CreateTime)
-                            .ToList();
+            return _db.Query<PointLog>(
+                "SELECT * FROM PointLogTB WHERE MemberId = @memberId ORDER BY CreateTime DESC",
+                new { memberId }).ToList();
         }
 
-        // 發送生日優惠券
         public void DistributeBirthdayCoupon(string memberId)
         {
-            var user = Users.FirstOrDefault(u => u.Id == memberId);
+            var user = _db.QueryFirstOrDefault<User>(
+                "SELECT * FROM UserTB WHERE Id = @memberId", new { memberId });
             if (user == null || user.Birthday == null) return;
 
-            if (user.Birthday?.Month != DateTime.Today.Month || user.Birthday?.Day != DateTime.Today.Day)
+            var today = DateTime.Today;
+            if (user.Birthday?.Month != today.Month || user.Birthday?.Day != today.Day)
                 return;
 
-            var birthdayCoupon = Coupons.FirstOrDefault(c => c.Title.Contains("生日") && c.IsActive);
+            var coupon = _db.QueryFirstOrDefault<Coupon>(
+                "SELECT TOP 1 * FROM CouponTB WHERE Title LIKE '%生日%' AND IsActive = 1");
 
-            if (birthdayCoupon != null &&
-                !MemberCoupons.Any(mc => mc.MemberId == memberId && mc.CouponId == birthdayCoupon.CouponId))
+            if (coupon != null)
             {
-                MemberCoupons.Add(new MemberCoupon
+                var exists = _db.ExecuteScalar<int>(
+                    "SELECT COUNT(*) FROM MemberCouponTB WHERE MemberId = @memberId AND CouponId = @couponId",
+                    new { memberId, couponId = coupon.CouponId });
+
+                if (exists == 0)
                 {
-                    Id = MemberCoupons.Count + 1,
-                    MemberId = memberId,
-                    CouponId = birthdayCoupon.CouponId,
-                    IsUsed = false
-                });
+                    _db.Execute(
+                        "INSERT INTO MemberCouponTB (MemberId, CouponId, IsUsed) VALUES (@memberId, @couponId, 0)",
+                        new { memberId, couponId = coupon.CouponId });
+                }
             }
         }
 
-        // 標記優惠券為已使用
         public bool MarkCouponUsed(string memberId, int couponId)
         {
-            var mc = MemberCoupons.FirstOrDefault(m => m.MemberId == memberId && m.CouponId == couponId && !m.IsUsed);
-            if (mc == null) return false;
+            var updated = _db.Execute(@"
+            UPDATE MemberCouponTB
+            SET IsUsed = 1, UsedDate = GETDATE()
+            WHERE MemberId = @memberId AND CouponId = @couponId AND IsUsed = 0",
+                new { memberId, couponId });
 
-            mc.IsUsed = true;
-            mc.UsedDate = DateTime.Now;
-            return true;
+            return updated > 0;
         }
 
-        // 新增系統優惠券
-        public void AddSystemCoupon(Coupon coupon)
+        public Coupon AddSystemCoupon(Coupon coupon)
         {
-            coupon.CouponId = Coupons.Count + 1;
-            Coupons.Add(coupon);
+            var sql = @"
+        INSERT INTO CouponTB 
+        (Title, Code, DiscountAmount, MinAmount, ValidFrom, ValidTo, ForFirstTimeUser, IsActive)
+        VALUES 
+        (@Title, @Code, @DiscountAmount, @MinAmount, @ValidFrom, @ValidTo, @ForFirstTimeUser, @IsActive);
+        SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            int newId = _db.ExecuteScalar<int>(sql, coupon);
+            coupon.CouponId = newId;
+            return coupon;
         }
+
+        public bool UpdateCoupon(Coupon coupon)
+        {
+            var sql = @"
+        UPDATE CouponTB
+        SET Title = @Title,
+            Code = @Code,
+            DiscountAmount = @DiscountAmount,
+            MinAmount = @MinAmount,
+            ValidFrom = @ValidFrom,
+            ValidTo = @ValidTo,
+            ForFirstTimeUser = @ForFirstTimeUser,
+            IsActive = @IsActive
+        WHERE CouponId = @CouponId";
+
+            return _db.Execute(sql, coupon) > 0;
+        }
+
+
+        public bool DeleteCoupon(int couponId)
+        {
+            var sql = "UPDATE CouponTB SET IsActive = 0 WHERE CouponId = @couponId";
+            return _db.Execute(sql, new { couponId }) > 0;
+        }
+
     }
 
 
