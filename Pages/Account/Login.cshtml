@@ -113,19 +113,52 @@
 
             <!-- 帳號密碼區塊（預設隱藏） -->
             <div id="account-login-form" style="display: none;">
-                <form method="post">
+                <form id="loginForm" method="post">
                     <div class="mb-3">
-                        <input asp-for="UserModel.Id" class="form-control" placeholder="信箱Email">
-                        <span asp-validation-for="UserModel.Id" class="text-danger"></span>
+                        <input name="UserModel.Id" class="form-control" placeholder="信箱Email">
+                        <span class="text-danger" id="id-error"></span>
                     </div>
                     <div class="mb-3">
-                        <input asp-for="UserModel.Password" type="password" class="form-control" placeholder="密碼">
-                        <span asp-validation-for="UserModel.Password" class="text-danger"></span>
+                        <input name="UserModel.Password" type="password" class="form-control" placeholder="密碼">
+                        <span class="text-danger" id="password-error"></span>
                     </div>
                     <button type="submit" class="btn btn-secondary w-100 mb-2">登入</button>
                 </form>
-                <div class="text-danger mt-3">@ViewData["ErrorMsg"]</div>
+
+
+
+
+                <div class="text-danger mt-3" id="login-error"></div>
             </div>
+
+            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            <script>
+                $('#loginForm').submit(function (e) {
+                    e.preventDefault();
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '/Account/Login?handler=Login',
+                        data: $(this).serialize(),
+                        success: function (res) {
+                            if (res.success) {
+                                window.location.href = '/Index';
+                            } else {
+                                $('#login-error').text(res.message);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.log("XHR:", xhr);
+                            console.log("Status:", status);
+                            console.log("Error:", error);
+                            console.log("Response Text:", xhr.responseText);
+                            $('#login-error').text('系統錯誤，請稍後再試。');
+                        }
+
+                    });
+                });
+            </script>
+
 
             <!-- 分隔線 -->
             <div class="divider text-center text-muted my-3">或</div>

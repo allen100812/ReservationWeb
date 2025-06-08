@@ -105,7 +105,8 @@
 
 
                 <!-- 註冊送出 -->
-                <form method="post" asp-page-handler="Register">
+                <form method="post" action="?handler=RegisterJson" id="register-form">
+                    @Html.AntiForgeryToken()
                     <div class="mb-3">
                         <input asp-for="Register.UserName" class="form-control" placeholder="真實姓名">
                         <span asp-validation-for="Register.UserName" class="text-danger"></span>
@@ -124,6 +125,8 @@
                         </button>
                     </div>
 
+                    <!-- 新增驗證碼訊息區塊 -->
+                    <div id="code-message-area" class="mb-3"></div>
 
                     <div class="mb-3">
                         <input asp-for="Register.Password" type="password" class="form-control" placeholder="密碼">
@@ -135,6 +138,31 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 mb-2">註冊</button>
+
+                    <div class="mb-3">
+                        <div id="register-result-message" class="mt-2"></div>
+
+
+                        @if (!string.IsNullOrEmpty(Model.Message))
+                        {
+                            <script>
+                                let countdown = 5;
+                                const msg = document.getElementById("success-message");
+                                const timer = setInterval(() => {
+                                    countdown--;
+                                    msg.innerText = "註冊成功！" + countdown + " 秒後將跳轉首頁...";
+                                    if (countdown <= 0) {
+                                        clearInterval(timer);
+                                        window.location.href = "/Index";
+                                    }
+                                }, 1000);
+                            </script>
+                        }
+
+                    </div>
+                    <!-- 顯示後端錯誤或成功訊息 -->
+
+
                 </form>
 
                 @if (!string.IsNullOrEmpty(Model.Message))
@@ -165,48 +193,185 @@
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    let cooldown = 0;
-    let timer;
 
-    function startCooldown(seconds) {
-        cooldown = seconds;
-        $("#sendCodeBtn").prop("disabled", true);
-        updateCooldownText();
+    <script>
+    $("#register-form").submit(function (e) {
+        e.preventDefault();
 
-        timer = setInterval(() => {
-            cooldown--;
-            updateCooldownText();
-            if (cooldown <= 0) {
-                clearInterval(timer);
-                $("#sendCodeBtn").prop("disabled", false);
-                $("#cooldownText").text("");
-            }
-        }, 1000);
-    }
+        // 取得欄位值
+        const name = $("input[name='Register.UserName']").val().trim();
+        const email = $("input[name='Register.Email']").val().trim();
+        const code = $("input[name='Register.VerificationCode']").val().trim();
+        const pwd = $("input[name='Register.Password']").val();
+        const confirm = $("input[name='Register.ConfirmPassword']").val();
 
-    function updateCooldownText() {
-        $("#cooldownText").text(`請稍候 ${cooldown} 秒再發送`);
-    }
+        let errors = [];
 
-    $("#sendCodeBtn").click(function () {
-        const email = $("#emailInput").val().trim();
+        // 驗證邏輯
+        if (name === "") errors.push("請輸入真實姓名。");
 
+
+        if (email === "") {
+            errors.push("請輸入電子郵件。");
+        } 
+
+        if (code === "") errors.push("請輸入驗證碼。");
+
+        if (pwd === "") errors.push("請輸入密碼。");
+        if (confirm === "") errors.push("請輸入確認密碼。");
+        if (pwd && confirm && pwd !== confirm) errors.push("密碼與確認密碼不一致。");
+
+        // 如果有錯誤，顯示並中斷
+        if (errors.length > 0) {
+            const errorHtml = errors.map(e => `<div>${e}</div>`).join('');
+            $("#register-result-message").html(`<div class="alert alert-danger">${errorHtml}</div>`);
+            return;
+        }
+
+        // ✅ 所有檢查通過再送出
+        const formData = $(this).serialize();
 
         $.ajax({
-            url: "/api/email/send",
-            method: "POST",
-            data: { email },
-            success: function (res) {
-                alert(res.message);
-                startCooldown(60);
+            url: "/Account/Register?handler=RegisterJson",
+            type: "POST",
+            data: formData,
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
-            error: function (xhr) {
-                alert("錯誤：" + xhr.responseText);
+            success: function (res) {
+                $("#register-result-message").empty();
+
+                if (res.success) {
+                    $("#register-result-message").html(
+                        `<div class="alert alert-success">註冊成功！<span id="countdown">3</span> 秒後跳轉首頁...</div>`
+                    );
+                    let seconds = 3;
+                    const countdown = setInterval(() => {
+                        seconds--;
+                        $("#countdown").text(seconds);
+                        if (seconds <= 0) {
+                            clearInterval(countdown);
+                            window.location.href = "/Index";
+                        }
+                    }, 1000);
+                } else {
+                    if (Array.isArray(res.message)) {
+                        const list = res.message.map(m => `<div>${m}</div>`).join('');
+                        $("#register-result-message").html(`<div class="alert alert-danger">${list}</div>`);
+                    } else {
+                        $("#register-result-message").html(
+                            `<div class="alert alert-danger">${res.message}</div>`
+                        );
+                    }
+                }
+            },
+            error: function () {
+                $("#register-result-message").html(
+                    `<div class="alert alert-danger">發生未知錯誤，請稍後再試。</div>`
+                );
             }
         });
     });
 </script>
+
+
+
+    <script>
+        let cooldown = 0;
+        let timer;
+
+        function startCooldown(seconds) {
+            const email = $("#emailInput").val().trim();
+            const targetTime = Date.now() + seconds * 1000;
+
+            localStorage.setItem(`cooldown_end_${email}`, targetTime.toString());
+
+            $("#sendCodeBtn").prop("disabled", true);
+
+            clearInterval(timer);
+            timer = setInterval(() => {
+                const now = Date.now();
+                const remaining = Math.floor((targetTime - now) / 1000);
+
+                if (remaining > 0) {
+                    $("#sendCodeText").text(`${remaining} 秒後可重發`);
+                } else {
+                    clearInterval(timer);
+                    localStorage.removeItem(`cooldown_end_${email}`);
+                    $("#sendCodeBtn").prop("disabled", false);
+                    $("#sendCodeText").text("發送驗證碼");
+                }
+            }, 1000);
+        }
+
+
+        function updateCooldownText() {
+            $("#sendCodeText").text(`${cooldown} 秒後可重發`);
+        }
+
+        function showBootstrapMessage(target, message, type = 'success') {
+            const html = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>`;
+            $(target).html(html);
+        }
+
+        $(document).off("click", "#sendCodeBtn").on("click", "#sendCodeBtn", function () {
+
+
+            const email = $("#emailInput").val().trim();
+            if (!email) {
+                showBootstrapMessage("#code-message-area", "請先輸入電子郵件", "danger");
+                return;
+            }
+            const lastSentTime = localStorage.getItem(`lastSent_${email}`);
+            const now = Date.now();
+
+            if (lastSentTime && now - parseInt(lastSentTime) < 60000) {
+                showBootstrapMessage("#code-message-area", "已發送過，請稍後再試", "danger");
+                return;
+            }
+
+            localStorage.setItem(`lastSent_${email}`, now.toString());
+            startCooldown(60);
+            $.ajax({
+                url: "/Account/Register?handler=SendCode",
+                type: "POST",
+                data: {
+                    email: $("#emailInput").val()
+                },
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    if (res.success) {
+                        showBootstrapMessage("#code-message-area", res.message, "success");
+                        startCooldown(res.countdown || 60);
+                    } else {
+                        showBootstrapMessage("#code-message-area", res.message, "danger");
+                        if (res.countdown) startCooldown(res.countdown);
+                    }
+                },
+                error: function (xhr) {
+                    showBootstrapMessage("#code-message-area", "發送錯誤：" + xhr.responseText, "danger");
+                }
+            });
+
+        });
+
+
+        $(document).ready(function () {
+            const email = $("#emailInput").val().trim();
+            const targetTime = localStorage.getItem(`cooldown_end_${email}`);
+            if (targetTime && Date.now() < parseInt(targetTime)) {
+                const remaining = Math.floor((parseInt(targetTime) - Date.now()) / 1000);
+                startCooldown(remaining);
+            }
+        });
+
+    </script>
+
 
 </body>
 

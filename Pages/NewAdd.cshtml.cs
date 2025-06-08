@@ -29,11 +29,25 @@ namespace Web0524.Pages
 
         public IActionResult OnGet()
         {
-            User_me = _userService.GetUserById(User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value);
-            if (User_me == null || int.Parse(User_me.UserType) > 1)
-            {
+            TempData.Clear();
+
+            // 從 Claims 拿使用者 ID
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return NotFound();
-            }
+
+            // 查詢使用者資訊
+            User_me = _userService.GetUserById(userId);
+            if (User_me == null)
+                return NotFound();
+
+            // 驗證角色：只允許 Developer 或 SuperAdmin 進入
+            var role = (UserRoleEnum)User_me.Role;
+            if (role != UserRoleEnum.Developer && role != UserRoleEnum.SuperAdmin)
+                return NotFound();
+
+
+
             return Page();
         }
 
@@ -43,10 +57,14 @@ namespace Web0524.Pages
             var twtzinfo = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
             TaipeiTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, twtzinfo);
             User_me = _userService.GetUserById(User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value);
-            if (User_me == null || int.Parse(User_me.UserType) > 1)
-            {
+            if (User_me == null)
                 return NotFound();
-            }
+
+            // 驗證角色：只允許 Developer 或 SuperAdmin 進入
+            var role = (UserRoleEnum)User_me.Role;
+            if (role != UserRoleEnum.Developer && role != UserRoleEnum.SuperAdmin)
+                return NotFound();
+
             if (newImage != null && newImage.Length > 0)
             {
 

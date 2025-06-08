@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Text;
+using Microsoft.Win32;
 
 namespace Web0524.Pages.Account
 {
@@ -31,49 +32,50 @@ namespace Web0524.Pages.Account
         [BindProperty]
         public User? UserModel { get; set; }
 
+
         public void OnGet()
         {
         }
 
-        public IActionResult OnPost()
+
+
+        public async Task<IActionResult> OnPostLoginAsync()
         {
-            Console.WriteLine("1");
-            var validationContext = new ValidationContext(UserModel);
-            var validationResults = new List<ValidationResult>();
-            bool isValid = (UserModel.Id != null && UserModel.Id != "") && (UserModel.Password != null && UserModel.Password != "");
-            Console.WriteLine("2");
-            if (!isValid)
-                return Page();
-            Console.WriteLine("3");
-            UserModel = _userService.UserLogin(UserModel.Id, UserModel.Password);
-            string base64String;
-            if (UserModel != null)
+            if (string.IsNullOrWhiteSpace(UserModel?.Id) || string.IsNullOrWhiteSpace(UserModel?.Password))
             {
-                Console.WriteLine("4");
-                if (UserModel.Photo != null)
-                    base64String = Convert.ToBase64String(UserModel.Photo);
-                else
-                    base64String = "";
+                return new JsonResult(new { success = false, message = "請輸入帳號與密碼。" });
+            }
 
-                var claims = new List<Claim>
+            var user = _userService.UserLogin(UserModel.Id, UserModel.Password);
+            if (user == null)
+            {
+                return new JsonResult(new { success = false, message = "登入帳號或密碼錯誤！" });
+            }
+
+            var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.Sid, user.Id),
+        new Claim(ClaimTypes.Name, user.Name),
+        new Claim(ClaimTypes.Role, user.Role.ToString())
+    };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = "登入成功。",
+                user = new
                 {
-                    new Claim(ClaimTypes.Sid, UserModel.Id),
-                    new Claim(ClaimTypes.Name, UserModel.Name),
-                    new Claim("UserType", UserModel.UserType),
-                };
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-                HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-                return RedirectToPage("/Index");
-            }
-            else
-            {
-                Console.WriteLine("5");
-                ViewData["ErrorMsg"] = "登入帳號或密碼錯誤!!";
-            }
-
-            return Page();
+                    id = user.Id,
+                    name = user.Name,
+                    role = user.Role.ToString()
+                }
+            });
         }
+
 
         public IActionResult OnGetLineLogin()
         {
@@ -126,17 +128,21 @@ namespace Web0524.Pages.Account
                     Id = "LINE_" + Guid.NewGuid().ToString("N").Substring(0, 8),
                     Name = name,
                     Password = Guid.NewGuid().ToString("N"), // 給定亂數密碼避免登入
-                    UserType = "Line",
-                    Email = email,
-                    LineUserId = lineUserId, //"Udf96f6192a32d72329c908a69805aa9e",
+                    UserType = (int)UserTypeEnum.Line,
+                    Address = "",
+                    Phone = "",
+                    Email = "",
+                    Line = "",
+                    Photo = Array.Empty<byte>(),
                     OrderNum = 0,
                     CancelNum = 0,
-
-                    // 加上角色與權限
-                    Role = "Member",
-                    PermissionSetId = 0,
+                    Remark = "",
+                    Birthday = null,
+                    LineUserId = lineUserId,
+                    Role = (int)UserRoleEnum.Member,
+                    PermissionSetId = 5,
+                    IsDeleted = false
                 };
-
                 _userService.CreateUser(user);
             }
 
@@ -145,7 +151,7 @@ namespace Web0524.Pages.Account
     {
         new Claim(ClaimTypes.Sid, user.Id),
         new Claim(ClaimTypes.Name, user.Name),
-        new Claim("UserType", user.UserType)
+         new Claim(ClaimTypes.Role, user.Role.ToString()),
     };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

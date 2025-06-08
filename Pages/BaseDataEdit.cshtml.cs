@@ -31,16 +31,27 @@ namespace Web0524.Pages
         public IActionResult OnGet()
         {
             TempData.Clear();
-            User_me = _userService.GetUserById(User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value);
-            if (User_me == null || int.Parse(User_me.UserType) > 1)
-            {
+
+            // 從 Claims 拿使用者 ID
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId))
                 return NotFound();
-            }
+
+            // 查詢使用者資訊
+            User_me = _userService.GetUserById(userId);
+            if (User_me == null)
+                return NotFound();
+
+            // 驗證角色：只允許 Developer 或 SuperAdmin 進入
+            var role = (UserRoleEnum)User_me.Role;
+            if (role != UserRoleEnum.Developer && role != UserRoleEnum.SuperAdmin)
+                return NotFound();
+
+            // 取得資料
             basedata = _myService.GetBaseData();
             if (basedata == null)
-            {
                 return NotFound();
-            }
+
             return Page();
         }
 

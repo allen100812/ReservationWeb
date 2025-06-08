@@ -10,8 +10,11 @@ using MimeKit;
 public interface IEmailVerificationService
 {
     DateTime? GetLastSentTime(string email);
-    bool SendVerificationCode(string email);
+    bool SendVerificationCode(string email, string? ip);
+    bool CanSendEmail(string email, string? ip);
+
     bool VerifyCode(string email, string code);
+    bool CanSendEmailThisMonth();
 }
 
 public class EmailVerificationService : IEmailVerificationService
@@ -32,6 +35,37 @@ public class EmailVerificationService : IEmailVerificationService
             new { Email = email });
     }
 
+    public bool CanSendEmail(string email, string? ip)
+    {
+        var now = DateTime.UtcNow;
+        var todayStart = now.Date;
+        var hourAgo = now.AddHours(-1);
+
+        var emailCountToday = _dbConnection.ExecuteScalar<int>(
+            @"SELECT COUNT(*) FROM EmailSendLogTB 
+          WHERE Email = @Email AND SentAt >= @TodayStart",
+            new { Email = email, TodayStart = todayStart });
+
+        if (emailCountToday >= 5) return false;
+
+        if (!string.IsNullOrWhiteSpace(ip))
+        {
+            var ipCountToday = _dbConnection.ExecuteScalar<int>(
+                @"SELECT COUNT(*) FROM EmailSendLogTB 
+              WHERE IPAddress = @IP AND SentAt >= @TodayStart",
+                new { IP = ip, TodayStart = todayStart });
+
+            var ipCountHour = _dbConnection.ExecuteScalar<int>(
+                @"SELECT COUNT(*) FROM EmailSendLogTB 
+              WHERE IPAddress = @IP AND SentAt >= @HourAgo",
+                new { IP = ip, HourAgo = hourAgo });
+
+            if (ipCountToday >= 20 || ipCountHour >= 10) return false;
+        }
+
+        return true;
+    }
+
     public bool CanSendEmailThisMonth()
     {
         var now = DateTime.UtcNow;
@@ -49,33 +83,34 @@ public class EmailVerificationService : IEmailVerificationService
         return rand.Next(100000, 999999).ToString();
     }
 
-    public bool SendVerificationCode(string email)
+    public bool SendVerificationCode(string email, string? ip)
     {
-        if (!CanSendEmailThisMonth()) return false;
+        if (!CanSendEmail(email, ip)) return false;
 
         var code = GenerateCode();
-        var expiresAt = DateTime.UtcNow.AddMinutes(5);
+        var sentAt = DateTime.UtcNow;
+        var expiresAt = sentAt.AddMinutes(5);
 
-        _dbConnection.Execute("DELETE FROM EmailSendLogTB WHERE Email = @Email", new { Email = email });
+        _dbConnection.Execute("DELETE FROM EmailSendLogTB WHERE SentAt < DATEADD(DAY, -7, GETUTCDATE())");
 
         _dbConnection.Execute(@"
-            INSERT INTO EmailSendLogTB (Email, VerificationCode, SentAt, ExpiresAt, IsVerified)
-            VALUES (@Email, @Code, GETDATE(), @ExpiresAt, 0)",
-            new { Email = email, Code = code, ExpiresAt = expiresAt });
+        INSERT INTO EmailSendLogTB (Email, VerificationCode, SentAt, ExpiresAt, IsVerified, IPAddress)
+        VALUES (@Email, @Code, @SentAt, @ExpiresAt, 0, @IP)",
+            new { Email = email, Code = code, SentAt = sentAt, ExpiresAt = expiresAt, IP = ip ?? "-" });
 
-        var message = new MimeKit.MimeMessage();
-        message.From.Add(new MimeKit.MailboxAddress("預約通知服務", smtpUser));
-        message.To.Add(new MimeKit.MailboxAddress("", email));
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress("預約通知服務", smtpUser));
+        message.To.Add(new MailboxAddress("", email));
         message.Subject = "【您的註冊驗證碼】請於 5 分鐘內完成驗證";
-        message.Body = new MimeKit.TextPart("plain")
+        message.Body = new TextPart("plain")
         {
             Text = $"您好，\n\n您的驗證碼為：{code}（有效 5 分鐘）\n請勿與他人分享此驗證碼。如非您本人操作，請忽略此郵件。\n\n---\n本信件為系統自動發送，請勿直接回覆。"
         };
 
-        using var client = new MailKit.Net.Smtp.SmtpClient();
+        using var client = new SmtpClient();
         try
         {
-            client.Connect("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
+            client.Connect("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
             client.Authenticate(smtpUser, smtpPass);
             client.Send(message);
             client.Disconnect(true);

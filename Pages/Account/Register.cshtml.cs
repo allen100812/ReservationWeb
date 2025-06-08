@@ -8,6 +8,34 @@ using System.Security.Claims;
 using Web0524.Models;
 namespace Web0524.Pages.Account
 {
+
+
+    public class RegisterInput
+    {
+        [Required(ErrorMessage = "請輸入使用者名稱")]
+        [Display(Name = "使用者名稱")]
+        public string UserName { get; set; }
+
+        [Required(ErrorMessage = "請輸入電子郵件")]
+        [EmailAddress(ErrorMessage = "請輸入有效的電子郵件")]
+        [Display(Name = "電子郵件")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "請輸入密碼")]
+        [DataType(DataType.Password)]
+        [Display(Name = "密碼")]
+        public string Password { get; set; }
+
+        [Required(ErrorMessage = "請再次輸入密碼")]
+        [DataType(DataType.Password)]
+        [Compare("Password", ErrorMessage = "兩次輸入的密碼不一致")]
+        [Display(Name = "確認密碼")]
+        public string ConfirmPassword { get; set; }
+
+        [Required(ErrorMessage = "請輸入驗證碼")]
+        [Display(Name = "驗證碼")]
+        public string VerificationCode { get; set; }
+    }
     public class RegisterModel : PageModel
     {
         private readonly IUserService _userService;
@@ -39,60 +67,81 @@ namespace Web0524.Pages.Account
                 }
             }
         }
-
         public IActionResult OnPostSendCode()
         {
-            if (string.IsNullOrEmpty(Register.Email))
+            if (string.IsNullOrWhiteSpace(Register?.Email))
             {
                 return new JsonResult(new { success = false, message = "請正確輸入 Email。" });
             }
 
+            var now = DateTime.UtcNow;
             var lastSent = _emailVerificationService.GetLastSentTime(Register.Email);
-            if (lastSent.HasValue && (DateTime.UtcNow - lastSent.Value).TotalSeconds < 60)
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            if (lastSent.HasValue)
             {
-                int secondsLeft = 60 - (int)(DateTime.UtcNow - lastSent.Value).TotalSeconds;
+                var diffSeconds = (now - lastSent.Value).TotalSeconds;
+                int secondsLeft = 60 - (int)diffSeconds;
+
+                Console.WriteLine($"[驗證信節流檢查]");
+                Console.WriteLine($"現在時間       : {now:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"上次寄送時間   : {lastSent.Value:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"相隔秒數       : {diffSeconds}");
+
+                if (diffSeconds < 60)
+                {
+                    return new JsonResult(new
+                    {
+                        success = false,
+                        message = $"驗證碼已發送，請在 {secondsLeft} 秒後再試。",
+                        countdown = secondsLeft
+                    });
+                }
+            }
+
+            // ✅ 檢查寄信次數限制（IP與Email）
+            if (!_emailVerificationService.CanSendEmail(Register.Email, ip))
+            {
                 return new JsonResult(new
                 {
                     success = false,
-                    message = $"驗證碼已發送，請在 {secondsLeft} 秒後再試。",
-                    countdown = secondsLeft
+                    message = "寄送頻率過高或次數超過限制，請稍後再試。",
+                    countdown = 60
                 });
             }
 
-            var success = _emailVerificationService.SendVerificationCode(Register.Email);
+            // ✅ 嘗試寄送
+            var success = _emailVerificationService.SendVerificationCode(Register.Email, ip);
+
             return new JsonResult(new
             {
                 success,
-                message = success ? "驗證碼已發送至您的信箱。" : "本月寄信次數已達上限，請稍後再試。",
+                message = success ? "驗證碼已發送至您的信箱。" : "發送失敗，請稍後再試。",
                 countdown = 60
             });
         }
 
-        public async Task<IActionResult> OnPostRegister()
+
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> OnPostRegisterJsonAsync()
         {
             if (!ModelState.IsValid)
-                return Page();
+                return new JsonResult(new { success = false, message = "請填寫完整資訊。" });
 
             var emailExists = _userService.GetUserTB().Any(u => u.Email == Register.Email);
             if (emailExists)
-            {
-                ModelState.AddModelError(string.Empty, "此電子郵件已被註冊，請使用其他信箱。");
-                return Page();
-            }
+                return new JsonResult(new { success = false, message = "此電子郵件已被註冊，請使用其他信箱。" });
 
             var codeOk = _emailVerificationService.VerifyCode(Register.Email, Register.VerificationCode);
             if (!codeOk)
-            {
-                ModelState.AddModelError(string.Empty, "驗證碼錯誤或已過期。");
-                return Page();
-            }
+                return new JsonResult(new { success = false, message = "驗證碼錯誤或已過期。" });
 
             var newUser = new User
             {
                 Id = Register.Email,
                 Name = Register.UserName,
                 Password = Register.Password,
-                UserType = "0",
+                UserType = (int)UserTypeEnum.Email,
                 Address = "",
                 Phone = "",
                 Email = Register.Email,
@@ -103,8 +152,8 @@ namespace Web0524.Pages.Account
                 Remark = "",
                 Birthday = null,
                 LineUserId = "",
-                Role = "Member",
-                PermissionSetId =0,
+                Role = (int)UserRoleEnum.Member,
+                PermissionSetId = 5,
                 IsDeleted = false
             };
 
@@ -113,50 +162,24 @@ namespace Web0524.Pages.Account
             if (result)
             {
                 var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, newUser.Name),
-                new Claim(ClaimTypes.NameIdentifier, newUser.Id),
-                new Claim(ClaimTypes.Role, newUser.Role.ToString())
-            };
+        {
+            new Claim(ClaimTypes.Sid, newUser.Id),
+            new Claim(ClaimTypes.Name, newUser.Name),
+            new Claim(ClaimTypes.Role, newUser.Role.ToString())
+        };
 
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
 
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
-                return RedirectToPage("/Index");
+                return new JsonResult(new { success = true, message = "註冊成功！" });
             }
 
-            ModelState.AddModelError(string.Empty, "註冊失敗，請稍後再試。");
-            return Page();
+            return new JsonResult(new { success = false, message = "註冊失敗，請稍後再試。" });
         }
 
-        public class RegisterInput
-        {
-            [Required(ErrorMessage = "請輸入使用者名稱")]
-            [Display(Name = "使用者名稱")]
-            public string UserName { get; set; }
 
-            [Required(ErrorMessage = "請輸入電子郵件")]
-            [EmailAddress(ErrorMessage = "請輸入有效的電子郵件")]
-            [Display(Name = "電子郵件")]
-            public string Email { get; set; }
-
-            [Required(ErrorMessage = "請輸入密碼")]
-            [DataType(DataType.Password)]
-            [Display(Name = "密碼")]
-            public string Password { get; set; }
-
-            [Required(ErrorMessage = "請再次輸入密碼")]
-            [DataType(DataType.Password)]
-            [Compare("Password", ErrorMessage = "兩次輸入的密碼不一致")]
-            [Display(Name = "確認密碼")]
-            public string ConfirmPassword { get; set; }
-
-            [Required(ErrorMessage = "請輸入驗證碼")]
-            [Display(Name = "驗證碼")]
-            public string VerificationCode { get; set; }
-        }
     }
 
 

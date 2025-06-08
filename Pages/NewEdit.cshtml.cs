@@ -32,10 +32,13 @@ namespace Web0524.Pages
                 return NotFound();
             }
             User_me = _userService.GetUserById(User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value);
-            if (User_me == null || int.Parse(User_me.UserType) > 1)
-            {
+            if (User_me == null)
                 return NotFound();
-            }
+
+            // 驗證角色：只允許 Developer 或 SuperAdmin 進入
+            var role = (UserRoleEnum)User_me.Role;
+            if (role != UserRoleEnum.Developer && role != UserRoleEnum.SuperAdmin)
+                return NotFound();
             newList = _newService.GetNewListById(int.Parse(id));
             if (newList == null)
             {
@@ -50,10 +53,13 @@ namespace Web0524.Pages
             var twtzinfo = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
             TaipeiTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, twtzinfo);
             User_me = _userService.GetUserById(User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value);
-            if (User_me == null || int.Parse(User_me.UserType) > 1)
-            {
+            if (User_me == null)
                 return NotFound();
-            }
+
+            // 驗證角色：只允許 Developer 或 SuperAdmin 進入
+            var role = (UserRoleEnum)User_me.Role;
+            if (role != UserRoleEnum.Developer && role != UserRoleEnum.SuperAdmin)
+                return NotFound();
             if (newImage != null && newImage.Length > 0)
             {
 
