@@ -44,169 +44,215 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@myData.Name</title>
+
+
     <style>
-        #carouselExampleFade .carousel-inner {
-            position: relative;
-            width: 100%;
-            height: 100vh;
+        .btn-oval {
+            border-radius: 999px; /* ✅ 幾乎變橢圓或膠囊形 */
+            padding: 0.375rem 1rem; /* ✅ 建議搭配適當 padding */
         }
 
-        #carouselExampleFade.carousel-item {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .spacing-wide {
+            letter-spacing: 2px; /* 調整這個值可放大或縮小間距 */
+        }
+
+
+    </style>
+<style>
+    /* ========== 共用樣式 ========== */
+    #carouselExampleFade .carousel-inner {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+    }
+
+    #carouselExampleFade.carousel-item {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        z-index: 0;
+    }
+
+    #carouselExampleFade.carousel-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #carouselExampleFade.carousel-item.active {
+        opacity: 1;
+        z-index: 1;
+    }
+
+    #designCarousel {
+        overflow: hidden;
+    }
+
+    #designCarousel .carousel-item {
+        transition: opacity 1s ease-in-out;
+    }
+
+    #designCarousel .carousel-indicators button {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        border: none;
+        background-color: #bbb;
+        opacity: 1;
+        margin-right: 18px;
+    }
+
+    #designCarousel .carousel-indicators button:last-child {
+        margin-right: 0;
+    }
+
+    #designCarousel .carousel-indicators .active {
+        background-color: #000;
+    }
+
+    /* ========== 桌機模式（大於 768px） ========== */
+    @@media (min-width: 769px) {
+        #designCarousel {
+            height: 50vh;
+        }
+
+
+        #designCarousel .carousel-item {
+            height: 100%;
+        }
+
+        #designCarousel .carousel-item img {
             width: 100%;
             height: 100%;
-            opacity: 0;
-            z-index: 0;
-
+            object-fit: contain;
         }
 
-            #carouselExampleFade.carousel-item img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }
-
-            /* 當前顯示中 */
-            #carouselExampleFade.carousel-item.active {
-                opacity: 1;
-                z-index: 1;
-            }
-
-        @@media (max-width: 768px) {
-            #carouselExampleFade .carousel-item picture,
-            #carouselExampleFade .carousel-item img {
-                height: 100vh; /* 高度填滿視口 */
-                width: auto; /* 等比寬度 */
-                max-width: none; /* 允許超出寬度 */
-                object-fit: cover; /* 多餘裁掉 */
-                object-position: center; /* 顯示中間部分 */
-                display: block;
-                margin: 0 auto;
-            }
+        .design-slide-row {
+            display: flex;
+            flex-direction: row;
+            align-items: start;
+            height: 100%;
+            text-align: left;
+            gap: 1rem;
         }
 
+        #designCarousel .carousel-indicators {
+            position: absolute;
+            margin-right: 0 !important;
+            left: 50%;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+    }
 
-    </style>
+    /* ========== 手機模式（小於等於 768px） ========== */
+    @@media (max-width: 768px) {
+        #carouselExampleFade .carousel-item picture,
+        #carouselExampleFade .carousel-item img {
+            height: 100vh;
+            width: auto;
+            max-width: none;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+            margin: 0 auto;
+        }
 
-    <style>
         #designCarousel {
+            height: auto;
+        }
+
+        #designCarousel .carousel-item {
+            height: auto;
+            padding: 1rem 0;
+        }
+
+        #designCarousel .carousel-item img {
+            width: 100%;
+            height: auto;
+            max-height: 200px;
+            object-fit: contain;
+        }
+
+        .design-slide-row {
+            height: 50vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            text-align: left;
+            gap: 1rem;
+        }
+
+        #designCarousel .text-content {
+            text-align: left;
+            align-self: flex-start;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        #designCarousel .text-content .btn-wrapper {
+            text-align: left;
+            width: 100%;
+        }
+
+        #designCarousel .text-content .btn-wrapper .btn {
+            display: inline-block;
+        }
+    }
+</style>
+    <style>
+        #news-section .news-title {
+            min-height: 3.2em; /* 約兩行字的高度，根據字體大小微調 */
+            line-height: 1.6em;
             overflow: hidden;
         }
-
-            #designCarousel .carousel-item {
-                transition: opacity 1s ease-in-out;
-            }
-
-
-
-
-            #designCarousel .carousel-indicators button {
-                width: 7px;
-                height: 7px;
-                border-radius: 50%;
-                border: none;
-                background-color: #bbb;
-                opacity: 1;
-                margin-right: 18px; /* ✅ 增加間距 */
-            }
-
-                /* 移除最後一個按鈕的右邊距，避免多出一格 */
-                #designCarousel .carousel-indicators button:last-child {
-                    margin-right: 0;
-                }
-
-                #designCarousel .carousel-indicators .active {
-                    background-color: #000;
-                }
-
-
-
-
-@@media (min-width: 769px) {
-    #designCarousel {
-        height: 50vh;
-    }
-
-    #designCarousel .carousel-item {
-        height: 100%;
-    }
-
-
-    #designCarousel .carousel-item img {
-                        width: 100%;
-                        height: 100%;
-                        object-fit: contain; /* ✅ 完整顯示圖像不裁切 */
-    }
-
-    .design-slide-row {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        height: 100%;
-        text-align: left;
-        gap: 1rem;
-    }
-
-    #designCarousel .carousel-indicators {
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 8px;
-        z-index: 10;
-    }
+        /* 固定標題高度：讓按鈕齊底 */
+        #news-section .news-title {
+    min-height: 3.2em;
+    line-height: 1.6em;
+    overflow: hidden;
 }
-@@media (max-width: 768px) {
-    #designCarousel {
-        height: auto;
-    }
 
-    #designCarousel .carousel-item {
-        height: auto;
-        padding: 1rem 0;
-    }
-
-    #designCarousel .carousel-item img {
-        width: 100%;
-        height: auto; /* ✅ 圖片會依比例自動調整高度 */
-        max-height: 200px; /* ✅ 限制最大高度 */
-        object-fit: contain; /* ✅ 完整顯示圖像不裁切 */
-    }
-
-
-    .design-slide-row {
-                height: 50vh; /* ✅ 不論內容多少，都是這個高度 */
-                overflow: hidden; /* 避免超出滾動（可選） */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 1rem;
-    }
-
-            #designCarousel .text-content {
-                text-align: left; /* ✅ 文字靠左對齊 */
-                align-self: flex-start; /* ✅ 在 flex 容器內靠左排列 */
-                padding-left: 1rem; /* ✅ 可選，加點左側內距 */
-                padding-right: 1rem; /* ✅ 保持整齊 */
-            }
-
-    #designCarousel .text-content .btn-wrapper {
-    text-align: left; /* 只有按鈕靠左 */
+/* 圖片比例設定（可選） */
+#news-section .card-img-top {
+    height: 500px;
+    object-fit: cover;
     width: 100%;
-    }
-
-    #designCarousel .text-content .btn-wrapper .btn {
-        display: inline-block;
-    }
 }
 
+        #news-section .card {
+            background-color: transparent;
+            box-shadow: none; /* 可選：去除陰影 */
+        }
 
-    </style>
+        #news-section .card-body {
+            background-color: transparent;
+        }
 
+
+/* 手機模式調整 spacing */
+@@media (max-width: 768px) {
+    #news-section .news-section .card-body {
+        padding: 1rem 0.75rem;
+    }
+
+            #news-section .news-section .news-title {
+        font-size: 1rem;
+    }
+
+    #news-section .news-section .btn {
+        margin-top: 1rem;
+    }
+
+}
+
+        </style>
 </head>
 <body>
 
@@ -233,9 +279,9 @@
         </div>
     </div>
 
-    <div class="center-container">
-        <div id="designCarousel" class="carousel slide carousel-fade mt-5" data-bs-ride="carousel" data-bs-interval="5000">
-            <div class="carousel-inner">
+    <div class="container">
+        <div id="designCarousel" style="margin-top: 150px; margin-bottom: 75px;" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
+            <div  class="carousel-inner">
 
                 <div class="carousel-item active">
                     <div class="container h-100">
@@ -246,10 +292,10 @@
                             </div>
                             <div class="col-md-6 ps-4 text-content">
                                 <h6 class="text-muted">設計家專訪</h6>
-                                <h4 class="fw-bold">減法換屋實現親子樂園 輕鬆看懂安心宅設計秘訣</h4>
-                                <p>重新思考居住與空間的關係，減量設計回歸生活本質。</p>
-                                <div class="btn-wrapper">
-                                    <a href="#" class="btn btn-outline-dark">View</a>
+                                <h3 class="mt-3">減法換屋實現親子樂園 輕鬆看懂安心宅設計秘訣</h3>
+                                <h6 class="mt-4">重新思考居住與空間的關係，減量設計回歸生活本質。</h6>
+                                <div class="btn-wrapper mt-4">
+                                    <a href="#" class="btn btn-outline-dark btn-oval">View</a>
                                 </div>
                             </div>
                         </div>
@@ -267,10 +313,10 @@
                             </div>
                             <div class="col-md-6 ps-4 text-content">
                                 <h6 class="text-muted">設計師分享</h6>
-                                <h4 class="fw-bold">極簡風格的溫暖演繹</h4>
-                                <p>融合木質調與純白基底，打造不冷硬的極簡空間。</p>
-                                <div class="btn-wrapper">
-                                    <a href="#" class="btn btn-outline-dark">View</a>
+                                <h3 class="mt-3">極簡風格的溫暖演繹</h3>
+                                <h6 class="mt-4">融合木質調與純白基底，打造不冷硬的極簡空間。</h6>
+                                <div class="btn-wrapper mt-4">
+                                    <a href="#" class="btn btn-outline-dark btn-oval">View</a>
                                 </div>
                             </div>
                         </div>
@@ -286,26 +332,70 @@
                             </div>
                             <div class="col-md-6 ps-4 text-content">
                                 <h6 class="text-muted">宅家美學</h6>
-                                <h4 class="fw-bold">光影與格局的對話</h4>
-                                <p>善用光線與空間配置，展現沉靜而明亮的生活美學。</p>
-                                <div class="btn-wrapper">
-                                    <a href="#" class="btn btn-outline-dark">View</a>
+                                <h3 class="mt-3">光影與格局的對話</h3>
+                                <h6 class="mt-4">善用光線與空間配置，展現沉靜而明亮的生活美學。</h6>
+                                <div class="btn-wrapper mt-4">
+                                    <a href="#" class="btn btn-outline-dark btn-oval">View</a>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Indicators -->
             <div class="carousel-indicators justify-end-wrapper d-flex justify-content-end mt-2">
-                <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-                <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-                <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+                <div>
+                    <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                    <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                    <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+                </div>
+
             </div>
         </div>
+        <hr style="margin-top: 150px; margin-bottom: 75px;">
+        <section class="news-section" id="news-section" style="margin-bottom: 150px;">
+            <div class="container">
+                <h3 class="text-center mb-5">新聞資訊</h3>
+                <div class="row row-cols-1 row-cols-md-3 g-5">
 
+                    <!-- 卡片 1 -->
+                    <div class="col">
+                        <div class="card border-0 h-100 ">
+                            <img src="/dist/img/news1.jpg" class="card-img-top" alt="新聞圖片1">
+                            <div class="card-body px-0 d-flex flex-column">
+                                <p class="text-muted mb-1 spacing-wide">05.03.2022 – 媒體報導</p>
+                                <h5 class="news-title">首次申請綠裝修認證，獲得【白金級】別</h5>
+                                <a href="#" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- 卡片 2 -->
+                    <div class="col">
+                        <div class="card border-0 h-100">
+                            <img src="/dist/img/news2.jpg" class="card-img-top" alt="新聞圖片2">
+                            <div class="card-body px-0 d-flex flex-column">
+                                <p class="text-muted mb-1 spacing-wide">05.03.2022 – 媒體報導</p>
+                                <h5 class="news-title">女醫師的療癒起點 打造60坪自由風格品味宅</h5>
+                                <a href="#" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 卡片 3 -->
+                    <div class="col">
+                        <div class="card border-0 h-100">
+                            <img src="/dist/img/news3.jpg" class="card-img-top" alt="新聞圖片3">
+                            <div class="card-body px-0 d-flex flex-column">
+                                <p class="text-muted mb-1 spacing-wide">05.03.2022 – 媒體報導</p>
+                                <h5 class="news-title">現代北歐感與輕美式風的最佳呈現！讓陽光漫步於恬淡生活內</h5>
+                                <a href="#" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
     </div>
 </body>
 </html>

@@ -11,7 +11,7 @@
 
 <style>
 
-    .Text2{
+    .Text2 {
         color: #262220;
     }
 
@@ -31,6 +31,7 @@
         max-width: 100%; /* 限制文本宽度不超过容器 */
         font-size: 17px; /* 初始字体大小 */
     }
+
     .navbar-wrapper {
         position: fixed;
         top: 0;
@@ -40,12 +41,13 @@
         background-color: var(--color1_1); /* 設定導航條的背景顏色 */
         backdrop-filter: blur(10px);
     }
-    .navbar-expand-lg{
+
+    .navbar-expand-lg {
         margin-left: 200px; /* 左邊的 padding 大小 */
         margin-right: 200px; /* 右邊的 padding 大小 */
     }
-    .navbar-expand-sm{
 
+    .navbar-expand-sm {
     }
     /* 添加動畫效果的類 */
     /* 添加動畫效果的類 */
@@ -58,6 +60,7 @@
         .animated-link:hover {
             transform: scale(1.1);
         }
+
     .navbar-center {
         max-width: max-content;
         grid-area: logo;
@@ -76,22 +79,21 @@
     }
 
 
-    footer {
-        background-color: #f8f8f8;
+    footer__aside-center {
+        background-color: var(--color4);
         padding: 10px;
         text-align: center;
-
     }
 
-        footer p {
+        footer__aside-center p {
             font-size: 14px;
             margin: 0;
         }
 
     .footer-container {
-        margin-top: 50px; /* 上间距 */
         padding: 40px;
         color: var(--color3_2);
+        background-color: var(--color5);
     }
 
     .footer-container-title {
@@ -104,15 +106,47 @@
         justify-content: center; /* 水平居中对齐 */
         align-items: center; /* 垂直居中对齐 */
         color: var(--color3);
+        background-color: var(--color5);
     }
 
     .footer__aside-top {
         font-size: 24px;
         display: flex;
-        justify-content: center; /* 水平居中对齐 */
-        align-items: center; /* 垂直居中对齐 */
+        justify-content: center;
+        align-items: center; /* ✅ 垂直居中 */
         color: var(--color3);
+        background-color: var(--color1);
+        min-height: 80px; /* ✅ 確保有可見高度 */
     }
+
+        .footer__aside-top .social-media {
+            display: flex;
+            gap: 1.5rem; /* ✅ 圖示間距 */
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            align-items: center; /* ✅ 保險：UL 裡面也垂直居中 */
+        }
+
+            .footer__aside-top .social-media li {
+                display: flex;
+                align-items: center;
+            }
+
+        .footer__aside-top .icon-a {
+            text-decoration: none;
+            color: var(--color3);
+            font-size: 1.5rem; /* ✅ 可調整圖示大小 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    .container-narrow {
+        padding-left: 10%;
+        padding-right: 10%;
+    }
+
 
     .social-media {
         list-style: none;
@@ -124,12 +158,8 @@
             flex: 0 0 auto;
         }
 
-    .icon-a{
-        text-decoration: none;
-        color: var(--color3_2);
-    }
 
-}
+    }
 </style>
 
 
@@ -169,7 +199,7 @@
     <div class="wrapper d-flex flex-column">
         <div class="navbar-wrapper">
             <!-- Navbar -->
-             <!-- 大螢幕 -->
+            <!-- 大螢幕 -->
             <nav class="navbar navbar-expand-lg big-show">
                 <div class="container-fluid">
                     <a href="index" class="nav-item animated-link">
@@ -205,7 +235,7 @@
                                     作品欣賞
                                 </a>
                                 <ul class="dropdown-menu">
-                                     <li class="dropdown-item">
+                                    <li class="dropdown-item">
                                         <a href="@myData.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
                                             <i class="fab fa-instagram nav-icon Text2 icon-width"></i>
                                             <span class="Text2">作品集</span>
@@ -229,7 +259,7 @@
                                             <i class="fas fa-map-pin nav-icon Text2 icon-width"></i>
                                             <span class="Text2">商家據點</span>
                                         </a>
-                                    </li>   
+                                    </li>
                                     <li class="dropdown-item">
                                         <Button onclick="showContactModal()" class="nav-link">
                                             <i class="far fa-comment-dots nav-icon Text2 icon-width"></i>
@@ -293,7 +323,7 @@
                                         </ul>
                                     </li>
                                 }
-                                
+
                             }
                         </ul>
                     </div>
@@ -567,53 +597,11 @@
         </div>
 
         <!-- Content Wrapper. Contains page content -->
-        <div class="content-div" style="background-color:var(--color4)">
+        <div class="content-div" style="background-color:var(--color2)">
 
             <!-- Main content -->
             <div>
                 @RenderBody()
-                <div class="footer">
-                    <div class="footer-container">
-
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div>
-                                    <p class="footer-container-title">-</p>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div>
-                                    <p class="footer-container-title">About Us</p>
-                                    <ul class="v-stack gap-3" role="list">
-                                        <li><a href="/ProductList" class="inline-block link-faded break-all icon-a">服務預約</a></li>
-                                        <li><a href="/Order" class="inline-block link-faded break-all icon-a">查看我的預約</a></li>
-                                        <li><a href="/UserAdd" class="inline-block link-faded break-all icon-a">加入會員</a></li>
-                                        <li><a href="/about" class="inline-block link-faded break-all icon-a">關於我們</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div>
-                                    <p class="footer-container-title">Shop Info</p>
-                                    <ul class="v-stack gap-3" role="list">
-                                        <li><a href="/info1" class="inline-block link-faded break-all icon-a">防詐騙宣導</a></li>
-                                        <li><a href="/info2" class="inline-block link-faded break-all icon-a">隱私權保護</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div>
-                                    <p class="footer-container-title">EXPERIMENT FOR A FUTURE</p>
-                                    <div class="prose text-subdued">
-                                        <p>我們走在所有人的最前面，<br>擁有著不放棄也不退縮的精神。<br></p>
-                                        <p>我們不只是設計產品，<br>而是將自己想說的話融入產品。<br></p>
-                                        <p>Future Lab. "拉近與未來的距離"</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <div class="footer__aside-top">
                     <ul class="social-media" role="list">
                         @if (myData.Fb_Url != null && myData.Fb_Url != "")
@@ -658,9 +646,55 @@
                         }
                     </ul>
                 </div>
-                <div class="footer__aside-bottom">
-                    <p class="footer__copyright text-sm text-subdued">© 2023, @myData.Name Inc. 由 SuperiorSeed 技術支援</p>
+                <!-- ✅ Footer 主體容器 -->
+                <div class="footer__aside-center py-5" style="background-color: #f7f9fb; border-top: 1px solid #ddd;">
+                    <div class="container-narrow">
+                        <div class="row gy-4">
+                            <!-- 總公司資訊 -->
+                            <div class="col-md-3">
+                                <p class="fw-bold mb-2">Find Us</p>
+                                <p class="mb-1 fw-semibold">總公司</p>
+                                <p class="mb-1">新竹縣竹北市自強五路37號</p>
+                                <p class="mb-1">t : 03-6681222</p>
+                                <p class="mb-1">e : hozo.design@gmail.com</p>
+                            </div>
+
+                            <!-- 分公司資訊 -->
+                            <div class="col-md-3">
+                                <p class="fw-bold mb-2 invisible">-</p>
+                                <p class="mb-1 fw-semibold">台中分公司</p>
+                                <p class="mb-1">台中市西區大同街166號</p>
+                                <p class="mb-1">t : 04-24737333</p>
+                                <p class="mb-1">e : hozo.design@gmail.com</p>
+                            </div>
+
+                            <!-- 主要導覽連結 -->
+                            <div class="col-md-3">
+                                <p class="fw-bold mb-2">Home</p>
+                                <p class="mb-1"><a href="/about" class="text-decoration-none text-dark">關於寬景</a></p>
+                                <p class="mb-1"><a href="/works" class="text-decoration-none text-dark">作品欣賞</a></p>
+                                <p class="mb-1"><a href="/flow" class="text-decoration-none text-dark">專案流程</a></p>
+                            </div>
+
+                            <!-- 其他連結 -->
+                            <div class="col-md-3">
+                                <p class="fw-bold mb-2">新聞中心</p>
+                                <p class="mb-1"><a href="/news" class="text-decoration-none text-dark">新聞中心</a></p>
+                                <p class="mb-1"><a href="/contact" class="text-decoration-none text-dark">聯絡我們</a></p>
+                            </div>
+                        </div>
+
+                        <!-- 分隔線 -->
+                        <hr class="my-4" style="border-color: #000;">
+
+                        <!-- 底部著作權與技術連結 -->
+                        <div class="d-flex justify-content-between text-muted small">
+                            <p class="mb-0">© 2018 HOZO interior design.</p>
+                            <p class="mb-0"><a href="#" class="text-muted text-decoration-none">網頁設計 - GiLE</a></p>
+                        </div>
+                    </div>
                 </div>
+
 
             </div>
             <!-- /.content -->
