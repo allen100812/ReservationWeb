@@ -1,0 +1,136 @@
+﻿@page
+@model Web0524.Pages.Index2Model
+@{
+}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>美容工作室 | 首頁</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 核心樣式 -->
+    <link rel="stylesheet" href="css/libs.min.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Font Awesome & 動畫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="css/animate.min.css">
+</head>
+<body class="appear-animate stretched" oncontextmenu="window.event.returnValue=false">
+    <div class="load"><span>Loading...</span></div>
+
+    <!-- Header -->
+    <header>
+        <!-- 可複製原始 index.html 中的 header 區塊 -->
+    </header>
+
+    <!-- 1. Banner 輪播圖 -->
+    <section class="sect-banner">
+        <ul class="home-slider">
+            <li class="slider-img" style="background-image: url('upload/banner1.jpg');"></li>
+            <li class="slider-img" style="background-image: url('upload/banner2.jpg');"></li>
+            <li class="slider-img" style="background-image: url('upload/banner3.jpg');"></li>
+        </ul>
+    </section>
+
+    <!-- 2. 活動專欄 -->
+    <section class="featured-projects">
+        <div class="featured-slider">
+            <div class="inner-wrapper">
+                <div class="slider">
+                    <article class="item wow slideInDown">
+                        <div class="inner">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="img" style="background-image:url('upload/events/event1.jpg')"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="content">
+                                        <h6 class="subheading">活動專欄</h6>
+                                        <h2 class="heading-tx">夏季優惠美容體驗</h2>
+                                        <p class="description">體驗全新清潔護理，讓肌膚恢復光澤，限時 8 折起！</p>
+                                        <div class="button"><a href="#">了解更多</a></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. 新聞專欄 -->
+    <div class="news-content">
+        <div class="line"></div>
+        <h4>最新消息</h4>
+        <div class="row">
+            <div class="news-listing news-listing-container">
+                <article class="item news_post wow fadeInUp">
+                    <div class="post-img portrait">
+                        <div class="img" style="background-image: url('upload/news/news1.jpg');"></div>
+                    </div>
+                    <div class="content">
+                        <div class="post-header"><h6>2025.06.01 – 最新公告</h6></div>
+                        <h2 class="post_heading">六月限時護膚套組上市</h2>
+                        <div class="send"><a href="#">more</a></div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 社群平台欄位 -->
+    <section class="sect-social">
+        <div class="icone-social text-center">
+            <a href="#" target="_blank" title="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" target="_blank" title="Facebook"><i class="fab fa-facebook"></i></a>
+            <a href="#" target="_blank" title="LINE"><i class="fab fa-line"></i></a>
+            <a href="#" target="_blank" title="YouTube"><i class="fab fa-youtube"></i></a>
+        </div>
+    </section>
+
+    <!-- 5. 各項功能板塊 -->
+    <section class="sect-features">
+        <div class="wrapper">
+            <div class="row">
+                <div class="col-md-4 wow fadeInUp">
+                    <div class="feature-box">
+                        <h3>預約服務</h3>
+                        <p>線上預約美容保養服務，輕鬆選擇時段。</p>
+                    </div>
+                </div>
+                <div class="col-md-4 wow fadeInUp">
+                    <div class="feature-box">
+                        <h3>會員制度</h3>
+                        <p>加入會員享紅利回饋與生日優惠。</p>
+                    </div>
+                </div>
+                <div class="col-md-4 wow fadeInUp">
+                    <div class="feature-box">
+                        <h3>專業團隊</h3>
+                        <p>擁有經驗豐富的美容師與皮膚諮詢師。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Footer -->
+    <footer class="dnwf">
+        <div class="footer-inner text-center">
+            <p>© 2025 美容工作室 Beauty Studio | All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript 效果 -->
+    <script src="java_script/libs.min.js"></script>
+    <script src="java_script/app.min.js"></script>
+    <script src="java_script/wow.min.js"></script>
+    <script>
+        new WOW().init();
+        $(window).on("load", () => $(".load").fadeOut(500));
+    </script>
+</body>
+</html>
