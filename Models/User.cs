@@ -78,7 +78,9 @@ namespace Web0524.Models
         public string Name { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "密碼必填")]
+        [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$", ErrorMessage = "密碼需為至少8位英數混合")]
         public string Password { get; set; } = string.Empty;
+
 
         [Required(ErrorMessage = "使用者類型必填")]
         public int UserType { get; set; }

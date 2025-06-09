@@ -15,6 +15,8 @@ public interface IEmailVerificationService
 
     bool VerifyCode(string email, string code);
     bool CanSendEmailThisMonth();
+
+    bool VerifyCodeAndUpdateOrders(string oldEmail, string newEmail, string code);
 }
 
 public class EmailVerificationService : IEmailVerificationService
@@ -140,6 +142,33 @@ public class EmailVerificationService : IEmailVerificationService
             return false;
 
         _dbConnection.Execute("UPDATE EmailSendLogTB SET IsVerified = 1 WHERE Email = @Email", new { Email = email });
+        return true;
+    }
+
+
+    /// <summary>
+    /// 驗證驗證碼，成功時更新所有訂單中使用者 ID
+    /// </summary>
+    public bool VerifyCodeAndUpdateOrders(string oldEmail, string newEmail, string code)
+    {
+        var record = _dbConnection.QueryFirstOrDefault<dynamic>(@"
+            SELECT TOP 1 VerificationCode, ExpiresAt
+            FROM EmailSendLogTB
+            WHERE Email = @Email
+            ORDER BY SentAt DESC",
+            new { Email = newEmail });
+
+        if (record == null) return false;
+
+        var correctCode = (string)record.VerificationCode;
+        var expiresAt = (DateTime)record.ExpiresAt;
+
+        if (code != correctCode || DateTime.UtcNow > expiresAt)
+            return false;
+
+        _dbConnection.Execute("UPDATE EmailSendLogTB SET IsVerified = 1 WHERE Email = @Email", new { Email = newEmail });
+
+
         return true;
     }
 }

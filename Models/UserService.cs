@@ -31,6 +31,7 @@ namespace Web0524.Models
         User UserLogin(string id, string pwd);
         bool RestoreUser(string id);
         User? GetUserByLineUserId(string lineUserId);
+        bool UpdateUserEmail(string userId, string newEmail);
     }
 
     public class UserService : IUserService
@@ -175,5 +176,43 @@ WHERE Id = @Id AND Password = @Password AND UserType <> 9 AND IsDeleted = 0";
             var sql = "UPDATE UserTB SET IsDeleted = 0 WHERE Id = @Id";
             return _dbConnection.Execute(sql, new { Id = id }) > 0;
         }
+
+
+        public bool UpdateUserEmail(string userId, string newEmail)
+        {
+            if (_dbConnection.State != ConnectionState.Open)
+                _dbConnection.Open();
+
+            using var tran = _dbConnection.BeginTransaction();
+            try
+            {
+                // 取得舊信箱
+                var oldEmail = _dbConnection.ExecuteScalar<string>(
+                    "SELECT Email FROM UserTB WHERE Id = @Id",
+                    new { Id = userId }, tran);
+
+                if (string.IsNullOrWhiteSpace(oldEmail))
+                    return false;
+
+                // 更新 UserTB 的 Email
+                _dbConnection.Execute(
+                    "UPDATE UserTB SET Email = @NewEmail AND Id = @NewEmail WHERE Id = @Id",
+                    new { Id = userId, NewEmail = newEmail }, tran);
+
+                // 更新所有以舊 Email 當作 Id 的訂單記錄（假設 OrderTB.Id 是舊 email）
+                _dbConnection.Execute(
+                    "UPDATE OrderTB SET Uid = @NewEmail WHERE Uid = @OldEmail",
+                    new { OldEmail = oldEmail, NewEmail = newEmail }, tran);
+
+                tran.Commit();
+                return true;
+            }
+            catch
+            {
+                tran.Rollback();
+                return false;
+            }
+        }
+
     }
 }

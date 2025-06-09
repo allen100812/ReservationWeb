@@ -1,0 +1,277 @@
+﻿@page
+@model Web0524.Pages.Account.EditProfileModel
+@{
+    ViewData["Title"] = "編輯個人資料";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@ViewData["MyName"] | 編輯個人資料</title>
+
+    <link rel="stylesheet" href="/assets/root-DertGWcZ.css">
+    <link rel="stylesheet" href="/assets/AuthStepLayout-D1Ycd_TU.css">
+    <link rel="stylesheet" href="/assets/branding-D5M_DFHW.css">
+    <link rel="stylesheet" href="/assets/Button-DEcOZt8f.css">
+    <link rel="stylesheet" href="/assets/TextInput-DliBbVLE.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="~/lib/fontawesome/css/all.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background-color: #fff;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: 80px auto;
+        }
+
+        .logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+            .logo img {
+                height: 40px;
+            }
+
+        .rounded-image {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="logo text-center mb-3">
+                <img src="~/dist/img/MyLogo.png" alt="My Logo">
+            </div>
+
+            <h4 class="text-center mb-4">編輯個人資料</h4>
+            <div id="profile-message"></div>
+
+            <form id="profileForm" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.EditUser.Id" />
+
+                <div class="mb-3 text-center">
+                    <label class="form-label">大頭貼</label>
+                    <input type="file" class="form-control" id="PhotoFile" name="PhotoFile" accept="image/*" onchange="previewPhoto()" />
+                    <img id="photoPreview" src="@("data:image/png;base64," + Convert.ToBase64String(Model.EditUser.Photo ?? new byte[0]))" class="rounded-image mt-3" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">真實姓名</label>
+                    <input asp-for="EditUser.Name" name="Name" class="form-control" placeholder="真實姓名" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">電子郵件（如需變更請重新驗證）</label>
+                    <input id="emailInput" name="NewEmail" class="form-control" placeholder="輸入新信箱（如需變更）" />
+                    <div class="mt-2">
+                        <button type="button" id="sendCodeBtn" class="btn btn-outline-primary btn-sm">發送驗證碼</button>
+                        <div id="code-message-area" class="mt-2"></div>
+                    </div>
+                    <input name="NewEmailVerifyCode" class="form-control mt-2" placeholder="驗證碼（如果要更改信箱）" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">手機號碼</label>
+                    <input asp-for="EditUser.Phone" name="Phone" class="form-control" placeholder="手機號碼" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">聯絡地址</label>
+                    <input asp-for="EditUser.Address" name="Address" class="form-control" placeholder="聯絡地址" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">生日</label>
+                    <input asp-for="EditUser.Birthday" name="Birthday" type="date" class="form-control" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">儲存個人資料</button>
+            </form>
+
+            <hr class="my-4" />
+
+            <h4 class="text-center mb-3">變更密碼</h4>
+            <div id="password-message"></div>
+            <form id="passwordForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.EditUser.Id" />
+                <div class="mb-3">
+                    <label class="form-label">目前密碼</label>
+                    <input type="password" name="OldPassword" class="form-control" placeholder="目前密碼" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">新密碼</label>
+                    <input type="password" name="NewPassword" class="form-control" placeholder="新密碼" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">確認新密碼</label>
+                    <input type="password" name="ConfirmPassword" class="form-control" placeholder="確認新密碼" required />
+                </div>
+                <button type="submit" class="btn btn-warning w-100">變更密碼</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function previewPhoto() {
+            const input = document.getElementById('PhotoFile');
+            const preview = document.getElementById('photoPreview');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => preview.src = e.target.result;
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function showBootstrapMessage(target, message, type = 'success') {
+            const html = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                                ${message}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>`;
+            $(target).html(html);
+        }
+
+        let timer;
+        function startCooldown(seconds) {
+            const email = $("#emailInput").val().trim();
+            const targetTime = Date.now() + seconds * 1000;
+            localStorage.setItem(`cooldown_end_${email}`, targetTime.toString());
+            $("#sendCodeBtn").prop("disabled", true);
+            clearInterval(timer);
+            timer = setInterval(() => {
+                const now = Date.now();
+                const remaining = Math.floor((targetTime - now) / 1000);
+                if (remaining > 0) {
+                    $("#sendCodeText").text(`${remaining} 秒後可重發`);
+                    $("#sendCodeBtn").text(`${remaining} 秒後可重發`);
+                } else {
+                    clearInterval(timer);
+                    localStorage.removeItem(`cooldown_end_${email}`);
+                    $("#sendCodeBtn").prop("disabled", false).text("發送驗證碼");
+                }
+            }, 1000);
+        }
+
+        $("#profileForm").submit(function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            $.ajax({
+                url: "/Account/EditProfile?handler=SaveProfile",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: res => {
+                    let html = `<div class="alert alert-${res.success ? 'success' : 'danger'}">${res.message}</div>`;
+                    $("#profile-message").html(html);
+
+                    if (res.success) {
+                        setTimeout(() => {
+                            location.reload(); // ✅ 3 秒後刷新頁面
+                        }, 3000);
+                    }
+                }
+            });
+        });
+
+
+        $("#passwordForm").submit(function (e) {
+            e.preventDefault();
+
+            const newPwd = $("input[name='NewPassword']").val();
+            const confirmPwd = $("input[name='ConfirmPassword']").val();
+            const messageArea = $("#password-message");
+
+            // 清空之前的訊息
+            messageArea.html("");
+
+            // 密碼格式：至少8碼，英數混合
+            const pwdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+            let errors = [];
+
+            if (!pwdRegex.test(newPwd)) {
+                errors.push("新密碼格式錯誤，請輸入至少 8 位數的英數混合密碼。");
+            }
+
+            if (newPwd !== confirmPwd) {
+                errors.push("新密碼與確認密碼不一致。");
+            }
+
+            if (errors.length > 0) {
+                const html = `<div class="alert alert-danger">${errors.map(e => `<div>${e}</div>`).join("")}</div>`;
+                messageArea.html(html);
+                return;
+            }
+
+            const formData = $(this).serialize();
+            $.post("/Account/EditProfile?handler=ChangePassword", formData, res => {
+                const html = `<div class="alert alert-${res.success ? 'success' : 'danger'}">${res.message}</div>`;
+                messageArea.html(html);
+                if (res.success) {
+                    setTimeout(() => location.reload(), 3000);
+                }
+            });
+        });
+
+
+        $("#sendCodeBtn").click(function () {
+            const email = $("#emailInput").val().trim();
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            if (!email) {
+                showBootstrapMessage("#code-message-area", "請輸入新信箱", "danger");
+                return;
+            }
+
+            const lastSentTime = localStorage.getItem(`lastSent_${email}`);
+            const now = Date.now();
+            if (lastSentTime && now - parseInt(lastSentTime) < 60000) {
+                showBootstrapMessage("#code-message-area", "已發送過，請稍後再試", "danger");
+                return;
+            }
+
+            localStorage.setItem(`lastSent_${email}`, now.toString());
+            startCooldown(60);
+
+            $.ajax({
+                url: "/Account/EditProfile?handler=SendEmailCode",
+                type: "POST",
+                data: {
+                    NewEmail: email,
+                    __RequestVerificationToken: token
+                },
+                success: function (res) {
+                    showBootstrapMessage("#code-message-area", res.message, res.success ? "success" : "danger");
+                    if (res.countdown) startCooldown(res.countdown);
+                },
+                error: function (xhr) {
+                    showBootstrapMessage("#code-message-area", "發送錯誤：" + xhr.responseText, "danger");
+                }
+            });
+        });
+
+        $(document).ready(function () {
+            const email = $("#emailInput").val().trim();
+            const targetTime = localStorage.getItem(`cooldown_end_${email}`);
+            if (targetTime && Date.now() < parseInt(targetTime)) {
+                const remaining = Math.floor((parseInt(targetTime) - Date.now()) / 1000);
+                startCooldown(remaining);
+            }
+        });
+    </script>
+</body>
+</html>

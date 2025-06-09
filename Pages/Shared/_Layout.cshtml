@@ -309,9 +309,10 @@
                                 <span style="color: var(--color2)">@User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value</span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="UserEdit?id=@User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value">
+                                <a class="dropdown-item" href="/Account/EditProfile?id=@User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value">
                                     <i class="fas fa-user-edit"></i> 編輯個人資料
                                 </a>
+
                                 <a class="dropdown-item" href="/Account/Logout">
                                     <i class="fas fa-sign-out-alt"></i> 登出
                                 </a>

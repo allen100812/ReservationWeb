@@ -195,83 +195,87 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
-    $("#register-form").submit(function (e) {
-        e.preventDefault();
+        $("#register-form").submit(function (e) {
+            e.preventDefault();
 
-        // 取得欄位值
-        const name = $("input[name='Register.UserName']").val().trim();
-        const email = $("input[name='Register.Email']").val().trim();
-        const code = $("input[name='Register.VerificationCode']").val().trim();
-        const pwd = $("input[name='Register.Password']").val();
-        const confirm = $("input[name='Register.ConfirmPassword']").val();
+            // 取得欄位值
+            const name = $("input[name='Register.UserName']").val().trim();
+            const email = $("input[name='Register.Email']").val().trim();
+            const code = $("input[name='Register.VerificationCode']").val().trim();
+            const pwd = $("input[name='Register.Password']").val();
+            const confirm = $("input[name='Register.ConfirmPassword']").val();
 
-        let errors = [];
+            let errors = [];
 
-        // 驗證邏輯
-        if (name === "") errors.push("請輸入真實姓名。");
+            // 驗證邏輯
+            if (name === "") errors.push("請輸入真實姓名。");
+            if (email === "") errors.push("請輸入電子郵件。");
+            if (code === "") errors.push("請輸入驗證碼。");
+            if (pwd === "") errors.push("請輸入密碼。");
+            if (confirm === "") errors.push("請輸入確認密碼。");
 
-
-        if (email === "") {
-            errors.push("請輸入電子郵件。");
-        } 
-
-        if (code === "") errors.push("請輸入驗證碼。");
-
-        if (pwd === "") errors.push("請輸入密碼。");
-        if (confirm === "") errors.push("請輸入確認密碼。");
-        if (pwd && confirm && pwd !== confirm) errors.push("密碼與確認密碼不一致。");
-
-        // 如果有錯誤，顯示並中斷
-        if (errors.length > 0) {
-            const errorHtml = errors.map(e => `<div>${e}</div>`).join('');
-            $("#register-result-message").html(`<div class="alert alert-danger">${errorHtml}</div>`);
-            return;
-        }
-
-        // ✅ 所有檢查通過再送出
-        const formData = $(this).serialize();
-
-        $.ajax({
-            url: "/Account/Register?handler=RegisterJson",
-            type: "POST",
-            data: formData,
-            headers: {
-                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-            },
-            success: function (res) {
-                $("#register-result-message").empty();
-
-                if (res.success) {
-                    $("#register-result-message").html(
-                        `<div class="alert alert-success">註冊成功！<span id="countdown">3</span> 秒後跳轉首頁...</div>`
-                    );
-                    let seconds = 3;
-                    const countdown = setInterval(() => {
-                        seconds--;
-                        $("#countdown").text(seconds);
-                        if (seconds <= 0) {
-                            clearInterval(countdown);
-                            window.location.href = "/Index";
-                        }
-                    }, 1000);
-                } else {
-                    if (Array.isArray(res.message)) {
-                        const list = res.message.map(m => `<div>${m}</div>`).join('');
-                        $("#register-result-message").html(`<div class="alert alert-danger">${list}</div>`);
-                    } else {
-                        $("#register-result-message").html(
-                            `<div class="alert alert-danger">${res.message}</div>`
-                        );
-                    }
-                }
-            },
-            error: function () {
-                $("#register-result-message").html(
-                    `<div class="alert alert-danger">發生未知錯誤，請稍後再試。</div>`
-                );
+            // ✅ 密碼格式驗證（至少8碼，含英文字母與數字）
+            const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+            if (pwd && !passwordRegex.test(pwd)) {
+                errors.push("密碼需為至少8位英數混合。");
             }
+
+            if (pwd && confirm && pwd !== confirm) {
+                errors.push("密碼與確認密碼不一致。");
+            }
+
+            // 如果有錯誤，顯示並中斷
+            if (errors.length > 0) {
+                const errorHtml = errors.map(e => `<div>${e}</div>`).join('');
+                $("#register-result-message").html(`<div class="alert alert-danger">${errorHtml}</div>`);
+                return;
+            }
+
+            // ✅ 所有檢查通過再送出
+            const formData = $(this).serialize();
+
+            $.ajax({
+                url: "/Account/Register?handler=RegisterJson",
+                type: "POST",
+                data: formData,
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    $("#register-result-message").empty();
+
+                    if (res.success) {
+                        $("#register-result-message").html(
+                            `<div class="alert alert-success">註冊成功！<span id="countdown">3</span> 秒後跳轉首頁...</div>`
+                        );
+                        let seconds = 3;
+                        const countdown = setInterval(() => {
+                            seconds--;
+                            $("#countdown").text(seconds);
+                            if (seconds <= 0) {
+                                clearInterval(countdown);
+                                window.location.href = "/Index";
+                            }
+                        }, 1000);
+                    } else {
+                        if (Array.isArray(res.message)) {
+                            const list = res.message.map(m => `<div>${m}</div>`).join('');
+                            $("#register-result-message").html(`<div class="alert alert-danger">${list}</div>`);
+                        } else {
+                            $("#register-result-message").html(
+                                `<div class="alert alert-danger">${res.message}</div>`
+                            );
+                        }
+                    }
+                },
+                error: function () {
+                    $("#register-result-message").html(
+                        `<div class="alert alert-danger">發生未知錯誤，請稍後再試。</div>`
+                    );
+                }
+            });
         });
-    });
+
 </script>
 
 

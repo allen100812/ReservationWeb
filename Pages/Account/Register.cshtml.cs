@@ -21,9 +21,11 @@ namespace Web0524.Pages.Account
         [Display(Name = "電子郵件")]
         public string Email { get; set; }
 
+
         [Required(ErrorMessage = "請輸入密碼")]
         [DataType(DataType.Password)]
         [Display(Name = "密碼")]
+        [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$", ErrorMessage = "密碼需為至少8位英數混合")]
         public string Password { get; set; }
 
         [Required(ErrorMessage = "請再次輸入密碼")]
@@ -128,7 +130,7 @@ namespace Web0524.Pages.Account
             if (!ModelState.IsValid)
                 return new JsonResult(new { success = false, message = "請填寫完整資訊。" });
 
-            var emailExists = _userService.GetUserTB().Any(u => u.Email == Register.Email);
+            var emailExists = _userService.GetUserTB().Any(u => u.Id == Register.Email);
             if (emailExists)
                 return new JsonResult(new { success = false, message = "此電子郵件已被註冊，請使用其他信箱。" });
 
