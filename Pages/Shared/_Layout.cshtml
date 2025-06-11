@@ -169,11 +169,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@myData.Name</title>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Google Font: Source Sans Pro -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
+    <link href="~/lib/fontawesome/css/all.min.css" rel="stylesheet" />
     <!-- Theme style -->
     <link rel="stylesheet" href="/dist/css/adminlte.min.css">
     <!-- 其他 meta 標籤和連結 -->
@@ -187,12 +186,222 @@
         .modal-title {
             color: var(--color3);
         }
+
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            background: #f0f0f0;
+        }
+
+        button {
+            margin: 2rem;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+        }
+
+        /* === 選單外層 === */
+        .fullscreen-menu {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+            .fullscreen-menu.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+        /* === 背景面板動畫 === */
+        .menu-panel {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform: translateY(100%) rotateX(20deg) rotateY(-10deg);
+            opacity: 0;
+            transition: transform 0.8s ease, opacity 0.6s ease;
+            transform-origin: bottom center;
+        }
+
+        .fullscreen-menu.show .menu-panel {
+            transform: translateY(0) rotateX(0) rotateY(0);
+            opacity: 1;
+        }
+
+        .fullscreen-menu.hide .menu-panel {
+            transform: translateY(-100%) rotateX(-20deg) rotateY(10deg);
+            opacity: 0;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1.5rem;
+            right: 2rem;
+            font-size: 2rem;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 10000;
+        }
+
+        /* === 文字內容動畫 === */
+        .menu-content {
+            text-align: center;
+            color: white;
+            opacity: 0;
+            transform: translateY(0);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+            .menu-content.fade-in {
+                opacity: 1;
+            }
+
+            .menu-content.move-up {
+                transform: translateY(-10px);
+            }
+
+            .menu-content.move-down {
+                transform: translateY(10px);
+            }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .menu-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+            .menu-item,
+            .menu-list li a {
+                color: white;
+                font-size: 1.5rem;
+                margin: 0.5rem 0;
+                display: inline-block;
+                text-decoration: none;
+                transition: transform 0.3s ease;
+            }
+
+                .menu-item:hover,
+                .menu-list li a:hover {
+                    transform: translateY(-3px);
+                }
+        /* 下拉選單容器 */
+        .dropdown-menu {
+            background-color: rgba(0, 0, 0, 0.7) !important; /* 半透明黑底 */
+            color: #ffffff !important; /* 白色文字 */
+            border: none;
+            backdrop-filter: blur(8px); /* 背景模糊效果 */
+            transform-origin: top center;
+            transform: perspective(800px) rotateX(0deg);
+            transition: transform 0.3s ease;
+        }
+
+            /* 下拉選單展開動畫（選擇性使用） */
+            .dropdown-menu.show {
+                transform: perspective(800px) rotateX(0deg) translateY(0);
+            }
+
+            /* 每個選單項目 */
+            .dropdown-menu .dropdown-item {
+                color: #ffffff !important; /* 確保文字為白色 */
+                font-weight: 500;
+                padding: 0.5rem 1.2rem;
+                transition: background-color 0.3s ease, transform 0.2s ease;
+                background-color: transparent !important;
+            }
+
+                /* Hover 時：滑動 + 微亮背景，不變色 */
+                .dropdown-menu .dropdown-item:hover,
+                .dropdown-menu .dropdown-item:focus {
+                    transform: translateY(-3px); /* 微上移動畫 */
+                    background-color: rgba(255, 255, 255, 0.1) !important; /* 微亮背景 */
+                    color: #ffffff !important; /* 仍為白色字 */
+                }
+
+            .dropdown-menu .dropdown-item {
+                text-shadow: 0 0 2px rgba(0, 0, 0, 0.5); /* 黑色微陰影提亮白字 */
+            }
+
     </style>
+
+
+
+
     <script>
         function showContactModal() {
             $('#contactModal').modal('show');
         }
     </script>
+    <script>
+        function openMenu() {
+            const menu = document.getElementById("sidebar");
+            const panel = menu.querySelector(".menu-panel");
+            const content = menu.querySelector(".menu-content");
+
+            // 啟動視覺顯示
+            menu.classList.add("active");
+
+            // 清除舊狀態
+            menu.classList.remove("hide");
+            content.classList.remove("fade-in", "move-up", "move-down");
+
+            // 加上展開動畫狀態
+            setTimeout(() => {
+                menu.classList.add("show");
+            }, 10); // 強制觸發 transition
+
+            // 文字淡入
+            setTimeout(() => {
+                content.classList.add("fade-in");
+            }, 300);
+
+            // 文字稍微上浮
+            setTimeout(() => {
+                content.classList.add("move-up");
+            }, 500);
+        }
+
+        function closeMenu() {
+            const menu = document.getElementById("sidebar");
+            const content = menu.querySelector(".menu-content");
+
+            // 先下移文字
+            content.classList.remove("move-up");
+            content.classList.add("move-down");
+
+            // 加上背景收起動畫
+            menu.classList.remove("show");
+            menu.classList.add("hide");
+
+            // 文字淡出
+            setTimeout(() => {
+                content.classList.remove("fade-in");
+            }, 300);
+
+            // 等動畫結束再完全關閉
+            setTimeout(() => {
+                content.classList.remove("move-down");
+                menu.classList.remove("hide", "active");
+            }, 800);
+        }
+    </script>
+
 </head>
 
 <body class="hold-transition">
@@ -202,129 +411,74 @@
             <!-- 大螢幕 -->
             <nav class="navbar navbar-expand-lg big-show">
                 <div class="container-fluid">
-                    <a href="index" class="nav-item animated-link">
-                        <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;">
-                        <span style="color: var(--color2);">@myData.Name</span>
+                    <a href="/index" class="nav-item animated-link">
+                        <img src="/dist/img/AdminLTELogo.png" alt="AdminLTE Logo"  style="opacity: .8; width: 64px; height: 64px; object-fit: cover; object-position: center;">
                     </a>
-                    <div class="collapse navbar-collapse" id="navbarNavDropdown" style="flex: 1; display: flex; justify-content: center; align-items: center; ">
-                        <ul class="navbar-nav" style="color: var(--color2);">
+
+                    <div class="collapse navbar-collapse px-5 mx-5" id="navbarNavDropdown" style="flex: 1; display: flex; justify-content: end; align-items: center;">
+                        <ul class="navbar-nav gap-4">
                             <li class="nav-item">
-                                <a class="nav-link active" aria-current="page" href="#" style="color: var(--color2);">首頁</a>
+                                <a class="nav-link active" aria-current="page" href="#" style="color: var(--color2);">Home</a>
                             </li>
+
+                            <!-- 預約服務 -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
                                     預約服務
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li class="dropdown-item">
-                                        <a asp-page="ProductList" class="nav-link">
-                                            <i class="fas fa-clipboard-list nav-icon Text2 icon-width"></i>
-                                            <span class="Text2">所有課程&服務</span>
-                                        </a>
-                                    </li>
-                                    <li class="dropdown-item">
-                                        <a asp-page="Order" class="nav-link">
-                                            <i class="fas fa-clipboard-check nav-icon Text2 icon-width"></i>
-                                            <span class="Text2">我的預約清單</span>
-                                        </a>
-                                    </li>
+                                    <li><a class="dropdown-item" asp-page="Product"><i class="fas fa-clipboard-list nav-icon icon-width"></i> 所有課程&服務</a></li>
+                                    <li><a class="dropdown-item" asp-page="Order"><i class="fas fa-clipboard-check nav-icon icon-width"></i> 我的預約清單</a></li>
                                 </ul>
                             </li>
+
+                            <!-- 作品欣賞 -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
                                     作品欣賞
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li class="dropdown-item">
-                                        <a href="@myData.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
-                                            <i class="fab fa-instagram nav-icon Text2 icon-width"></i>
-                                            <span class="Text2">作品集</span>
-                                        </a>
-                                    </li>
+                                    <li><a class="dropdown-item" href="@myData.Ig_Url" target="_blank"><i class="fab fa-instagram nav-icon icon-width"></i> 作品集</a></li>
                                 </ul>
                             </li>
+
+                            <!-- 關於我們 -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
                                     關於 @myData.Name_short
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li class="dropdown-item">
-                                        <a asp-page="about" class="nav-link">
-                                            <i class="far fa-address-card nav-icon Text2 icon-width"></i>
-                                            <span class="Text2">關於我們</span>
-                                        </a>
-                                    </li>
-                                    <li class="dropdown-item">
-                                        <a href="Index#place-section" class="nav-link">
-                                            <i class="fas fa-map-pin nav-icon Text2 icon-width"></i>
-                                            <span class="Text2">商家據點</span>
-                                        </a>
-                                    </li>
-                                    <li class="dropdown-item">
-                                        <Button onclick="showContactModal()" class="nav-link">
-                                            <i class="far fa-comment-dots nav-icon Text2 icon-width"></i>
-                                            <span class="Text2">聯絡我們</span>
-                                        </Button>
-                                    </li>
+                                    <li><a class="dropdown-item" asp-page="about"><i class="far fa-address-card nav-icon icon-width"></i> 關於我們</a></li>
+                                    <li><a class="dropdown-item" href="Index#place-section"><i class="fas fa-map-pin nav-icon icon-width"></i> 商家據點</a></li>
+                                    <li><button onclick="showContactModal()" class="dropdown-item"><i class="far fa-comment-dots nav-icon icon-width"></i> 聯絡我們</button></li>
                                 </ul>
                             </li>
+
+                            <!-- 管理員專區 -->
                             @if (User.Identity.IsAuthenticated)
                             {
-                                var userType = User.FindFirst("UserType")?.Value;
-                                if (userType == "1" || userType == "2")
+                                var roleValue = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                                if (roleValue == "1" || roleValue == "2") // SuperAdmin = 1, Admin = 2
                                 {
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
                                             管理員專區
                                         </a>
                                         <ul class="dropdown-menu">
-                                            <li class="dropdown-item">
-                                                <a asp-page="UserList" class="nav-link">
-                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                    <span class="Text2">會員管理</span>
-                                                </a>
-                                            </li>
-                                            <li class="dropdown-item">
-                                                <a asp-page="PlaceList_m" class="nav-link">
-                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                    <span class="Text2">店鋪管理</span>
-                                                </a>
-                                            </li>
-                                            <li class="dropdown-item">
-                                                <a asp-page="ProductList_m" class="nav-link">
-                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                    <span class="Text2">產品管理</span>
-                                                </a>
-                                            </li>
-                                            <li class="dropdown-item">
-                                                <a asp-page="OrderList_m" class="nav-link">
-                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                    <span class="Text2">預約單查詢</span>
-                                                </a>
-                                            </li>
-                                            <li class="dropdown-item">
-                                                <a asp-page="Ordercalendar_m" class="nav-link">
-                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                    <span class="Text2">預約行事曆</span>
-                                                </a>
-                                            </li>
-                                            <li class="dropdown-item">
-                                                <a asp-page="Report" class="nav-link">
-                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                    <span class="Text2">報表檢視</span>
-                                                </a>
-                                            </li>
-                                            <li class="dropdown-item">
-                                                <a asp-page="BaseDataEdit" class="nav-link">
-                                                    <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                    <span class="Text2">網站設定</span>
-                                                </a>
-                                            </li>
+                                            <li><a class="dropdown-item" asp-page="UserManagement"><i class="far fa-circle nav-icon icon-width"></i> 會員管理</a></li>
+                                            <li><a class="dropdown-item" asp-page="PlaceList_m"><i class="far fa-circle nav-icon icon-width"></i> 店鋪管理</a></li>
+                                            <li><a class="dropdown-item" asp-page="/Management/ProductManagement"><i class="far fa-circle nav-icon icon-width"></i> 產品管理</a></li>
+                                            <li><a class="dropdown-item" asp-page="OrderList_m"><i class="far fa-circle nav-icon icon-width"></i> 預約單查詢</a></li>
+                                            <li><a class="dropdown-item" asp-page="Ordercalendar_m"><i class="far fa-circle nav-icon icon-width"></i> 預約行事曆</a></li>
+                                            <li><a class="dropdown-item" asp-page="Report"><i class="far fa-circle nav-icon icon-width"></i> 報表檢視</a></li>
+                                            <li><a class="dropdown-item" asp-page="BaseDataEdit"><i class="far fa-circle nav-icon icon-width"></i> 網站設定</a></li>
                                         </ul>
                                     </li>
                                 }
-
                             }
+
+
+
                         </ul>
                     </div>
 
@@ -366,16 +520,17 @@
             <nav class="navbar navbar-expand-sm sm-show">
                 <ul class="nav" style="width:100%">
                     <li class="nav-item text-left" style="flex: 1; display: flex; justify-content: flex-start; align-items: center;">
-
-                        <button type="button" class="nav-link animated-link" style="color: var(--color2)" data-bs-toggle="modal" data-bs-target="#sidebar">
+                        <button type="button" class="nav-link animated-link" style="color: var(--color2)" onclick="openMenu()">
                             <i class="fas fa-bars"></i> 選單
                         </button>
 
                     </li>
+
+
                     <li class="nav-item text-center" style="flex: 1; display: flex; justify-content: center; align-items: center;">
                         <!-- Brand Logo -->
-                        <a href="index" class="nav-item animated-link">
-                            <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;">
+                        <a href="/index" class="nav-item animated-link">
+                            <img src="/dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;">
                         </a>
                     </li>
                     <li class="nav-item text-right" style="flex: 1; display: flex; justify-content: flex-end; align-items: center;">
@@ -409,7 +564,7 @@
             </nav>
         </div>
 
-        <div class="modal" id="sidebar" tabindex="-1">
+@*         <div class="modal" id="sidebar" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -565,14 +720,33 @@
                     </div>
                 </div>
             </div>
+        </div> *@
+
+
+        <!-- 側邊選單滿版 modal -->
+        <div id="sidebar" class="fullscreen-menu">
+            <button class="close-btn" onclick="closeMenu()">×</button>
+            <div class="menu-content">
+                <div class="logo">HOZO</div>
+                <ul class="menu-list">
+                    <li><a href="#" class="menu-item">Home</a></li>
+                    <li><a href="#">關於賀澤</a></li>
+                    <li><a href="#">作品欣賞</a></li>
+                    <li><a href="#">專案流程</a></li>
+                    <li><a href="#">新聞中心</a></li>
+                    <li><a href="#">聯絡我們</a></li>
+                </ul>
+            </div>
         </div>
+
+
 
 
         <div class="modal fade" id="contactModal" tabindex="-1" role="dialog" aria-labelledby="contactModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;margin-right: 10px;">
+                        <img src="/dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;margin-right: 10px;">
                         <h4 class="modal-title" id="contactModalLabel">@myData.Name</h4>
 
                     </div>
@@ -580,7 +754,7 @@
                         <div class="row">
                             <div class="col-md-4 d-flex justify-content-center align-items-center">
                                 <a href="@myData.Line_Url" target="_blank">
-                                    <img src="\dist\img\Lineqrcode.png" alt="Line QR Code" width="150">
+                                    <img src="/dist/img/Lineqrcode.png" alt="Line QR Code" width="150">
                                 </a>
                             </div>
                             <div class="col-md-8" style="padding-top:10px;">
@@ -707,9 +881,7 @@
 <!-- ./wrapper -->
 <!-- REQUIRED SCRIPTS -->
 <!-- jQuery -->
-<script src="/plugins/jquery/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
 <!-- AdminLTE App -->
 <script src="/dist/js/adminlte.min.js"></script>
 @await RenderSectionAsync("Scripts", required: false)

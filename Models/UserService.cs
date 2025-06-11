@@ -49,7 +49,7 @@ namespace Web0524.Models
 SELECT Id, Name, Password, UserType, Address, Phone, Email, Line, Photo,
        OrderNum, CancelNum, Remark, Birthday, LineUserId, Role, PermissionSetId, IsDeleted
 FROM UserTB
-WHERE UserType <> 9 AND IsDeleted = 0
+WHERE UserType <> 9
 ORDER BY UserType ASC";
 
             return _dbConnection.Query<User>(sql).ToList();

@@ -1,0 +1,158 @@
+﻿@page
+@model Web0524.Pages.Management.ProductManagementModel
+@{
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="all">
+    <link href="css/hover-min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+    @Html.AntiForgeryToken()
+        <div class="container" style="margin-top:200px;">
+            <h2 class="mb-4">產品管理</h2>
+
+            <div id="message-area"></div>
+
+        <form id="productForm" enctype="multipart/form-data">
+            <input type="hidden" asp-for="Product.ProductId" />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Product.Name"></label>
+                        <input asp-for="Product.Name" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Product.Price"></label>
+                        <input asp-for="Product.Price" class="form-control" type="number" step="0.01" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Product.PGid"></label>
+                        <select asp-for="Product.PGid" class="form-control">
+                            @foreach (var pg in Model.PGroups)
+                            {
+                                <option value="@pg.PGid">@pg.PGname</option>
+                            }
+                        </select>
+                        <a href="/Management/PGManagement" class="btn btn-link p-0 mt-1">前往群組管理</a>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Product.ProductState"></label>
+                        <select asp-for="Product.ProductState" class="form-control">
+                            <option value="1">啟用</option>
+                            <option value="0">停用</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Product.Content"></label>
+                        <textarea asp-for="Product.Content" class="form-control"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">上傳圖片</label>
+                        <input type="file" name="PhotoFile" class="form-control" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </div>
+        </form>
+
+            <hr />
+
+            <h4>產品清單</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>產品編號</th>
+                        <th>名稱</th>
+                        <th>價格</th>
+                        <th>群組</th>
+                        <th>狀態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var pgroupMap = Model.PGroups?.ToDictionary(pg => pg.PGid, pg => pg.PGname) ?? new Dictionary<int, string>();
+                    }
+
+                    @foreach (var p in Model.Products)
+                    {
+                        var groupName = pgroupMap.TryGetValue(p.PGid, out var name) ? name : "未知";
+
+                        <tr>
+                            <td>@p.ProductId</td>
+                            <td>@p.Name</td>
+                            <td>@String.Format("{0:C0}", p.Price)</td>
+                            <td>@groupName</td>
+                            <td>@(p.ProductState == 1 ? "啟用" : "停用")</td>
+                            <td>
+                                <a asp-page="ProductManagement" asp-route-id="@p.ProductId" class="btn btn-sm btn-warning">編輯</a>
+                                <button class="btn btn-sm btn-danger delete-btn" data-id="@p.ProductId">刪除</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+        </div>
+
+    <script>
+        $("#productForm").submit(function (e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+            $.ajax({
+                url: '?handler=Save',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    $("#message-area").html(`<div class="alert alert-success">${res.message}</div>`);
+                    setTimeout(() => location.reload(), 1000);
+                },
+                error: function () {
+                    $("#message-area").html(`<div class="alert alert-danger">儲存失敗，請再試一次。</div>`);
+                }
+            });
+        });
+
+        $(".delete-btn").click(function () {
+            if (!confirm("確認刪除？")) return;
+            const id = $(this).data("id");
+            $.ajax({
+                url: `?handler=Delete&id=${id}`,
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    $("#message-area").html(`<div class="alert alert-warning">${res.message}</div>`);
+                    setTimeout(() => location.reload(), 1000);
+                },
+                error: function () {
+                    $("#message-area").html(`<div class="alert alert-danger">刪除失敗</div>`);
+                }
+            });
+        });
+    </script>
+
+    </body>
+
+
+</html>

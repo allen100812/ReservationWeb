@@ -1,0 +1,164 @@
+﻿@page
+@model Web0524.Pages.Management.PGManagementModel
+@{
+    ViewData["Title"] = "產品分類管理";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="all">
+    <link href="css/hover-min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    @Html.AntiForgeryToken()
+
+    <div class="container" style="margin-top:200px;">
+        <h2>產品分類管理</h2>
+
+        <div id="alertPlaceholder"></div>
+
+        <form id="pgroupForm">
+            
+            <div class="row">
+                <input type="hidden" asp-for="Pgroup.PGid" />
+
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Pgroup.PGname"></label>
+                        <input asp-for="Pgroup.PGname" class="form-control" />
+                        <span asp-validation-for="Pgroup.PGname" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Pgroup.PGcontent"></label>
+                        <textarea asp-for="Pgroup.PGcontent" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Pgroup.PGorder"></label>
+                        <input asp-for="Pgroup.PGorder" class="form-control" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </div>
+        </form>
+
+        <hr />
+
+        <h4>分類清單</h4>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>名稱</th>
+                    <th>順序</th>
+                    <th>描述</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="pgroupTableBody">
+            </tbody>
+        </table>
+
+        @section Scripts {
+            <partial name="_ValidationScriptsPartial" />
+            <script>
+                $(document).ready(function () {
+                    loadTable();
+
+                    $('#pgroupForm').submit(function (e) {
+                        e.preventDefault();
+                        const formData = $(this).serialize();
+                        $.post('/Management/PGManagement?handler=Save', formData)
+                            .done(function (res) {
+                                showAlert(res.message, res.success);
+                                if (res.success) {
+                                    $('#pgroupForm')[0].reset();
+                                    loadTable();
+                                }
+                            })
+                            .fail(function () {
+                                showAlert("無法儲存，伺服器回傳 404 或錯誤格式。", false);
+                            });
+                    });
+                });
+
+
+                function loadTable() {
+                    $.getJSON('/Management/PGManagement?handler=List', function (data) {
+                        const tbody = $('#pgroupTableBody');
+                        tbody.empty();
+                        data.forEach(item => {
+                            tbody.append(`
+                                        <tr>
+                                            <td>${item.pGid}</td>
+                                            <td>${item.pGname}</td>
+                                            <td>${item.pGorder}</td>
+                                            <td>${item.pGcontent}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-warning" onclick="edit(${item.pGid})">編輯</button>
+                                                <button class="btn btn-sm btn-danger" onclick="remove(${item.pGid})">刪除</button>
+                                            </td>
+                                        </tr>
+                                    `);
+                        });
+                    });
+                }
+
+                function edit(id) {
+                    $.getJSON('/Management/PGManagement?handler=Get&id=' + id, function (data) {
+                        $('input[name="Pgroup.PGid"]').val(data.pGid);
+                        $('input[name="Pgroup.PGname"]').val(data.pGname);
+                        $('textarea[name="Pgroup.PGcontent"]').val(data.pGcontent);
+                        $('input[name="Pgroup.PGorder"]').val(data.pGorder);
+                    });
+                }
+
+                function remove(id) {
+                    if (!confirm('確認刪除？')) return;
+
+                    $.ajax({
+                        url: '/Management/PGManagement?handler=Delete',
+                        type: 'POST',
+                        data: $.param({ id: id }), // 確保正確序列化
+                        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+
+                        success: function (res) {
+                            showAlert(res.message, res.success);
+                            if (res.success) loadTable();
+                        },
+                        error: function (xhr) {
+                            console.error("刪除錯誤：", xhr.responseText);
+                            showAlert("刪除失敗（" + xhr.status + "）", false);
+                        }
+                    });
+                }
+
+
+                function showAlert(message, success) {
+                    const type = success ? 'success' : 'danger';
+                    $('#alertPlaceholder').html(`
+                                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                                    ${message}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            `);
+                }
+            </script>
+        }
+
+    </div>
+
+</body>
+</html>

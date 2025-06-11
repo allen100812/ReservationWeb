@@ -1,0 +1,118 @@
+﻿@page
+@model Web0524.Pages.ProductModel
+@{
+}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>作品集</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          margin: 0;
+          font-family: 'Noto Sans TC', sans-serif;
+          background: #fff;
+          color: #333;
+        }
+
+        /* Hero */
+        .hero {
+          position: relative;
+          width: 100%;
+          height: 60vh;
+          background: url('your-image.jpg') center center / cover no-repeat;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .hero h1 {
+          color: white;
+          font-size: 2.5rem;
+          font-weight: 300;
+          letter-spacing: 2px;
+        }
+
+        /* Filter Menu */
+        .filter-bar {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin: 2rem 0;
+          gap: 2rem;
+          font-size: 1rem;
+        }
+
+        .filter-bar span {
+          color: #999;
+          cursor: pointer;
+          transition: 0.3s;
+        }
+
+        .filter-bar .active {
+          font-weight: bold;
+          color: black;
+          border-bottom: 1px solid black;
+        }
+
+        /* Portfolio Grid */
+        .portfolio-grid {
+          max-width: 1200px;
+          margin: auto;
+          padding: 0 1rem 3rem;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 2rem;
+        }
+
+        .portfolio-item {
+          overflow: hidden;
+          border-radius: 4px;
+          transition: transform 0.3s ease;
+          cursor: pointer;
+        }
+
+        .portfolio-item img {
+          width: 100%;
+          height: auto;
+          display: block;
+          transition: transform 0.3s ease;
+        }
+
+        .portfolio-item:hover img {
+          transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Banner -->
+    <div class="hero">
+        <h1>Portfolio</h1>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <span class="active">ALL</span>
+        <span>住宅空間</span>
+        <span>商業空間</span>
+        <span>聚焦設計</span>
+    </div>
+
+    <!-- Portfolio Grid -->
+    <div class="portfolio-grid">
+        <div class="portfolio-item"><img src="img1.jpg" alt="作品 1"></div>
+        <div class="portfolio-item"><img src="img2.jpg" alt="作品 2"></div>
+        <div class="portfolio-item"><img src="img3.jpg" alt="作品 3"></div>
+        <div class="portfolio-item"><img src="img4.jpg" alt="作品 4"></div>
+        <div class="portfolio-item"><img src="img5.jpg" alt="作品 5"></div>
+        <div class="portfolio-item"><img src="img6.jpg" alt="作品 6"></div>
+    </div>
+
+</body>
+</html>
