@@ -1,82 +1,153 @@
 ﻿using Dapper;
-using System.Collections;
 using System.Data;
-using System.Data.Common;
-using System.Text;
+using System.Transactions;
 
 namespace Web0524.Models
 {
+
     public interface INewService
     {
-        bool AddNewList(NewList NewList);
-        bool UpdateNewList(NewList NewList);
-        bool DeleteNewList(int NewId);
-        bool StopNewList(NewList NewList);
-        bool StartNewList(NewList NewList);
-        bool PushNewList(NewList NewList);
-        NewList GetNewListById(int NewId);
+        bool AddNewList(NewList newList);
+        bool UpdateNewList(NewList newList);
+        bool DeleteNewList(int newId);
+        bool UpdateStatus(int newId, int status);
+        NewList GetNewListById(int newId);
         IEnumerable<NewList> GetNewTB();
         IEnumerable<NewList> GetNewTB_Top2();
     }
-    public class NewListService:INewService
+
+    public class NewListService : INewService
     {
         private readonly IDbConnection _dbConnection;
+
         public NewListService(IDbConnection dbConnection)
         {
             _dbConnection = dbConnection;
         }
 
-        public NewList GetNewListById(int NewId)
+        public NewList GetNewListById(int newId)
         {
-            var sql = "SELECT * FROM NewTB WHERE NewId = @NewId";
-            return _dbConnection.QueryFirstOrDefault<NewList>(sql, new { NewId = NewId });
+            var news = _dbConnection.QueryFirstOrDefault<NewList>(
+                "SELECT * FROM NewTB WHERE NewId = @NewId", new { NewId = newId });
+
+            if (news != null)
+            {
+                var photos = _dbConnection.Query<byte[]>(
+                    "SELECT Photo FROM NewPhotoTB WHERE NewId = @NewId", new { NewId = newId });
+                news.PhotoList = photos.ToList();
+            }
+
+            return news;
         }
+
         public IEnumerable<NewList> GetNewTB()
         {
-            var sql = "SELECT Top 100 * FROM NewTB where Status <> 2 Order by Status ASC,PublishDate ";
+            string sql = "SELECT TOP 100 * FROM NewTB WHERE Status <> 2 ORDER BY Status ASC, PublishDate DESC";
             return _dbConnection.Query<NewList>(sql);
         }
+
         public IEnumerable<NewList> GetNewTB_Top2()
         {
-            var sql = "SELECT Top 2 * FROM NewTB where Status <> 2 Order by Status ASC,PublishDate ";
+            string sql = "SELECT TOP 2 * FROM NewTB WHERE Status <> 2 ORDER BY Status ASC, PublishDate DESC";
             return _dbConnection.Query<NewList>(sql);
         }
-        public bool AddNewList(NewList NewList)
+
+        public bool AddNewList(NewList newList)
         {
-            
-            var sql = "INSERT INTO NewTB (Title,Content,Author,PublishDate,Status,Category,Tags,Photo) VALUES (@Title,@Content,@Author,@PublishDate,@Status,@Category,@Tags,@Photo)";
-            var affectedRows = _dbConnection.Execute(sql, NewList);
-            return affectedRows > 0;
+            if (_dbConnection.State != ConnectionState.Open)
+                _dbConnection.Open();
+
+            using (var scope = new TransactionScope())
+            {
+                try
+                {
+                    string sql = @"
+                    INSERT INTO NewTB (Title, Content, Author, PublishDate, Status, Category, Tag)
+                    VALUES (@Title, @Content, @Author, @PublishDate, @Status, @Category, @Tag);
+                    SELECT CAST(SCOPE_IDENTITY() AS INT)";
+
+                    int newId = _dbConnection.QuerySingle<int>(sql, newList);
+
+                    foreach (var photo in newList.PhotoList)
+                    {
+                        string photoSql = "INSERT INTO NewPhotoTB (NewId, Photo) VALUES (@NewId, @Photo)";
+                        _dbConnection.Execute(photoSql, new { NewId = newId, Photo = photo });
+                    }
+
+                    scope.Complete();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("新增新聞失敗：" + ex.Message);
+                    return false;
+                }
+            }
         }
-        public bool UpdateNewList(NewList NewList)
+
+        public bool UpdateNewList(NewList newList)
         {
-            var sql = "UPDATE NewTB SET Title = @Title, Content = @Content, Author = @Author, PublishDate = @PublishDate, Status = @Status, Category = @Category, Tags = @Tags,Photo = @Photo WHERE NewId = @NewId";
-            var affectedRows = _dbConnection.Execute(sql, NewList);
-            return affectedRows > 0;
+            using (var scope = new TransactionScope())
+            {
+                try
+                {
+                    string sql = @"
+                    UPDATE NewTB SET
+                        Title = @Title,
+                        Content = @Content,
+                        Author = @Author,
+                        PublishDate = @PublishDate,
+                        Status = @Status,
+                        Category = @Category,
+                        Tag = @Tag
+                    WHERE NewId = @NewId";
+
+                    _dbConnection.Execute(sql, newList);
+
+                    _dbConnection.Execute("DELETE FROM NewPhotoTB WHERE NewId = @NewId", new { newList.NewId });
+
+                    foreach (var photo in newList.PhotoList)
+                    {
+                        string photoSql = "INSERT INTO NewPhotoTB (NewId, Photo) VALUES (@NewId, @Photo)";
+                        _dbConnection.Execute(photoSql, new { NewId = newList.NewId, Photo = photo });
+                    }
+
+                    scope.Complete();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("更新新聞失敗：" + ex.Message);
+                    return false;
+                }
+            }
         }
-        public bool StopNewList(NewList NewList)
+
+        public bool DeleteNewList(int newId)
         {
-            var sql = "UPDATE NewTB SET Status = 2 WHERE NewId = @NewId";
-            var affectedRows = _dbConnection.Execute(sql, NewList);
-            return affectedRows > 0;
+            using (var scope = new TransactionScope())
+            {
+                try
+                {
+                    _dbConnection.Execute("DELETE FROM NewPhotoTB WHERE NewId = @NewId", new { NewId = newId });
+                    _dbConnection.Execute("DELETE FROM NewTB WHERE NewId = @NewId", new { NewId = newId });
+
+                    scope.Complete();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("刪除新聞失敗：" + ex.Message);
+                    return false;
+                }
+            }
         }
-        public bool StartNewList(NewList NewList)
+
+        public bool UpdateStatus(int newId, int status)
         {
-            var sql = "UPDATE NewTB SET Status = 0 WHERE NewId = @NewId";
-            var affectedRows = _dbConnection.Execute(sql, NewList);
-            return affectedRows > 0;
-        }
-        public bool PushNewList(NewList NewList)
-        {
-            var sql = "UPDATE NewTB SET Status = 1 WHERE NewId = @NewId";
-            var affectedRows = _dbConnection.Execute(sql, NewList);
-            return affectedRows > 0;
-        }
-        public bool DeleteNewList(int NewId)
-        {
-            var sql = "DELETE FROM NewTB WHERE NewId= @NewId";
-            var affectedRows = _dbConnection.Execute(sql, new { NewId = NewId });
-            return affectedRows > 0;
+            string sql = "UPDATE NewTB SET Status = @Status WHERE NewId = @NewId";
+            return _dbConnection.Execute(sql, new { Status = status, NewId = newId }) > 0;
         }
     }
+
 }

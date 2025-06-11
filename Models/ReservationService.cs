@@ -18,14 +18,15 @@ namespace Web0524.Models
         // 判斷是否為排休日
         bool Reservation_IsDayOff(int designerId, DateTime date);
 
+
         // 取得當日所有時段可預約的服務（依冷卻時間與提前限制）
-        List<Reservation_AvailableServiceSlot> GetAvailableServiceSlots(int designerId, DateTime date, int cooldownMinutes, int advanceMinutes);
+        List<Reservation_AvailableSlotDetail> GetAvailableServiceSlots(int designerId, DateTime date, int cooldownMinutes, int advanceMinutes);
 
         // 檢查某設計師在指定時間是否可預約某服務
         bool IsSlotAvailable(int designerId, int ProductId, DateTime time);
 
         // 建立新預約單
-        Order? CreateOrder(int designerId, int ProductId, DateTime time);
+        Order? CreateOrder(Order order);
 
         // 更新預約單狀態（如完成、取消）
         bool UpdateOrderStatus(int orderId, OrderStatus newStatus);
@@ -57,6 +58,8 @@ namespace Web0524.Models
         // 刪除設計師
         bool DeleteDesigner(int designerId);
 
+
+        bool AddScheduleRule(int designerId, Designer_ProductScheduleRule rule);
         // 新增排休資料
         Designer_Shift AddShift(Designer_Shift shift);
 
@@ -100,7 +103,7 @@ namespace Web0524.Models
 
         public List<Designer> GetAllDesigners()
         {
-            var designers = _dbConnection.Query<Designer>("SELECT * FROM DesignerTB WHERE IsDeleted = 0").ToList();
+            var designers = _dbConnection.Query<Designer>("SELECT * FROM DesignerTB").ToList();
             foreach (var d in designers)
             {
                 d.ScheduleRules = _dbConnection.Query<Designer_ProductScheduleRule>(
@@ -145,8 +148,36 @@ namespace Web0524.Models
 
         public bool UpdateDesigner(Designer designer)
         {
-            var sql = "UPDATE DesignerTB SET Name = @Name, Nickname = @Nickname WHERE DesignerId = @DesignerId AND IsDeleted = 0";
-            return _dbConnection.Execute(sql, designer) > 0;
+            var sql = @"UPDATE DesignerTB 
+                SET Name = @Name, Nickname = @Nickname 
+                WHERE DesignerId = @DesignerId AND IsDeleted = 0";
+
+            var parameters = new
+            {
+                designer.DesignerId,
+                designer.Name,
+                designer.Nickname
+            };
+
+            return _dbConnection.Execute(sql, parameters) > 0;
+        }
+
+
+        public bool AddScheduleRule(int designerId, Designer_ProductScheduleRule rule)
+        {
+            var sql = @"INSERT INTO DesignerScheduleRuleTB
+                (DesignerId, ProductId, DurationMinutes, MaxCustomers)
+                VALUES (@DesignerId, @ProductId, @DurationMinutes, @MaxCustomers)";
+
+            var param = new
+            {
+                DesignerId = designerId,
+                rule.ProductId,
+                rule.DurationMinutes,
+                rule.MaxCustomers
+            };
+
+            return _dbConnection.Execute(sql, param) > 0;
         }
 
         public bool DeleteDesigner(int designerId)
@@ -216,24 +247,20 @@ namespace Web0524.Models
             return _dbConnection.Query<Order>(sql, new { DesignerId = designerId, Date = date.Date }).ToList();
         }
 
-        public Order? CreateOrder(int designerId, int productId, DateTime time)
+        public Order? CreateOrder(Order order)
         {
-            if (!IsSlotAvailable(designerId, productId, time)) return null;
+            if (!IsSlotAvailable(order.DesignerId, order.ProductId, order.ReservationDateTime))
+                return null;
 
-            var sql = @"INSERT INTO OrderTB (DesignerId, ProductId, ReservationDateTime, Status)
-                VALUES (@DesignerId, @ProductId, @ReservationDateTime, @Status);
-                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+            var sql = @"
+        INSERT INTO OrderTB (DesignerId, ProductId, ReservationDateTime, Status, Price, PaymentMethod, Remark, Uid, Orderdate)
+        VALUES (@DesignerId, @ProductId, @ReservationDateTime, @Status, @Price, @PaymentMethod, @Remark, @Uid, @Orderdate);
+        SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            int newId = _dbConnection.ExecuteScalar<int>(sql, new
-            {
-                DesignerId = designerId,
-                ProductId = productId,
-                ReservationDateTime = time,
-                Status = OrderStatus.Confirmed
-            });
-
+            int newId = _dbConnection.ExecuteScalar<int>(sql, order);
             return GetOrderById(newId);
         }
+
 
         public bool IsSlotAvailable(int designerId, int productId, DateTime time)
         {
@@ -280,16 +307,30 @@ namespace Web0524.Models
             return countAtT < rule.MaxCustomers;
         }
 
-        public List<Reservation_AvailableServiceSlot> GetAvailableServiceSlots(int designerId, DateTime date, int cooldownMinutes, int advanceMinutes)
+        public List<Reservation_AvailableSlotDetail> GetAvailableServiceSlots(int designerId, DateTime date, int cooldownMinutes, int advanceMinutes)
         {
-            List<Reservation_AvailableServiceSlot> result = new();
+            List<Reservation_AvailableSlotDetail> result = new();
             var designer = GetDesignerById(designerId);
-            if (designer == null) return result;
-
-            if (Reservation_IsFixedHoliday(designerId, date) || Reservation_IsDayOff(designerId, date))
+            if (designer == null)
+            {
+                Console.WriteLine("找不到設計師：" + designerId);
                 return result;
+            }
+
+            if (Reservation_IsFixedHoliday(designerId, date))
+            {
+                Console.WriteLine("當日為固定休假日：" + date.ToShortDateString());
+                return result;
+            }
+
+            if (Reservation_IsDayOff(designerId, date))
+            {
+                Console.WriteLine("當日為排休日：" + date.ToShortDateString());
+                return result;
+            }
 
             var orders = GetOrdersForDay(designerId, date);
+            Console.WriteLine($"共取得 {orders.Count} 筆當日預約單");
 
             DateTime now = DateTime.Now;
             DateTime earliestAvailableTime = now.AddMinutes(advanceMinutes);
@@ -298,15 +339,21 @@ namespace Web0524.Models
 
             for (DateTime t = dayStart; t.AddMinutes(10) <= dayEnd; t = t.AddMinutes(10))
             {
-                if (date.Date == DateTime.Today && t < earliestAvailableTime) continue;
-
-                var availableProductIds = new List<int>();
+                if (date.Date == DateTime.Today && t < earliestAvailableTime)
+                {
+                    Console.WriteLine($"跳過太早的時段：{t:HH:mm}");
+                    continue;
+                }
 
                 foreach (var rule in designer.ScheduleRules)
                 {
                     DateTime serviceStart = t;
                     DateTime serviceEnd = t.AddMinutes(rule.DurationMinutes);
-                    if (serviceEnd.AddMinutes(cooldownMinutes) > dayEnd) continue;
+                    if (serviceEnd.AddMinutes(cooldownMinutes) > dayEnd)
+                    {
+                        Console.WriteLine($"跳過超出工作結束時間的時段：{t:HH:mm} ~ {serviceEnd:HH:mm}");
+                        continue;
+                    }
 
                     var overlappingOrders = orders.Where(o =>
                     {
@@ -323,10 +370,16 @@ namespace Web0524.Models
                     }).ToList();
 
                     if (overlappingOrders.Any(o => o.ProductId == rule.ProductId && o.ReservationDateTime != t))
+                    {
+                        Console.WriteLine($"時段 {t:HH:mm} 與其他 {rule.ProductId} 預約重疊");
                         continue;
+                    }
 
                     if (overlappingOrders.Any(o => o.ProductId != rule.ProductId))
+                    {
+                        Console.WriteLine($"時段 {t:HH:mm} 與不同產品預約重疊");
                         continue;
+                    }
 
                     int countAtT = orders.Count(o =>
                         o.DesignerId == designerId &&
@@ -336,22 +389,26 @@ namespace Web0524.Models
 
                     if (countAtT < rule.MaxCustomers)
                     {
-                        availableProductIds.Add(rule.ProductId);
+                        Console.WriteLine($"可用時段 {t:HH:mm}，產品 {rule.ProductId}，目前預約數 {countAtT}");
+                        result.Add(new Reservation_AvailableSlotDetail
+                        {
+                            Date = date.Date,
+                            StartTime = t,
+                            DesignerId = designerId,
+                            ProductId = rule.ProductId
+                        });
                     }
-                }
-
-                if (availableProductIds.Count > 0)
-                {
-                    result.Add(new Reservation_AvailableServiceSlot
+                    else
                     {
-                        StartTime = t,
-                        AvailableProductIds = availableProductIds
-                    });
+                        Console.WriteLine($"時段 {t:HH:mm} 已達最大人數上限（{countAtT}/{rule.MaxCustomers}）");
+                    }
                 }
             }
 
+            Console.WriteLine($"共找到 {result.Count} 筆可預約時段");
             return result;
         }
+
     }
 
 }

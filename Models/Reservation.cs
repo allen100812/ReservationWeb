@@ -63,6 +63,13 @@ namespace Web0524.Models
         public DateTime StartTime { get; set; }
         public List<int> AvailableProductIds { get; set; } = new();
     }
+    public class Reservation_AvailableSlotDetail
+    {
+        public DateTime Date { get; set; }
+        public DateTime StartTime { get; set; }
+        public int DesignerId { get; set; }
+        public int ProductId { get; set; }
+    }
 
     public enum SlotStatus
     {

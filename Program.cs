@@ -8,7 +8,6 @@ using Quartz;
 using System.Data;
 using System.Diagnostics;
 using Web0524.Models;
-using Web0524.Controllers;
 using Microsoft.Extensions.DependencyInjection;
 
 
@@ -66,7 +65,6 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, orderService>();
 builder.Services.AddScoped<IPgroupService, PgroupService>();
-builder.Services.AddScoped<IPlaceService, PlaceService>();
 builder.Services.AddScoped<IYearReportService, YearReportService>();
 builder.Services.AddScoped<IMyService,  MyService>();
 builder.Services.AddScoped<INewService, NewListService>();

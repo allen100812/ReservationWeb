@@ -27,6 +27,7 @@ namespace Web0524.Pages.Management
                     u.Email.ToLower().Contains(keyword) ||
                     u.Phone.ToLower().Contains(keyword)
                 );
+                
             }
 
             return new JsonResult(users.Select(u => new

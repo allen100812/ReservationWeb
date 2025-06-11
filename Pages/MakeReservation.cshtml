@@ -1,0 +1,94 @@
+﻿@page
+@model Web0524.Pages.MakeReservationModel
+@{
+    ViewData["Title"] = "我要預約";
+}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>預約服務</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container" style="margin-top:200px;">
+        <h2 class="mb-4 text-center">我要預約</h2>
+
+        <form method="post">
+            <!-- Step 1: 選擇日期 -->
+            <div class="mb-4">
+                <label class="form-label">選擇預約日期</label>
+                <input type="date" name="SelectedDate" class="form-control" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" required />
+            </div>
+
+            <!-- Step 2: 選擇設計師與服務 -->
+            <div class="mb-4">
+                <label class="form-label">選擇設計師</label>
+                <select name="NewOrder.DesignerId" class="form-select" required>
+                    <option value="">請選擇</option>
+                    @foreach (var d in Model.AllDesigners)
+                    {
+                        <option value="@d.DesignerId">@d.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">選擇服務項目</label>
+                <select name="NewOrder.ProductId" class="form-select" required>
+                    <option value="">請選擇</option>
+                    @foreach (var p in Model.AllProducts)
+                    {
+                        <option value="@p.ProductId">@p.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Step 3: 選擇時間 -->
+            <div class="mb-4">
+                <label class="form-label">選擇時間</label>
+                <select name="NewOrder.ReservationDateTime" class="form-select" required>
+                    <option value="">請選擇可預約時間</option>
+                    @foreach (var t in Model.AvailableTimeSlots)
+                    {
+                        <option value="@t.ToString("yyyy-MM-ddTHH:mm")">@t.ToString("HH:mm")</option>
+                    }
+                </select>
+            </div>
+
+            <!-- 付款方式 -->
+            <div class="mb-4">
+                <label class="form-label">付款方式</label>
+                <select name="NewOrder.PaymentMethod" class="form-select" required>
+                    <option value="">請選擇</option>
+                    <option value="0">現金</option>
+                    <option value="1">刷卡</option>
+                    <option value="2">Line Pay</option>
+                </select>
+            </div>
+
+            <!-- 備註 -->
+            <div class="mb-4">
+                <label class="form-label">備註 (選填)</label>
+                <input type="text" name="NewOrder.Remark" class="form-control" />
+            </div>
+
+            <!-- UID（可從登入帳號自動帶入或隱藏） -->
+            <input type="hidden" name="NewOrder.Uid" value="@Model.CurrentUserId" />
+
+            <div class="text-center">
+                <button type="submit" name="action" value="add" class="btn btn-success">確認預約</button>
+            </div>
+        </form>
+
+        <!-- 預約結果訊息 -->
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <div class="alert alert-info text-center mt-4">@Model.Message</div>
+        }
+    </div>
+</body>
+</html>

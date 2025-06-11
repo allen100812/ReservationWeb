@@ -1,0 +1,105 @@
+﻿@page
+@model Web0524.Pages.Management.DesignerShiftManagementModel
+@{
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="css/hover-min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+    <div class="container" style="margin-top:200px;">
+
+
+
+        <h2>設計師排休管理</h2>
+
+        <form method="post" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">設計師</label>
+                <select asp-for="NewShift.DesignerId" class="form-select">
+                    @foreach (var d in Model.AllDesigners)
+                    {
+                        <option value="@d.DesignerId">@d.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">日期</label>
+                <input asp-for="NewShift.ShiftDate" class="form-control" type="date" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">是否休假</label>
+                <select asp-for="NewShift.IsDayOff" class="form-select">
+                    <option value="true">是</option>
+                    <option value="false">否</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" name="action" value="add" class="btn btn-success">新增排班</button>
+            </div>
+        </form>
+
+        <hr />
+
+        @if (Model.Shifts.Any())
+        {
+            <h5>指定日期的排班清單：@Model.SelectedDate.ToString("yyyy-MM-dd")</h5>
+            <form method="get" class="mb-3">
+                <input type="date" name="selectedDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="form-control d-inline-block w-auto me-2" />
+                <button type="submit" class="btn btn-secondary">查詢</button>
+            </form>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>設計師</th>
+                        <th>日期</th>
+                        <th>是否休假</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Shifts)
+                    {
+                        var d = Model.AllDesigners.FirstOrDefault(x => x.DesignerId == s.DesignerId);
+                        <tr>
+                            <td>@d?.Name</td>
+                            <td>@s.ShiftDate.ToString("yyyy-MM-dd")</td>
+                            <td>@(s.IsDayOff ? "是" : "否")</td>
+                            <td>
+                                <form method="post" class="d-inline">
+                                    <input type="hidden" name="DesignerId" value="@s.DesignerId" />
+                                    <input type="hidden" name="ShiftDate" value="@s.ShiftDate.ToString("yyyy-MM-dd")" />
+                                    <button type="submit" name="action" value="remove" class="btn btn-sm btn-danger">移除</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <div class="alert alert-info">@Model.Message</div>
+        }
+
+    </div>
+</body>
+</html>
+
+
+
+
+
+
+
