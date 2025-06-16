@@ -44,18 +44,51 @@ namespace Web0524.Pages
 
             if (action == "add")
             {
+
+                // 嘗試從登入資訊取得使用者 ID
+                var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+
+                if (string.IsNullOrEmpty(uidStr))
+                {
+                    // 未登入時導向登入頁
+                    Response.Redirect("/Account/Login"); // 可依你的實際登入路徑調整
+                    return Page();
+                }
+
                 // 驗證資料
                 if (NewOrder.DesignerId <= 0 || NewOrder.ProductId <= 0 || NewOrder.Uid != "" || NewOrder.ReservationDateTime == default)
                 {
-                    Message = "請完整填寫所有欄位。";
-                    return Page();
+                    if (NewOrder.DesignerId <= 0)
+                    {
+                        Message = "請選擇設計師。";
+                        return Page();
+                    }
+
+                    if (NewOrder.ProductId <= 0)
+                    {
+                        Message = "請選擇服務項目。";
+                        return Page();
+                    }
+
+                    if (string.IsNullOrWhiteSpace(NewOrder.Uid))
+                    {
+                        Message = "使用者資訊錯誤，請重新登入。";
+                        return Page();
+                    }
+
+                    if (NewOrder.ReservationDateTime == default)
+                    {
+                        Message = "請選擇預約時間。";
+                        return Page();
+                    }
+
                 }
 
                 // 設定其他必要欄位
                 NewOrder.Status = 0; // 預設狀態：未處理
                 NewOrder.Orderdate = DateTime.Now;
                 NewOrder.Price = 0;  // 如有定價邏輯，可補上
-
+                NewOrder.Uid = uidStr;
                 // 呼叫服務層建立訂單（使用你的版本）
                 var createdOrder = _reservationService.CreateOrder(NewOrder);
 
@@ -90,6 +123,17 @@ namespace Web0524.Pages
 
             AvailableTimeSlots = GenerateAvailableTimeSlots(SelectedDate);
         }
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnGetGetAvailableTimeSlots(int designerId, int productId, DateTime date)
+        {
+            var times = GenerateAvailableTimeSlots(date);
+            var available = times
+                .Where(t => _reservationService.IsSlotAvailable(designerId, productId, t))
+                .Select(t => new { time = t.ToString("yyyy-MM-ddTHH:mm"), label = t.ToString("HH:mm") })
+                .ToList();
+
+            return new JsonResult(available);
+        }
 
 
         private List<DateTime> GenerateAvailableTimeSlots(DateTime date)
@@ -105,5 +149,21 @@ namespace Web0524.Pages
 
             return slots;
         }
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnGetGetProducts(int designerId)
+        {
+            var designer = _reservationService.GetDesignerById(designerId);
+            if (designer == null)
+                return new JsonResult(new { success = false });
+
+            var productIds = designer.ScheduleRules.Select(r => r.ProductId).Distinct().ToList();
+            var validProducts = _productService.GetAllProducts()
+                .Where(p => productIds.Contains(p.ProductId))
+                .Select(p => new { productId = p.ProductId, name = p.Name })
+                .ToList();
+
+            return new JsonResult(validProducts);
+        }
+
     }
 }

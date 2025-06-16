@@ -14,6 +14,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
+    @Html.AntiForgeryToken()
     <div class="container" style="margin-top:200px;">
         <h2 class="mb-4 text-center">我要預約</h2>
 
@@ -27,7 +28,7 @@
             <!-- Step 2: 選擇設計師與服務 -->
             <div class="mb-4">
                 <label class="form-label">選擇設計師</label>
-                <select name="NewOrder.DesignerId" class="form-select" required>
+                <select name="NewOrder.DesignerId" class="form-select" id="designerSelect" required>
                     <option value="">請選擇</option>
                     @foreach (var d in Model.AllDesigners)
                     {
@@ -38,7 +39,7 @@
 
             <div class="mb-4">
                 <label class="form-label">選擇服務項目</label>
-                <select name="NewOrder.ProductId" class="form-select" required>
+                <select name="NewOrder.ProductId" class="form-select" id="productSelect" required>
                     <option value="">請選擇</option>
                     @foreach (var p in Model.AllProducts)
                     {
@@ -90,5 +91,65 @@
             <div class="alert alert-info text-center mt-4">@Model.Message</div>
         }
     </div>
+
+    <script>
+        $(document).ready(function () {
+            const $designerSelect = $("#designerSelect");
+            const $productSelect = $("#productSelect");
+            const allOptions = $productSelect.find("option").clone(); // 儲存所有選項
+
+            $designerSelect.change(function () {
+                const designerId = $(this).val();
+                $productSelect.html(allOptions); // 還原所有選項
+
+                if (!designerId) return;
+
+                $.get(`/MakeReservation?handler=GetProducts&designerId=${designerId}`, function (data) {
+                    const validIds = data.map(p => String(p.productId));
+
+                    $productSelect.find("option").each(function () {
+                        const val = $(this).val();
+                        if (val === "" || validIds.includes(val)) {
+                            $(this).prop("disabled", false);
+                        } else {
+                            $(this).prop("disabled", true);
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            const $designer = $("#designerSelect");
+            const $product = $("#productSelect");
+            const $date = $("input[name='SelectedDate']");
+            const $time = $("select[name='NewOrder.ReservationDateTime']");
+
+            function loadAvailableTimes() {
+                const dId = $designer.val();
+                const pId = $product.val();
+                const date = $date.val();
+
+                if (!dId || !pId || !date) return;
+
+                $.get(`/MakeReservation?handler=GetAvailableTimeSlots&designerId=${dId}&productId=${pId}&date=${date}`, function (data) {
+                    $time.empty().append('<option value="">請選擇可預約時間</option>');
+                    if (data.length === 0) {
+                        $time.append('<option disabled>無可預約時段</option>');
+                    } else {
+                        $.each(data, function (i, t) {
+                            $time.append(`<option value="${t.time}">${t.label}</option>`);
+                        });
+                    }
+                });
+            }
+
+            $designer.change(loadAvailableTimes);
+            $product.change(loadAvailableTimes);
+            $date.change(loadAvailableTimes);
+        });
+    </script>
+
 </body>
 </html>

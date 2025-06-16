@@ -264,16 +264,36 @@ namespace Web0524.Models
 
         public bool IsSlotAvailable(int designerId, int productId, DateTime time)
         {
+            Console.WriteLine($"🔍 檢查是否可預約：設計師ID={designerId}, 產品ID={productId}, 時間={time:yyyy-MM-dd HH:mm}");
+
             var designer = GetDesignerById(designerId);
-            if (designer == null) return false;
+            if (designer == null)
+            {
+                Console.WriteLine("❌ 找不到該設計師");
+                return false;
+            }
 
             var rule = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == productId);
-            if (rule == null) return false;
-
-            if (Reservation_IsFixedHoliday(designerId, time.Date) || Reservation_IsDayOff(designerId, time.Date))
+            if (rule == null)
+            {
+                Console.WriteLine("❌ 該設計師沒有設定此服務項目的排程規則");
                 return false;
+            }
+
+            if (Reservation_IsFixedHoliday(designerId, time.Date))
+            {
+                Console.WriteLine("❌ 該日為固定假日");
+                return false;
+            }
+
+            if (Reservation_IsDayOff(designerId, time.Date))
+            {
+                Console.WriteLine("❌ 該設計師當日為休假日");
+                return false;
+            }
 
             var orders = GetOrdersForDay(designerId, time);
+            Console.WriteLine($"✅ 當天已有預約 {orders.Count} 筆");
 
             DateTime serviceStart = time;
             DateTime serviceEnd = time.AddMinutes(rule.DurationMinutes);
@@ -292,11 +312,19 @@ namespace Web0524.Models
                 return !(serviceEnd <= bookedStart || serviceStart >= bookedEnd);
             }).ToList();
 
+            Console.WriteLine($"🔄 發現有 {overlappingOrders.Count} 筆重疊預約");
+
             if (overlappingOrders.Any(o => o.ProductId != productId))
+            {
+                Console.WriteLine("❌ 時段已被其他服務項目預約");
                 return false;
+            }
 
             if (overlappingOrders.Any(o => o.ProductId == productId && o.ReservationDateTime != time))
+            {
+                Console.WriteLine("❌ 同一服務有不同時間重疊");
                 return false;
+            }
 
             int countAtT = orders.Count(o =>
                 o.DesignerId == designerId &&
@@ -304,8 +332,14 @@ namespace Web0524.Models
                 o.ReservationDateTime == time &&
                 o.Status != OrderStatus.Cancelled);
 
-            return countAtT < rule.MaxCustomers;
+            Console.WriteLine($"⏱ 同時間點已有相同服務 {countAtT} 筆 / 最大上限 {rule.MaxCustomers}");
+
+            bool result = countAtT < rule.MaxCustomers;
+            Console.WriteLine(result ? "✅ 時段可預約" : "❌ 該時段已達最大上限");
+
+            return result;
         }
+
 
         public List<Reservation_AvailableSlotDetail> GetAvailableServiceSlots(int designerId, DateTime date, int cooldownMinutes, int advanceMinutes)
         {
