@@ -46,6 +46,7 @@
         public const int Max_Order_Oneday = 5;
         public const int Max_Reg_Oneday = 5;
 
+        public const int CancelLimitHours = 2; //取消訂單時限,設0則不可取消訂單
 
     }
 

@@ -24,8 +24,6 @@ namespace Web0524.Pages
         [BindProperty(SupportsGet = true)] public OrderStatus? FilterStatus { get; set; }
         [BindProperty(SupportsGet = true)] public DateTime? FilterDate { get; set; }
 
-        private readonly int CancelLimitHours = 2; // 可取消時限小時，0 表示不可取消
-
         public IActionResult OnGet()
         {
             var uid = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
@@ -60,7 +58,6 @@ namespace Web0524.Pages
             if (order == null || order.Uid != uid || order.Status != OrderStatus.Pending)
                 return RedirectToPage();
 
-            if (CancelLimitHours > 0 && (order.ReservationDateTime - DateTime.Now).TotalHours < CancelLimitHours)
                 return RedirectToPage();
 
             _reservationService.CancelOrder(id);

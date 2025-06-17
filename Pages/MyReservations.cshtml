@@ -15,7 +15,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <div class="container mt-5">
+    <div class="container " style="margin-top:200px;">
         <h2 class="text-center mb-4">我的預約紀錄</h2>
 
         <form method="get" class="row g-3 mb-4">
@@ -98,7 +98,7 @@
                             </td>
                             <td>@order.Remark</td>
                             <td>
-                                @if (order.Status == Models.OrderStatus.Pending && (order.ReservationDateTime - DateTime.Now).TotalHours >= 2)
+                                @if (order.Status == Models.OrderStatus.Pending && (order.ReservationDateTime - DateTime.Now).TotalHours >= Models.My.CancelLimitHours)
                                 {
                                     <form method="post" asp-page-handler="Cancel" asp-route-id="@order.OrderId" onsubmit="return confirm('確定要取消此預約嗎？')">
                                         <button class="btn btn-sm btn-danger">取消</button>
