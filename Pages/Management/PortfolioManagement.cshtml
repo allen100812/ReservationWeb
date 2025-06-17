@@ -1,0 +1,349 @@
+﻿@page
+@model Web0524.Pages.Management.PortfolioManagementModel
+@{
+    var isEditing = Model.NewPortfolio?.Portfolio_Id != null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .photo-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 2px;
+        }
+
+            .photo-wrapper img {
+                width: 80px;
+                height: 80px;
+                object-fit: cover;
+                border-radius: 5px;
+            }
+
+            .photo-wrapper .delete-btn {
+                position: absolute;
+                top: 0;
+                right: 0;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                font-size: 12px;
+                cursor: pointer;
+            }
+    </style>
+</head>
+<body>
+    @Html.AntiForgeryToken()
+    <div class="container " style="margin-top:200px;">
+        <h2>作品集管理</h2>
+        <div id="message-area">
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">
+                    @TempData["ErrorMessage"]
+                </div>
+            }
+        </div>
+
+        <form method="post" asp-page-handler="Update" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input type="hidden"  asp-for="NewPortfolio.Portfolio_Id" />
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input asp-for="NewPortfolio.Portfolio_Title" class="form-control" placeholder="作品標題" required />
+                </div>
+                <div class="col-md-4">
+                    <input asp-for="NewPortfolio.Portfolio_URL" class="form-control" placeholder="連結 URL" />
+                </div>
+                <div class="col-md-4">
+                    <select asp-for="NewPortfolio.PortfolioGroup_Id" class="form-select">
+                        <option value="">-- 選擇群組 --</option>
+                        @foreach (var group in Model.AllGroups)
+                        {
+                            <option value="@group.PortfolioGroup_Id">@group.PortfolioGroup_Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <textarea asp-for="NewPortfolio.Portfolio_Content" class="form-control" rows="3" placeholder="作品內容"></textarea>
+                </div>
+                <div class="col-md-3">
+                    <input type="file" name="PhotoUploads" class="form-control" multiple accept="image/*" />
+                    <small class="text-muted">最多可上傳 10 張圖片</small>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check">
+                        <input asp-for="NewPortfolio.IsPublished" class="form-check-input" type="checkbox" />
+                        <label class="form-check-label" for="NewPortfolio_IsPublished">上架</label>
+                    </div>
+                </div>
+
+                @if (Model.NewPortfolio?.Portfolio_Id != null && Model.NewPortfolio.PhotoList?.Any() == true)
+                {
+                    <div class="col-md-12">
+                        <label>現有圖片：</label><br />
+                        @foreach (var photo in Model.NewPortfolio.PhotoList)
+                        {
+                            var base64 = Convert.ToBase64String(photo.Photo);
+                            <div class="photo-wrapper" id="photo_@photo.Photo_Id">
+                                <img src="data:image/png;base64,@base64" />
+                                <button type="button" class="delete-btn delete-photo-btn" data-id="@photo.Photo_Id">&times;</button>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="col-md-12">
+                    <button type="submit" name="action" value="@(Model.NewPortfolio?.Portfolio_Id != null ? "save" : "add")" class="btn @(Model.NewPortfolio?.Portfolio_Id != null ? "btn-primary" : "btn-success")">
+                        @(Model.NewPortfolio?.Portfolio_Id != null ? "儲存變更" : "新增作品")
+                    </button>
+                </div>
+            </div>
+        </form>
+
+
+        @if (Model.AllPortfolios != null && Model.AllPortfolios.Any())
+        {
+            <hr />
+            <h4>所有作品列表</h4>
+            <table class="table table-bordered table-hover mt-3">
+                <thead>
+                    <tr>
+                        <th>編號</th>
+                        <th>標題</th>
+                        <th>連結</th>
+                        <th>內容</th>
+                        <th>群組</th>
+                        <th>狀態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.AllPortfolios)
+                    {
+                        var group_item = Model.AllGroups.FirstOrDefault(x=>x.PortfolioGroup_Id == p.PortfolioGroup_Id);
+
+                        <tr>
+                            <td>@p.Portfolio_Id</td>
+                            <td>@p.Portfolio_Title</td>
+                            <td><a href="@p.Portfolio_URL" target="_blank">連結</a></td>
+                            <td>@p.Portfolio_Content</td>
+                            <td>@(group_item != null ? group_item.PortfolioGroup_Name : "未知群組")</td>
+                            <td>
+                                @if (p.IsPublished)
+                                {
+                                    <span class="badge bg-success">已上架</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">未上架</span>
+                                }
+                            </td>
+                            <td>
+                                <!-- 編輯按鈕（觸發 OnPostEditAsync） -->
+                                <form method="post" asp-page-handler="Edit" class="d-inline">
+                                    <input type="hidden" name="portfolioId" value="@p.Portfolio_Id" />
+                                    <button type="submit" class="btn btn-sm btn-info">編輯</button>
+                                </form>
+
+                                <!-- 刪除按鈕（觸發 OnPostDeleteAsync） -->
+                                <form method="post" asp-page-handler="Delete" class="d-inline">
+                                    <input type="hidden" name="portfolioId" value="@p.Portfolio_Id" />
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('確認刪除？');">刪除</button>
+                                </form>
+                            </td>
+
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <hr />
+        <h4>作品群組管理</h4>
+        <form id="group-form" class="row g-2">
+            <div class="col-md-4">
+                <input type="text" id="new-group-name" class="form-control" placeholder="新增群組名稱" />
+            </div>
+            <div class="col-md-4">
+                <input type="text" id="new-group-content" class="form-control" placeholder="群組備註（可選）" />
+            </div>
+            <div class="col-md-4">
+                <button type="button" id="add-group-btn" class="btn btn-outline-primary">新增群組</button>
+                <button type="button" id="save-group-btn" class="btn btn-outline-success d-none">儲存修改</button>
+                <button type="button" id="cancel-edit-btn" class="btn btn-outline-secondary d-none">取消修改</button>
+                <input type="hidden" id="edit-group-id" />
+            </div>
+
+        </form>
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th>群組名稱</th>
+                    <th>內容</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="group-table">
+                @foreach (var g in Model.AllGroups)
+                {
+                    <tr id="group_row_@g.PortfolioGroup_Id">
+                        <td>@g.PortfolioGroup_Name</td>
+                        <td>@g.PortfolioGroup_Content</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-warning edit-group-btn" data-id="@g.PortfolioGroup_Id">編輯</button>
+                            <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="@g.PortfolioGroup_Id">刪除</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <script>
+        // 表單驗證：新增或儲存作品集前先檢查欄位
+        $("form[method='post'][asp-page-handler='Update']").on("submit", function (e) {
+            const title = $("input[name='NewPortfolio.Portfolio_Title']").val().trim();
+            const groupId = $("select[name='NewPortfolio.PortfolioGroup_Id']").val();
+
+            if (!title) {
+                e.preventDefault();
+                $("#message-area").html(`<div class="alert alert-warning">請填寫作品標題</div>`);
+                return;
+            }
+
+            if (!groupId) {
+                e.preventDefault();
+                $("#message-area").html(`<div class="alert alert-warning">請選擇群組</div>`);
+                return;
+            }
+        });
+
+        $(document).on("click", ".delete-photo-btn", function () {
+            if (!confirm("確認刪除？")) return;
+            const id = $(this).data("id");
+            $.ajax({
+                url: `?handler=DeletePhoto&photoId=${id}`,
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    if (res.success) {
+                        $("#photo_" + id).remove();
+                        $("#message-area").html(`<div class="alert alert-warning">圖片已刪除</div>`);
+                    } else {
+                        $("#message-area").html(`<div class="alert alert-danger">刪除失敗：${res.message}</div>`);
+                    }
+                },
+                error: function () {
+                    $("#message-area").html(`<div class="alert alert-danger">刪除失敗</div>`);
+                }
+            });
+        });// ✅ 新增群組（完成後刷新頁面）
+        $("#add-group-btn").click(function () {
+            const name = $("#new-group-name").val().trim();
+            const content = $("#new-group-content").val().trim();
+            if (!name) {
+                alert("請輸入群組名稱");
+                return;
+            }
+
+            $.ajax({
+                url: `?handler=AddGroup&name=${encodeURIComponent(name)}&content=${encodeURIComponent(content)}`,
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    if (res.success) {
+                        location.reload(); // ✅ 新增成功後刷新頁面
+                    } else {
+                        alert(res.message || "新增失敗");
+                    }
+                }
+            });
+        });
+
+        // ✅ 編輯群組：將資料填入欄位，顯示儲存按鈕
+        $(document).on("click", ".edit-group-btn", function () {
+            const id = $(this).data("id");
+            const name = $(this).closest("tr").find("td:eq(0)").text().trim();
+            const content = $(this).closest("tr").find("td:eq(1)").text().trim();
+
+            $("#edit-group-id").val(id);
+            $("#new-group-name").val(name);
+            $("#new-group-content").val(content);
+
+            $("#add-group-btn").addClass("d-none");
+            $("#save-group-btn, #cancel-edit-btn").removeClass("d-none");
+        });
+
+        // ✅ 儲存修改
+        $("#save-group-btn").click(function () {
+            const id = $("#edit-group-id").val();
+            const name = $("#new-group-name").val().trim();
+            const content = $("#new-group-content").val().trim();
+            if (!name) {
+                alert("請輸入群組名稱");
+                return;
+            }
+
+            $.ajax({
+                url: `?handler=UpdateGroup&id=${id}&name=${encodeURIComponent(name)}&content=${encodeURIComponent(content)}`,
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    if (res.success) {
+                        location.reload(); // ✅ 修改成功後刷新頁面
+                    } else {
+                        alert("更新失敗");
+                    }
+                }
+            });
+        });
+
+        // ✅ 取消編輯
+        $("#cancel-edit-btn").click(function () {
+            $("#edit-group-id").val("");
+            $("#new-group-name").val("");
+            $("#new-group-content").val("");
+
+            $("#add-group-btn").removeClass("d-none");
+            $("#save-group-btn, #cancel-edit-btn").addClass("d-none");
+        });
+
+        // ✅ 刪除群組
+        $(document).on("click", ".delete-group-btn", function () {
+            const id = $(this).data("id");
+            if (!confirm("確定要刪除此群組嗎？")) return;
+
+            $.ajax({
+                url: `?handler=DeleteGroup&id=${id}`,
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (res) {
+                    if (res.success) {
+                        location.reload(); // ✅ 刪除成功後刷新頁面
+                    } else {
+                        alert("刪除失敗");
+                    }
+                }
+            });
+        });
+
+
+    </script>
+</body>
+</html>

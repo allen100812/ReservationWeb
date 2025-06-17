@@ -68,6 +68,10 @@ builder.Services.AddScoped<IPgroupService, PgroupService>();
 builder.Services.AddScoped<IYearReportService, YearReportService>();
 builder.Services.AddScoped<IMyService,  MyService>();
 builder.Services.AddScoped<INewService, NewListService>();
+builder.Services.AddScoped<IMarketingService, MarketingService>();
+builder.Services.AddScoped<IPortfolioService, PortfolioService>();
+builder.Services.AddScoped<IPortfolioGroupService, PortfolioGroupService>();
+
 
 builder.Services.AddDistributedMemoryCache();
 //builder.Services.AddControllers();
