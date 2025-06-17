@@ -418,7 +418,7 @@
                     <div class="collapse navbar-collapse px-5 mx-5" id="navbarNavDropdown" style="flex: 1; display: flex; justify-content: end; align-items: center;">
                         <ul class="navbar-nav gap-4">
                             <li class="nav-item">
-                                <a class="nav-link active" aria-current="page" href="#" style="color: var(--color2);">Home</a>
+                                <a class="nav-link active" asp-page="/index" style="color: var(--color2);">Home</a>
                             </li>
 
                             <!-- 預約服務 -->
@@ -448,9 +448,9 @@
                                     關於 @myData.Name_short
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" asp-page="about"><i class="far fa-address-card nav-icon icon-width"></i> 關於我們</a></li>
-                                    <li><a class="dropdown-item" href="Index#place-section"><i class="fas fa-map-pin nav-icon icon-width"></i> 商家據點</a></li>
-                                    <li><button onclick="showContactModal()" class="dropdown-item"><i class="far fa-comment-dots nav-icon icon-width"></i> 聯絡我們</button></li>
+                                    <li><a class="dropdown-item" asp-page="/about"><i class="far fa-address-card nav-icon icon-width"></i> 關於我們</a></li>
+                                    <li><a class="dropdown-item" asp-page="/location"><i class="fas fa-map-pin nav-icon icon-width"></i> 商家據點</a></li>
+                                    <li><a class="dropdown-item" asp-page="/contact"><i class="far fa-comment-dots nav-icon icon-width"></i> 聯絡我們</a></li>
                                 </ul>
                             </li>
 

@@ -34,6 +34,12 @@ namespace Web0524.Pages.Management
         public async Task<IActionResult> OnPostUpdateAsync(string action)
         {
             Console.WriteLine($"✅ OnPostUpdateAsync called, Action = {action}");
+            if (NewPortfolio.PortfolioGroup_Id <= 0)
+            {
+                Console.WriteLine("CreateAsync1");
+                TempData["ErrorMessage"] = "請選擇作品集群組";
+                return Page();
+            }
 
             AllGroups = (await _groupService.GetAllAsync()).ToList(); // 保證錯誤時仍可用
             AllPortfolios = (await _portfolioService.GetAllAsync()).ToList(); // 同上
@@ -69,7 +75,7 @@ namespace Web0524.Pages.Management
                 await file.CopyToAsync(ms);
                 photoBytes.Add(ms.ToArray());
             }
-
+            Console.WriteLine(action);
             try
             {
                 if (action == "add")
@@ -123,10 +129,9 @@ namespace Web0524.Pages.Management
             };
 
             var success = await _groupService.CreateAsync(group);
-
-            // ✅ 回傳 group 本體給前端（CreateAsync 要能更新 Id）
             return new JsonResult(new { success, group });
         }
+
 
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> OnPostDeleteGroupAsync(int id)

@@ -1,0 +1,134 @@
+﻿@page
+@model Web0524.Pages.contactModel
+@{
+}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="all">
+    <link href="css/hover-min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+        }
+
+        .hero-image {
+            background-image: url('your-image.jpg'); /* 替換成你的圖片網址 */
+            background-size: cover;
+            background-position: center;
+            height: 400px;
+            position: relative;
+        }
+
+        .hero-text {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 2rem;
+            letter-spacing: 2px;
+        }
+
+        .contact-btn {
+            background-color: #666;
+            color: white;
+            padding: 0.8rem 2rem;
+            font-size: 1.2rem;
+            margin: 2rem auto;
+            display: block;
+            border: none;
+            cursor: pointer;
+        }
+
+        .contact-info {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .contact-info h2 {
+            margin-bottom: 1rem;
+        }
+
+        .contact-info p {
+            color: #555;
+            margin-bottom: 2rem;
+        }
+
+        .contact-blocks {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            padding-bottom: 3rem;
+        }
+
+        .contact-block {
+            flex: 1 1 200px;
+            text-align: center;
+        }
+
+        .contact-block i {
+            font-size: 2rem;
+            color: #999;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-block b {
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        hr {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hero-image">
+        <div class="hero-text">Contact</div>
+    </div>
+
+    <button class="contact-btn">聯絡我們</button>
+
+    <div class="container contact-info">
+        <h2>有問題想聯絡賀澤設計嗎？</h2>
+        <p>
+            專注傾聽客戶的意見，如果您有任何需要服務的地方，都歡迎隨時跟我們連繫。<br>
+            您可以直接撥打電話，或利用下方的聯絡表單，我們的服務人員會盡快回覆給您，感謝您的指教與愛護！
+        </p>
+
+        <div class="contact-blocks">
+            <div class="contact-block">
+                <i class="fas fa-phone"></i>
+                <b>TEL</b>
+                <div>886-3-6681222</div>
+            </div>
+            <div class="contact-block">
+                <i class="fas fa-envelope"></i>
+                <b>E-MAIL</b>
+                <div>hozo.design@gmail.com</div>
+            </div>
+            <div class="contact-block">
+                <i class="fas fa-map-marker-alt"></i>
+                <b>聯絡地址</b>
+                <div>新竹縣竹北市自強五路37號</div>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+</body>
+</html>

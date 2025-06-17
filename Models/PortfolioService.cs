@@ -140,11 +140,21 @@ namespace Web0524.Models
 
         public async Task<int> CreateAsync(Portfolio model, List<byte[]> photos)
         {
+
+
+            Console.WriteLine("CreateAsync");
             var sql = @"
-                INSERT INTO PortfolioTB (Portfolio_Title, Portfolio_Content, Portfolio_Photo, Portfolio_URL, IsPublished)
-                VALUES (@Portfolio_Title, @Portfolio_Content, NULL, @Portfolio_URL, @IsPublished);
-                SELECT CAST(SCOPE_IDENTITY() as int)";
+        INSERT INTO PortfolioTB (PortfolioGroup_Id, Portfolio_Title, Portfolio_Content, Portfolio_URL, IsPublished)
+        VALUES (@PortfolioGroup_Id, @Portfolio_Title, @Portfolio_Content, @Portfolio_URL, @IsPublished);
+        SELECT CAST(SCOPE_IDENTITY() as int)";
+
             int newId = await _db.ExecuteScalarAsync<int>(sql, model);
+
+            // 🧨 防呆檢查：若插入失敗
+            if (newId <= 0)
+            {
+                throw new Exception("⚠️ 作品集新增失敗，無法取得有效 ID，請確認 PortfolioGroup_Id 是否正確。");
+            }
 
             if (photos != null && photos.Count > 0)
             {
@@ -158,6 +168,7 @@ namespace Web0524.Models
 
             return newId;
         }
+
 
         public async Task<bool> UpdateAsync(Portfolio model, List<byte[]> newPhotos, List<int> deletePhotoIds)
         {
