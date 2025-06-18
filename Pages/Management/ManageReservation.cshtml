@@ -1,10 +1,15 @@
 ﻿@page
 @model Web0524.Pages.Management.ManageReservationModel
-@{
-}
+@using Newtonsoft.Json
+@using Web0524.Models;
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link href="https://unpkg.com/fullcalendar@6.1.10/main.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/fullcalendar@6.1.10/main.min.js"></script>
+
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
@@ -19,6 +24,14 @@
 
     <div class="container" style="margin-top:200px;">
         <h2>管理預約訂單</h2>
+
+        <h4 class="mt-5">預約行事曆（Google Calendar）</h4>
+        <div class="ratio ratio-16x9">
+            <iframe src="https://calendar.google.com/calendar/embed?src=29f882b8d6108305c9a9064e11d25577a699b83939cc49a477bbb32558306a6d%40group.calendar.google.com&ctz=Asia%2FTaipei" style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
+        </div>
+
+
+
 
         <!-- 日期查詢表單 -->
         <form method="get" class="mb-4">
@@ -140,7 +153,7 @@
                         <td>@d?.Name</td>
                         <td>@o.ProductId</td>
                         <td>@o.ReservationDateTime.ToString("yyyy/MM/dd HH:mm")</td>
-                        <td>@((o.PaymentMethod == 0 ? "現金" : o.PaymentMethod == 1 ? "刷卡" : "Line Pay"))</td>
+                        <td>@o.PaymentMethod.ToDisplayName()</td>
                         <td>@o.Remark</td>
                         <td>@o.Uid</td>
                         <td>
@@ -160,5 +173,9 @@
             <div class="alert alert-info">@Model.Message</div>
         }
     </div>
+
+
+
+
 </body>
 </html>

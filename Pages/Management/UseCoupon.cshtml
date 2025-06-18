@@ -1,0 +1,53 @@
+﻿@page
+@model Web0524.Pages.Management.UseCouponModel
+@{
+    ViewData["Title"] = "掃描優惠券並套用";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://unpkg.com/fullcalendar@6.1.10/main.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/fullcalendar@6.1.10/main.min.js"></script>
+
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="css/hover-min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+    <div class="container" style="margin-top:200px;">
+        <h2>套用優惠券</h2>
+
+        <form method="post">
+            <div class="mb-3">
+                <label for="orderId" class="form-label">選擇訂單</label>
+                <select asp-for="SelectedOrderId" class="form-select" asp-items="Model.OrderOptions">
+                    <option value="">-- 請選擇 --</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="couponCode" class="form-label">掃描/輸入優惠券條碼</label>
+                <input asp-for="ScannedCode" class="form-control" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">套用優惠券</button>
+        </form>
+
+        @if (Model.Message != null)
+        {
+            <div class="alert alert-info mt-3">@Model.Message</div>
+        }
+
+    </div>
+  
+
+</body>
+</html>

@@ -76,6 +76,21 @@
                 </select>
             </div>
 
+
+            <!-- 使用優惠券 -->
+            <div class="mb-4">
+                <label class="form-label">使用優惠券（選填）</label>
+                <select name="SelectedCouponRecordId" class="form-select" id="couponSelect">
+                    <option value="">不使用</option>
+                    @foreach (var c in Model.AvailableCoupons)
+                    {
+                        var Coupon_Item = Model.AllCoupons.FirstOrDefault(x => x.CouponId == c.CouponId);
+                        <option value="@c.RecordId" data-title="@Coupon_Item.Title">【@Coupon_Item.Title】有效至 @Coupon_Item.ValidTo.ToString("yyyy/MM/dd")</option>
+                    }
+                </select>
+            </div>
+
+
             <!-- 備註 -->
             <div class="mb-4">
                 <label class="form-label">備註 (選填)</label>
@@ -153,6 +168,17 @@
             $designer.change(loadAvailableTimes);
             $product.change(loadAvailableTimes);
             $date.change(loadAvailableTimes);
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#couponSelect').change(function () {
+                const selected = $(this).find(':selected');
+                const title = selected.data('title');
+                if (selected.val()) {
+                    alert(`您選擇了優惠券「${title}」，使用後將無法再次使用。`);
+                }
+            });
         });
     </script>
 

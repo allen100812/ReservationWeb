@@ -37,10 +37,12 @@ namespace Web0524.Models
     public class UserService : IUserService
     {
         private readonly IDbConnection _dbConnection;
+        private readonly IMarketingService _marketingService;
 
-        public UserService(IDbConnection dbConnection)
+        public UserService(IDbConnection dbConnection, IMarketingService marketingService)
         {
             _dbConnection = dbConnection;
+            _marketingService = marketingService;
         }
 
         public IEnumerable<User> GetUserTB()
@@ -107,7 +109,16 @@ VALUES
                 user.PermissionSetId
             };
 
-            return _dbConnection.Execute(sql, param) > 0;
+            var success = _dbConnection.Execute(sql, param) > 0;
+
+
+            if (success)
+            {
+                // 呼叫派發優惠券邏輯
+                _marketingService.AssignRegisterCoupons(user.Id);
+            }
+
+            return success;
         }
 
         public bool UpdateUser(User user)

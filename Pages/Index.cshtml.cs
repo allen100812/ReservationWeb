@@ -15,14 +15,13 @@ namespace Web0524.Pages
     {
 
         private readonly IUserService _userService;
-        private readonly IOrderService _orderService;
         private readonly ILogger<IndexModel> _logger;
 
         private readonly LineMessageContext _lineMessageContext;
         private readonly INewService _newService;
 
         private readonly IReservationService _reservationService;
-        public IndexModel(ILogger<IndexModel> logger, IUserService userService, LineMessageContext lineMessageContext , INewService newService, IReservationService reservationService, IOrderService orderService)
+        public IndexModel(ILogger<IndexModel> logger, IUserService userService, LineMessageContext lineMessageContext , INewService newService, IReservationService reservationService)
         {
             _logger = logger;
             _userService = userService;
@@ -30,7 +29,7 @@ namespace Web0524.Pages
             _lineMessageContext = lineMessageContext;
             _newService = newService;
             _reservationService = reservationService;
-            _orderService = orderService;
+
         }
 
         public string ReservationTestResult { get; set; } // 顯示在前端用

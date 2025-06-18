@@ -9,6 +9,7 @@ using System.Data;
 using System.Diagnostics;
 using Web0524.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Web0524.Models.Helper;
 
 
 
@@ -49,6 +50,12 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToFolder("/Account");
 });
 
+builder.Services.AddScoped<IGoogleCalendarHelper>(provider =>
+{
+    var path = Path.Combine("wwwroot", "credentials", "gen-lang-client-0206008601-176e3adc3481.json");
+    var calendarId = "29f882b8d6108305c9a9064e11d25577a699b83939cc49a477bbb32558306a6d@group.calendar.google.com"; // 你的日曆 ID
+    return new GoogleCalendarHelper(path, calendarId);
+});
 
 var configuration = builder.Configuration;
 
@@ -58,12 +65,12 @@ builder.Services.AddSession();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(configuration.GetConnectionString("WebDB")));
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
+builder.Services.AddHostedService<CouponDispatchBackgroundService>(); // 背景排程
 
 builder.Services.AddHttpClient<LineMessageService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IOrderService, orderService>();
 builder.Services.AddScoped<IPgroupService, PgroupService>();
 builder.Services.AddScoped<IYearReportService, YearReportService>();
 builder.Services.AddScoped<IMyService,  MyService>();
@@ -71,7 +78,9 @@ builder.Services.AddScoped<INewService, NewListService>();
 builder.Services.AddScoped<IMarketingService, MarketingService>();
 builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddScoped<IPortfolioGroupService, PortfolioGroupService>();
+builder.Services.AddHostedService<DailyOrderCompletionService>();
 
+builder.Services.AddHostedService<CouponDispatchBackgroundService>();
 
 builder.Services.AddDistributedMemoryCache();
 //builder.Services.AddControllers();

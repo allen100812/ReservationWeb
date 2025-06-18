@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+ï»¿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Web0524.Models;
 
@@ -9,16 +9,25 @@ namespace Web0524.Pages
         private readonly IReservationService _reservationService;
         private readonly IUserService _userService;
         private readonly IProductService _productService;
-
+        private readonly IMarketingService _marketingService;
+        
         public MakeReservationModel(
             IReservationService reservationService,
             IUserService userService,
-            IProductService productService)
+            IProductService productService, IMarketingService marketingService)
         {
             _reservationService = reservationService;
             _userService = userService;
             _productService = productService;
+            _marketingService = marketingService;
         }
+
+
+        [BindProperty]
+        public int? SelectedCouponRecordId { get; set; } // ç¶å®šå‰ç«¯é¸æ“‡çš„ RecordId
+
+        public List<CouponDispatchRecord> AvailableCoupons { get; set; } = new();
+
 
         [BindProperty]
         public Order NewOrder { get; set; } = new();
@@ -28,6 +37,9 @@ namespace Web0524.Pages
 
         public List<Designer> AllDesigners { get; set; } = new();
         public List<Product> AllProducts { get; set; } = new();
+
+         
+        public List<Coupon> AllCoupons { get; set; } = new();
         public List<DateTime> AvailableTimeSlots { get; set; } = new();
 
         public int CurrentUserId { get; set; }
@@ -45,60 +57,68 @@ namespace Web0524.Pages
             if (action == "add")
             {
 
-                // ¹Á¸Õ±qµn¤J¸ê°T¨ú±o¨Ï¥ÎªÌ ID
+                // å˜—è©¦å¾ç™»å…¥è³‡è¨Šå–å¾—ä½¿ç”¨è€… ID
                 var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+
 
                 if (string.IsNullOrEmpty(uidStr))
                 {
-                    // ¥¼µn¤J®É¾É¦Vµn¤J­¶
-                    Response.Redirect("/Account/Login"); // ¥i¨Ì§Aªº¹ê»Úµn¤J¸ô®|½Õ¾ã
+                    // æœªç™»å…¥æ™‚å°å‘ç™»å…¥é 
+                    Response.Redirect("/Account/Login"); // å¯ä¾ä½ çš„å¯¦éš›ç™»å…¥è·¯å¾‘èª¿æ•´
                     return Page();
                 }
 
-                // ÅçÃÒ¸ê®Æ
+                // é©—è­‰è³‡æ–™
                 if (NewOrder.DesignerId <= 0 || NewOrder.ProductId <= 0 || NewOrder.Uid != "" || NewOrder.ReservationDateTime == default)
                 {
                     if (NewOrder.DesignerId <= 0)
                     {
-                        Message = "½Ğ¿ï¾Ü³]­p®v¡C";
+                        Message = "è«‹é¸æ“‡è¨­è¨ˆå¸«ã€‚";
                         return Page();
                     }
 
                     if (NewOrder.ProductId <= 0)
                     {
-                        Message = "½Ğ¿ï¾ÜªA°È¶µ¥Ø¡C";
+                        Message = "è«‹é¸æ“‡æœå‹™é …ç›®ã€‚";
                         return Page();
                     }
 
                     if (string.IsNullOrWhiteSpace(NewOrder.Uid))
                     {
-                        Message = "¨Ï¥ÎªÌ¸ê°T¿ù»~¡A½Ğ­«·sµn¤J¡C";
+                        Message = "ä½¿ç”¨è€…è³‡è¨ŠéŒ¯èª¤ï¼Œè«‹é‡æ–°ç™»å…¥ã€‚";
                         return Page();
                     }
 
                     if (NewOrder.ReservationDateTime == default)
                     {
-                        Message = "½Ğ¿ï¾Ü¹w¬ù®É¶¡¡C";
+                        Message = "è«‹é¸æ“‡é ç´„æ™‚é–“ã€‚";
                         return Page();
                     }
 
                 }
 
-                // ³]©w¨ä¥L¥²­nÄæ¦ì
-                NewOrder.Status = 0; // ¹w³]ª¬ºA¡G¥¼³B²z
+                var Product = AllProducts.FirstOrDefault(x => x.ProductId == NewOrder.ProductId);
+                // è¨­å®šå…¶ä»–å¿…è¦æ¬„ä½
+                NewOrder.Status = 0; // é è¨­ç‹€æ…‹ï¼šæœªè™•ç†
                 NewOrder.Orderdate = DateTime.Now;
-                NewOrder.Price = 0;  // ¦p¦³©w»ùÅŞ¿è¡A¥i¸É¤W
+                NewOrder.Price = Product.Price;  // å¦‚æœ‰å®šåƒ¹é‚è¼¯ï¼Œå¯è£œä¸Š
                 NewOrder.Uid = uidStr;
-                // ©I¥sªA°È¼h«Ø¥ß­q³æ¡]¨Ï¥Î§Aªºª©¥»¡^
+                // å‘¼å«æœå‹™å±¤å»ºç«‹è¨‚å–®ï¼ˆä½¿ç”¨ä½ çš„ç‰ˆæœ¬ï¼‰
                 var createdOrder = _reservationService.CreateOrder(NewOrder);
-
                 if (createdOrder != null)
                 {
-                    Message = $"¹w¬ù¦¨¥\¡I­q³æ½s¸¹¡G{createdOrder.OrderId}";
+                    Message = $"é ç´„æˆåŠŸï¼è¨‚å–®ç·¨è™Ÿï¼š{createdOrder.OrderId}";
+
+                    // âœ… è‹¥æœ‰é¸æ“‡å„ªæƒ åˆ¸ï¼Œç›´æ¥å¥—ç”¨
+                    if (SelectedCouponRecordId.HasValue)
+                    {
+                        var resultMsg = _marketingService.ApplyCouponByRecordId(SelectedCouponRecordId.Value, createdOrder);
+                        Message += $"<br>{resultMsg}";
+                    }
                 }
                 else
                 {
-                    Message = "¸Ó®É¬q¤w³Q¹w¬ù¡A½Ğ¿ï¾Ü¨ä¥L®É¶¡¡C";
+                    Message = "è©²æ™‚æ®µå·²è¢«é ç´„ï¼Œè«‹é¸æ“‡å…¶ä»–æ™‚é–“ã€‚";
                 }
             }
 
@@ -109,18 +129,18 @@ namespace Web0524.Pages
         {
             AllDesigners = _reservationService.GetAllDesigners().ToList();
             AllProducts = _productService.GetAllProducts().ToList();
-
-            // ¹Á¸Õ±qµn¤J¸ê°T¨ú±o¨Ï¥ÎªÌ ID
+            AllCoupons = _marketingService.GetAllCoupons().ToList();
+            // å˜—è©¦å¾ç™»å…¥è³‡è¨Šå–å¾—ä½¿ç”¨è€… ID
             var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
 
             if (string.IsNullOrEmpty(uidStr))
             {
-                // ¥¼µn¤J®É¾É¦Vµn¤J­¶
-                Response.Redirect("/Account/Login"); // ¥i¨Ì§Aªº¹ê»Úµn¤J¸ô®|½Õ¾ã
+                // æœªç™»å…¥æ™‚å°å‘ç™»å…¥é 
+                Response.Redirect("/Account/Login"); // å¯ä¾ä½ çš„å¯¦éš›ç™»å…¥è·¯å¾‘èª¿æ•´
                 return;
             }
 
-
+            AvailableCoupons = _marketingService.GetAvailableCouponRecords(uidStr);
             AvailableTimeSlots = GenerateAvailableTimeSlots(SelectedDate);
         }
         [IgnoreAntiforgeryToken]

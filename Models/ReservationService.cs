@@ -4,7 +4,8 @@ using System.ComponentModel.Design;
 using System.Data;
 using System.Linq;
 using Dapper;
-
+using Web0524.Models.Helper;
+using Web0524.Models;
 
 namespace Web0524.Models
 {
@@ -72,16 +73,21 @@ namespace Web0524.Models
         // 依會員 ID 取得該會員所有預約紀錄
         List<Order> GetOrdersByMemberId(string uid);
 
+        //自動將前一日訂單完成
+
+        int AutoCompleteExpiredOrders();
+
     }
 
 
     public class ReservationService : IReservationService
     {
         private readonly IDbConnection _dbConnection;
-
-        public ReservationService(IDbConnection dbConnection)
+        private readonly IGoogleCalendarHelper _calendarHelper;
+        public ReservationService(IDbConnection dbConnection,IGoogleCalendarHelper calendarHelper)
         {
             _dbConnection = dbConnection;
+            _calendarHelper= calendarHelper;
         }
 
         public Order? GetOrderById(int orderId)
@@ -92,8 +98,28 @@ namespace Web0524.Models
 
         public bool CancelOrder(int orderId)
         {
-            var sql = "UPDATE OrderTB SET Status = @Status WHERE OrderId = @OrderId";
-            return _dbConnection.Execute(sql, new { OrderId = orderId, Status = OrderStatus.Cancelled }) > 0;
+            var result = _dbConnection.Execute("UPDATE OrderTB SET Status = @Status WHERE OrderId = @OrderId",
+                new { OrderId = orderId, Status = OrderStatus.Cancelled }) > 0;
+
+            if (result)
+            {
+                
+                var order = GetOrderById(orderId);
+                Console.WriteLine("刪除行事曆:" + order?.GoogleEventId);
+                if (!string.IsNullOrEmpty(order?.GoogleEventId))
+                {
+                    _calendarHelper.CancelEventAsync(order.GoogleEventId).Wait();
+
+                }
+                if (!string.IsNullOrEmpty(order?.Uid))
+                {
+                    _dbConnection.Execute("UPDATE UserTB SET CancelNum = CancelNum + 1 WHERE Id = @Id", new { Id = order.Uid });
+                }
+            }
+
+
+
+            return result;
         }
 
         public List<Order> GetAllOrders()
@@ -237,8 +263,21 @@ namespace Web0524.Models
 
         public bool UpdateOrderStatus(int orderId, OrderStatus newStatus)
         {
-            var sql = "UPDATE OrderTB SET Status = @Status WHERE OrderId = @OrderId";
-            return _dbConnection.Execute(sql, new { OrderId = orderId, Status = newStatus }) > 0;
+            var result = _dbConnection.Execute("UPDATE OrderTB SET Status = @Status WHERE OrderId = @OrderId",
+                new { OrderId = orderId, Status = newStatus }) > 0;
+
+            if (result && newStatus == OrderStatus.Cancelled)
+            {
+                var order = GetOrderById(orderId);
+                Console.WriteLine("刪除行事曆update:" + order?.GoogleEventId);
+                if (!string.IsNullOrEmpty(order?.GoogleEventId))
+                {
+                    _calendarHelper.CancelEventAsync(order.GoogleEventId).Wait();
+
+                }
+            }
+
+             return result;
         }
 
         public List<Order> GetOrdersForDay(int designerId, DateTime date)
@@ -247,18 +286,53 @@ namespace Web0524.Models
             return _dbConnection.Query<Order>(sql, new { DesignerId = designerId, Date = date.Date }).ToList();
         }
 
+        // ✅ 建立訂單方法更新
         public Order? CreateOrder(Order order)
         {
             if (!IsSlotAvailable(order.DesignerId, order.ProductId, order.ReservationDateTime))
                 return null;
 
-            var sql = @"
-        INSERT INTO OrderTB (DesignerId, ProductId, ReservationDateTime, Status, Price, PaymentMethod, Remark, Uid, Orderdate)
-        VALUES (@DesignerId, @ProductId, @ReservationDateTime, @Status, @Price, @PaymentMethod, @Remark, @Uid, @Orderdate);
-        SELECT CAST(SCOPE_IDENTITY() AS INT);";
+            var sql = @"INSERT INTO OrderTB 
+(Status, DesignerId, ProductId, Price, PaymentMethod, ReservationDateTime, Uid, Remark, Orderdate, UsedCouponId, DiscountAmount)
+VALUES 
+(@Status, @DesignerId, @ProductId, @Price, @PaymentMethod, @ReservationDateTime, @Uid, @Remark, @Orderdate, @UsedCouponId, @DiscountAmount);
+SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            int newId = _dbConnection.ExecuteScalar<int>(sql, order);
-            return GetOrderById(newId);
+            order.OrderId = _dbConnection.ExecuteScalar<int>(sql, order);
+
+            try
+            {
+                var designerName = GetDesignerName(order.DesignerId);
+                var serviceName = GetServiceName(order.ProductId);
+                var customerName = GetUserName(order.Uid);
+                var paymentMethod = order.PaymentMethod.ToDisplayName();
+
+                var eventId = _calendarHelper.AddEventAsync(order, designerName, serviceName, customerName, paymentMethod).Result;
+
+                if (order.OrderId > 0 && !string.IsNullOrEmpty(eventId))
+                {
+                    order.GoogleEventId = eventId;
+                    _dbConnection.Execute(
+                        "UPDATE OrderTB SET GoogleEventId = @EventId WHERE OrderId = @OrderId",
+                        new { EventId = eventId, OrderId = order.OrderId });
+
+                    Console.WriteLine($"[Calendar] 寫入成功，OrderId = {order.OrderId}, EventId = {eventId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Calendar] 新增事件失敗：{ex.Message}");
+            }
+
+            // 如有使用優惠券，更新 CouponDispatchRecord 為已使用
+            if (order.UsedCouponId.HasValue)
+            {
+                _dbConnection.Execute("UPDATE CouponDispatchRecordTB SET IsDispatched = 1 WHERE RecordId = @Id", new { Id = order.UsedCouponId });
+            }
+
+            _dbConnection.Execute("UPDATE UserTB SET OrderNum = OrderNum + 1 WHERE Id = @Id", new { Id = order.Uid });
+
+            return GetOrderById(order.OrderId);
         }
 
 
@@ -442,6 +516,78 @@ namespace Web0524.Models
             Console.WriteLine($"共找到 {result.Count} 筆可預約時段");
             return result;
         }
+
+
+
+        private string GetDesignerName(int designerId)
+        {
+            var sql = "SELECT Name FROM DesignerTB WHERE DesignerId = @DesignerId";
+            return _dbConnection.ExecuteScalar<string>(sql, new { DesignerId = designerId }) ?? "未命名";
+        }
+        private string GetServiceName(int productId)
+        {
+            var sql = "SELECT Name FROM ProductTB WHERE ProductId = @ProductId";
+            return _dbConnection.ExecuteScalar<string>(sql, new { ProductId = productId }) ?? "未命名服務";
+        }
+
+        private string GetUserName(string uid)
+        {
+            var sql = "SELECT Name FROM UserTB WHERE Id = @Uid";
+            return _dbConnection.ExecuteScalar<string>(sql, new { Uid = uid }) ?? "未命名會員";
+        }
+        public int AutoCompleteExpiredOrders()
+        {
+            var now = DateTime.Now;
+
+            // 先取得所有已過期的 Confirmed 訂單
+            var expiredOrders = _dbConnection.Query<Order>(@"
+        SELECT * FROM OrderTB
+        WHERE Status = @ConfirmedStatus AND ReservationDateTime < @Now",
+                new { ConfirmedStatus = OrderStatus.Confirmed, Now = now }).ToList();
+
+            int updatedCount = 0;
+
+            foreach (var order in expiredOrders)
+            {
+                // 更新資料庫中的狀態為 Completed
+                var affected = _dbConnection.Execute(@"
+            UPDATE OrderTB
+            SET Status = @CompletedStatus
+            WHERE OrderId = @OrderId", new
+                {
+                    CompletedStatus = OrderStatus.Completed,
+                    OrderId = order.OrderId
+                });
+
+                if (affected > 0)
+                {
+                    updatedCount++;
+
+                    // Google 行事曆同步更新
+                    if (!string.IsNullOrEmpty(order.GoogleEventId))
+                    {
+                        try
+                        {
+                            var designerName = GetDesignerName(order.DesignerId);
+                            var serviceName = GetServiceName(order.ProductId);
+                            var customerName = GetUserName(order.Uid);
+                            var paymentMethod = order.PaymentMethod.ToDisplayName();
+
+                            _calendarHelper.UpdateEventAsync(order, order.GoogleEventId, designerName, serviceName, customerName, paymentMethod).Wait();
+                            Console.WriteLine($"[Calendar] 已同步完成 OrderId = {order.OrderId} 的 Google 行事曆");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[Calendar] 同步更新失敗 OrderId = {order.OrderId}，錯誤：{ex.Message}");
+                        }
+                    }
+                }
+            }
+
+            return updatedCount;
+        }
+
+
 
     }
 

@@ -25,7 +25,7 @@ namespace Web0524.Models
 
         [Required(ErrorMessage = "未設定支付模式")]
         [DataType(DataType.Currency)]
-        public int PaymentMethod { get; set; }
+        public OrderPaymentMethod PaymentMethod { get; set; }
 
         [Required(ErrorMessage = "未選擇預約日期")]
         [DataType(DataType.Date)]
@@ -33,7 +33,7 @@ namespace Web0524.Models
 
         [Required(ErrorMessage = "未指定用戶")]
         [DataType(DataType.Text)]
-        public string Uid { get; set; } 
+        public string Uid { get; set; }
 
         [DataType(DataType.MultilineText)]
         public string Remark { get; set; } = string.Empty;
@@ -41,6 +41,13 @@ namespace Web0524.Models
         [Required(ErrorMessage = "下單時間不正確")]
         [DataType(DataType.DateTime)]
         public DateTime Orderdate { get; set; }
+
+
+        public string? GoogleEventId { get; set; }
+
+        public int? UsedCouponId { get; set; }         // 對應 CouponDispatchRecordTB.RecordId
+        public decimal? DiscountAmount { get; set; }   // 折抵金額
+
     }
     public enum OrderStatus
     {
@@ -49,4 +56,25 @@ namespace Web0524.Models
         Cancelled,  // 取消
         Completed   // 完成
     }
+
+    public enum OrderPaymentMethod
+    {
+        Cash,       // 現金
+        CreditCard, // 刷卡
+        LinePay     // LinePay
+    }
+    public static class OrderPaymentMethodExtensions
+    {
+        public static string ToDisplayName(this OrderPaymentMethod method)
+        {
+            return method switch
+            {
+                OrderPaymentMethod.Cash => "現金",
+                OrderPaymentMethod.CreditCard => "刷卡",
+                OrderPaymentMethod.LinePay => "LinePay",
+                _ => "未知"
+            };
+        }
+    }
+
 }
