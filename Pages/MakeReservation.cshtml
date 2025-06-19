@@ -6,6 +6,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
     <link rel="stylesheet"
@@ -16,24 +17,203 @@
     <link rel="stylesheet" href="~/css/Share.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+
+
+    <style>
+        #calendar {
+            width: 100%;
+            margin: 0 auto 30px auto;
+        }
+
+
+        .product-option.selected {
+            border: 2px solid #0d6efd;
+            background-color: #e7f1ff;
+        }
+
+    </style>
 </head>
 <body>
     @Html.AntiForgeryToken()
-    <div class="container" style="margin-top:200px;">
-        <h2 class="mb-4 text-center">我要預約</h2>
+    <div class="container" style="margin-top:200px; margin-bottom:200px;">
+        <h2 class="mb-5 text-center">我要預約</h2>
+        <!-- 預約流程流程列：響應式版本 -->
+        <div class="row justify-content-center text-center mb-5 align-items-center flex-wrap">
+            <div class="col-6 col-sm-auto mb-3">
+                <i class="fa fa-user-circle fa-2x text-secondary d-block mb-2"></i>
+                <div class="fw-bold text-primary">1. 選擇服務與設計師</div>
+            </div>
+            <div class="col-auto d-none d-sm-block">
+                <i class="fa fa-chevron-right fa-lg text-muted mx-2"></i>
+            </div>
+            <div class="col-6 col-sm-auto mb-3">
+                <i class="fa fa-calendar-alt fa-2x text-secondary d-block mb-2"></i>
+                <div class="fw-bold text-primary">2. 選擇預約日期與時段</div>
+            </div>
+            <div class="col-auto d-none d-sm-block">
+                <i class="fa fa-chevron-right fa-lg text-muted mx-2"></i>
+            </div>
+            <div class="col-6 col-sm-auto mb-3">
+                <i class="fa fa-credit-card fa-2x text-secondary d-block mb-2"></i>
+                <div class="fw-bold text-primary">3. 選擇付款方式</div>
+            </div>
+            <div class="col-auto d-none d-sm-block">
+                <i class="fa fa-chevron-right fa-lg text-muted mx-2"></i>
+            </div>
+            <div class="col-6 col-sm-auto mb-3">
+                <i class="fa fa-check-circle fa-2x text-secondary d-block mb-2"></i>
+                <div class="fw-bold text-primary">4. 送出預約</div>
+            </div>
+        </div>
 
         <form method="post">
-            <!-- Step 1: 選擇日期 -->
-            <div class="mb-4">
-                <label class="form-label">選擇預約日期</label>
-                <input type="date" name="SelectedDate" class="form-control" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" required />
+            <!-- 隱藏欄位：給後端用 -->
+            <input type="hidden" id="productSelect" name="NewOrder.ProductId" required />
+
+            <!-- 群組分頁導覽 -->
+            <div class="text-center mb-3">
+                <ul class="nav nav-tabs justify-content-center" id="productTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-group="ALL" href="#">ALL</a>
+                    </li>
+                    @foreach (var g in Model.AllPgroup)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" data-group="@g.PGid" href="#">@g.PGname</a>
+                        </li>
+                    }
+                </ul>
             </div>
 
-            <!-- Step 2: 選擇設計師與服務 -->
-            <div class="mb-4">
-                <label class="form-label">選擇設計師</label>
-                <select name="NewOrder.DesignerId" class="form-select" id="designerSelect" required>
+            <!-- 產品選單區 -->
+            <div class="row row-cols-2 row-cols-md-3 g-3" id="productOptions">
+                @foreach (var p in Model.AllProducts)
+                {
+                    <div class="col product-card" data-group="@p.PGid">
+                        <button type="button" class="product-option w-100 border-0 p-0"
+                                data-id="@p.ProductId"
+                                data-name="@p.Name"
+                                data-content="@p.Content">
+                            <div class="product-image-wrapper">
+                                <img src="/MakeReservation?handler=Image&id=@p.ProductId"
+                                     alt="@p.Name"
+                                     class="product-image"
+                                     onerror="this.onerror=null;this.src='/images/default.png';" />
+                                <div class="product-info">
+                                    <h5 class="product-title">@p.Name</h5>
+                                    <p class="product-description">@p.Content</p>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <!-- 只讀欄位：顯示使用者選到的產品 -->
+            <div class="mt-3">
+                <label class="form-label">您選擇的服務項目：</label>
+                <input type="text" id="productNameDisplay" class="form-control" readonly />
+            </div>
+
+            <!-- 隱藏 input：提交用 -->
+            <input type="hidden" id="productSelect" name="NewOrder.ProductId" required />
+
+            <style>
+                /* 容器 */
+                .product-image-wrapper {
+                    position: relative;
+                    overflow: hidden;
+                    border-radius: 10px;
+                    transition: box-shadow 0.3s ease, transform 0.3s ease;
+                }
+
+                /* 圖片暗化 */
+                .product-image {
+                    width: 100%;
+                    height: 220px;
+                    object-fit: cover;
+                    filter: brightness(70%);
+                    transition: filter 0.3s ease, transform 0.3s ease;
+                }
+
+                /* 資訊欄 */
+                .product-info {
+                    position: absolute;
+                    bottom: 0;
+                    width: 100%;
+                    padding: 0.75rem 1rem;
+                    background: rgba(0, 0, 0, 0.5);
+                    color: white;
+                }
+
+                /* 標題 */
+                .product-title {
+                    font-size: 1.1rem;
+                    margin-bottom: 0;
+                    font-weight: bold;
+                }
+
+                /* 描述（預設隱藏） */
+                .product-description {
+                    font-size: 0.9rem;
+                    margin-top: 0.3rem;
+                    opacity: 0;
+                    transform: translateY(10px);
+                    transition: opacity 0.3s ease, transform 0.3s ease;
+                }
+
+                /* hover 效果：圖片變亮 + 放大 + 描述出現 */
+                .product-image-wrapper:hover .product-image {
+                    filter: brightness(85%);
+                    transform: scale(1.03);
+                }
+
+                .product-image-wrapper:hover .product-description {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+
+                /* 被選中的外框樣式 */
+                .product-option.selected .product-image-wrapper {
+                    border: 3px solid #0d6efd;
+                    box-shadow: 0 0 10px rgba(13, 110, 253, 0.7);
+                }
+            </style>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const productSelect = document.getElementById('productSelect');
+                    const productNameDisplay = document.getElementById('productNameDisplay');
+
+                    document.querySelectorAll('.product-option').forEach(btn => {
+                        btn.addEventListener('click', function () {
+                            // 移除先前選取
+                            document.querySelectorAll('.product-option').forEach(b => b.classList.remove('selected'));
+
+                            // 加上選中樣式
+                            this.classList.add('selected');
+
+                            // 取得資料
+                            const productId = this.dataset.id;
+                            const productName = this.dataset.name;
+
+                            // 設定至隱藏欄位與只讀欄位
+                            productSelect.value = productId;
+                            productNameDisplay.value = productName;
+                        });
+                    });
+                });
+            </script>
+
+
+
+            <div class="mb-3">
+                <label>設計師</label>
+                <select id="designerSelect" name="NewOrder.DesignerId" class="form-select" required>
                     <option value="">請選擇</option>
                     @foreach (var d in Model.AllDesigners)
                     {
@@ -42,32 +222,33 @@
                 </select>
             </div>
 
-            <div class="mb-4">
-                <label class="form-label">選擇服務項目</label>
-                <select name="NewOrder.ProductId" class="form-select" id="productSelect" required>
-                    <option value="">請選擇</option>
-                    @foreach (var p in Model.AllProducts)
-                    {
-                        <option value="@p.ProductId">@p.Name</option>
-                    }
-                </select>
+
+            <div id="calendar" class="d-none"></div>
+
+            <div id="slotPanel" class="border rounded p-3 mt-3 d-none animate__animated animate__fadeIn">
+                <h5>請選擇預約時段</h5>
+                <div class="row mt-4 d-none" id="summaryPanel">
+                    <div class="col-md-6">
+                        <label>已選日期</label>
+                        <input type="text" id="selectedDateDisplay" class="form-control" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label>已選時段</label>
+                        <input type="text" id="selectedTimeDisplay" class="form-control" readonly />
+                    </div>
+                </div>
+                <div id="slotList" class="d-flex flex-wrap gap-2 mt-3"></div>
+
             </div>
 
-            <!-- Step 3: 選擇時間 -->
-            <div class="mb-4">
-                <label class="form-label">選擇時間</label>
-                <select name="NewOrder.ReservationDateTime" class="form-select" required>
-                    <option value="">請選擇可預約時間</option>
-                    @foreach (var t in Model.AvailableTimeSlots)
-                    {
-                        <option value="@t.ToString("yyyy-MM-ddTHH:mm")">@t.ToString("HH:mm")</option>
-                    }
-                </select>
-            </div>
 
-            <!-- 付款方式 -->
-            <div class="mb-4">
-                <label class="form-label">付款方式</label>
+
+            <input type="hidden" name="NewOrder.ReservationDateTime" id="ReservationDateTimeInput" required />
+            <input type="hidden" name="SelectedDate" id="SelectedDateInput" />
+            <input type="hidden" name="NewOrder.Uid" value="@Model.CurrentUserId" />
+
+            <div class="mb-3 mt-4 d-none" id="paymentSection">
+                <label>付款方式</label>
                 <select name="NewOrder.PaymentMethod" class="form-select" required>
                     <option value="">請選擇</option>
                     <option value="0">現金</option>
@@ -76,111 +257,314 @@
                 </select>
             </div>
 
+            <div class="mb-3 d-none" id="couponSection">
+                <label>使用優惠券（如有）</label>
+                <select name="SelectedCouponRecordId" class="form-select">
 
-            <!-- 使用優惠券 -->
-            <div class="mb-4">
-                <label class="form-label">使用優惠券（選填）</label>
-                <select name="SelectedCouponRecordId" class="form-select" id="couponSelect">
                     <option value="">不使用</option>
                     @foreach (var c in Model.AvailableCoupons)
                     {
-                        var Coupon_Item = Model.AllCoupons.FirstOrDefault(x => x.CouponId == c.CouponId);
-                        <option value="@c.RecordId" data-title="@Coupon_Item.Title">【@Coupon_Item.Title】有效至 @Coupon_Item.ValidTo.ToString("yyyy/MM/dd")</option>
+                        var Coupon_item = Model.AllCoupons.FirstOrDefault(x => x.CouponId == c.CouponId);
+                        <option value="@c.RecordId">@Coupon_item.Title</option>
                     }
                 </select>
             </div>
 
-
-            <!-- 備註 -->
-            <div class="mb-4">
-                <label class="form-label">備註 (選填)</label>
-                <input type="text" name="NewOrder.Remark" class="form-control" />
+            <div class="mb-3 d-none" id="noteSection">
+                <label>備註（可空）</label>
+                <textarea name="NewOrder.Note" class="form-control" rows="2"></textarea>
             </div>
 
-            <!-- UID（可從登入帳號自動帶入或隱藏） -->
-            <input type="hidden" name="NewOrder.Uid" value="@Model.CurrentUserId" />
+            <div class="mb-3 d-none" id="agreementSection">
+                <div class="border rounded p-3 bg-light">
+                    <h5>預約服務同意書</h5>
+                    <p>請詳閱以下內容：</p>
+                    <ul>
+                        <li>預約需於指定時段前完成。</li>
+                        <li>如需取消請於24小時前通知，否則將酌收手續費。</li>
+                        <li>服務過程請遵從設計師指示，以保障您的權益與安全。</li>
+                    </ul>
+                </div>
+                <div class="form-check mt-2">
+                    <input type="checkbox" class="form-check-input" id="agreeTerms">
+                    <label class="form-check-label" for="agreeTerms">
+                        我已閱讀並同意上述預約服務同意書內容
+                    </label>
+                </div>
+            </div>
 
-            <div class="text-center">
-                <button type="submit" name="action" value="add" class="btn btn-success">確認預約</button>
+            <div class="text-end d-none mt-3" id="confirmBtn">
+                <button type="submit" name="action" value="add" class="btn btn-success" id="submitButton" disabled>確認預約</button>
             </div>
         </form>
-
-        <!-- 預約結果訊息 -->
         @if (!string.IsNullOrEmpty(Model.Message))
         {
-            <div class="alert alert-info text-center mt-4">@Model.Message</div>
+            var alertClass = Model.Message.Contains("預約成功") ? "alert-success" : "alert-danger";
+            <div class="alert @alertClass text-center mt-4" id="alertMessage">
+                @Html.Raw(Model.Message)
+                @if (Model.Message.Contains("預約成功"))
+                {
+                    <span id="countdown">（5 秒後自動跳轉）</span>
+                }
+            </div>
         }
+
+
     </div>
+    <style>
+        .fc-daygrid-day.fc-day-selected {
+            background-color: #d0ebff !important;
+            transition: background-color 0.3s;
+        }
 
+        .fc-event.fc-daygrid-event {
+            font-weight: bold;
+            color: #0d6efd !important;
+        }
+
+        .fc-daygrid-day-number {
+            position: relative;
+            z-index: 2;
+        }
+
+        .fc-day-hint .fc-event-title {
+
+            
+        }
+
+        .fc-bg-event{
+            opacity: 1 !important;
+            color: #0d6efd !important;
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+
+        .fc-day-hint .fc-event-title {
+            color: #0d6efd !important;
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-align: center;
+            line-height: 1.2;
+            opacity: 1 !important;
+        }
+
+        .fc-event {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            transition: background-color 0.3s ease !important;
+        }
+
+            .fc-daygrid-day-frame:hover {
+                background-color: #e8f4ff;
+                cursor: pointer;
+            }
+
+        .fc {
+            background-color: #E0E0E0;
+        }
+
+        .fc-today {
+            background-color: #cce5ff !important;
+        }
+
+        .fc-daygrid-day-frame {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s ease, transform 0.2s;
+        }
+
+            .fc-daygrid-day-frame:hover {
+                background-color: #e3f2fd !important;
+                transform: scale(1.03);
+                box-shadow: 0 0 10px rgba(33, 150, 243, 0.2);
+                cursor: pointer;
+            }
+
+        .fc-daygrid-day.fc-day-selected .fc-daygrid-day-frame {
+            background-color: #bbdefb !important;
+            box-shadow: 0 0 0 2px #2196f3 inset;
+        }
+
+
+    </style>
     <script>
-        $(document).ready(function () {
-            const $designerSelect = $("#designerSelect");
-            const $productSelect = $("#productSelect");
-            const allOptions = $productSelect.find("option").clone(); // 儲存所有選項
+        document.addEventListener('DOMContentLoaded', function () {
+            const agreeTerms = document.getElementById("agreeTerms");
+            const submitButton = document.getElementById("submitButton");
 
-            $designerSelect.change(function () {
-                const designerId = $(this).val();
-                $productSelect.html(allOptions); // 還原所有選項
-
-                if (!designerId) return;
-
-                $.get(`/MakeReservation?handler=GetProducts&designerId=${designerId}`, function (data) {
-                    const validIds = data.map(p => String(p.productId));
-
-                    $productSelect.find("option").each(function () {
-                        const val = $(this).val();
-                        if (val === "" || validIds.includes(val)) {
-                            $(this).prop("disabled", false);
-                        } else {
-                            $(this).prop("disabled", true);
-                        }
-                    });
-                });
-            });
-        });
-    </script>
-    <script>
-        $(document).ready(function () {
-            const $designer = $("#designerSelect");
-            const $product = $("#productSelect");
-            const $date = $("input[name='SelectedDate']");
-            const $time = $("select[name='NewOrder.ReservationDateTime']");
-
-            function loadAvailableTimes() {
-                const dId = $designer.val();
-                const pId = $product.val();
-                const date = $date.val();
-
-                if (!dId || !pId || !date) return;
-
-                $.get(`/MakeReservation?handler=GetAvailableTimeSlots&designerId=${dId}&productId=${pId}&date=${date}`, function (data) {
-                    $time.empty().append('<option value="">請選擇可預約時間</option>');
-                    if (data.length === 0) {
-                        $time.append('<option disabled>無可預約時段</option>');
-                    } else {
-                        $.each(data, function (i, t) {
-                            $time.append(`<option value="${t.time}">${t.label}</option>`);
-                        });
-                    }
+            if (agreeTerms) {
+                agreeTerms.addEventListener('change', function () {
+                    submitButton.disabled = !this.checked;
                 });
             }
 
-            $designer.change(loadAvailableTimes);
-            $product.change(loadAvailableTimes);
-            $date.change(loadAvailableTimes);
-        });
-    </script>
-    <script>
-        $(document).ready(function () {
-            $('#couponSelect').change(function () {
-                const selected = $(this).find(':selected');
-                const title = selected.data('title');
-                if (selected.val()) {
-                    alert(`您選擇了優惠券「${title}」，使用後將無法再次使用。`);
+            const calendarEl = document.getElementById('calendar');
+            const designerSelect = $('#designerSelect');
+            const productSelect = $('#productSelect'); // <input type="hidden">
+            const selectedDateInput = $('#SelectedDateInput');
+            const reservationDateTimeInput = $('#ReservationDateTimeInput');
+            const selectedDateDisplay = $('#selectedDateDisplay');
+            const selectedTimeDisplay = $('#selectedTimeDisplay');
+            const slotPanel = $('#slotPanel');
+            const slotList = $('#slotList');
+            const summaryPanel = $('#summaryPanel');
+            const paymentSection = $('#paymentSection');
+            const noteSection = $('#noteSection');
+            const couponSection = $('#couponSection');
+            const confirmBtn = $('#confirmBtn');
+            const agreementSection = $('#agreementSection');
+
+            let calendar;
+            let eventSlotMap = {};
+            let lastSelectedCell = null;
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridWeek',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek'
+                },
+                buttonText: {
+                    today: '今天',
+                    month: '月',
+                    week: '週'
+                },
+                locale: 'zh-tw',
+                height: 'auto',
+                events: function (fetchInfo, successCallback, failureCallback) {
+                    const designerId = designerSelect.val();
+                    const productId = productSelect.val();
+
+                    if (!designerId || !productId) {
+                        successCallback([]);
+                        return;
+                    }
+
+                    $.get('/MakeReservation?handler=GetAvailableTimeSlots', {
+                        designerId,
+                        productId
+                    }, function (data) {
+                        eventSlotMap = {};
+                        data.forEach(event => {
+                            const dateStr = event.start;
+                            eventSlotMap[dateStr] = event.extendedProps.slots;
+                            event.display = 'background';
+                            event.title = `${event.extendedProps.slots.length} 個時段可約`;
+                            event.classNames = ['fc-day-hint'];
+                        });
+                        successCallback(data);
+                    });
+                },
+                dateClick: function (info) {
+                    if (lastSelectedCell) {
+                        lastSelectedCell.classList.remove('fc-day-selected');
+                    }
+                    info.dayEl.classList.add('fc-day-selected');
+                    lastSelectedCell = info.dayEl;
+
+                    const dateStr = info.dateStr;
+                    const slots = eventSlotMap[dateStr] || [];
+
+                    slotList.empty();
+                    if (slots.length > 0) {
+                        selectedDateDisplay.val(dateStr);
+                        selectedDateInput.val(dateStr);
+                        slotPanel.removeClass('d-none');
+                        summaryPanel.removeClass('d-none');
+                        slots.forEach(slot => {
+                            const btn = $('<button type="button" class="btn btn-outline-primary me-2 mb-2"></button>')
+                                .text(slot.label)
+                                .click(function () {
+                                    selectedTimeDisplay.val(slot.label);
+                                    reservationDateTimeInput.val(slot.time);
+                                    slotList.find('button').removeClass('active');
+                                    $(this).addClass('active');
+                                    paymentSection.removeClass('d-none');
+                                    noteSection.removeClass('d-none');
+                                    couponSection.removeClass('d-none');
+                                    agreementSection.removeClass('d-none');
+                                    confirmBtn.removeClass('d-none');
+                                });
+                            slotList.append(btn);
+                        });
+                    } else {
+                        slotPanel.addClass('d-none');
+                        summaryPanel.addClass('d-none');
+                        paymentSection.addClass('d-none');
+                        noteSection.addClass('d-none');
+                        couponSection.addClass('d-none');
+                        agreementSection.addClass('d-none');
+                        confirmBtn.addClass('d-none');
+                        selectedDateDisplay.val("");
+                        selectedTimeDisplay.val("");
+                        reservationDateTimeInput.val("");
+                    }
                 }
             });
+
+            function tryShowCalendar() {
+                if (designerSelect.val() && productSelect.val()) {
+                    $('#calendar').removeClass('d-none');
+                    calendar.render();
+                    calendar.refetchEvents();
+                } else {
+                    $('#calendar').addClass('d-none');
+                }
+            }
+
+            // 群組 tab 切換顯示對應產品
+            $('#productTab .nav-link').on('click', function (e) {
+                e.preventDefault();
+                $('#productTab .nav-link').removeClass('active');
+                $(this).addClass('active');
+
+                const groupId = $(this).data('group');
+                $('.product-card').each(function () {
+                    if (groupId === 'ALL' || $(this).data('group') == groupId) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+
+            // 產品圖片按鈕選擇邏輯
+            $(document).on('click', '.product-option', function () {
+                const productId = $(this).data('id');
+                productSelect.val(productId);
+                $('.product-option').removeClass('active');
+                $(this).addClass('active');
+                tryShowCalendar();
+            });
+
+            // 設計師變更時觸發行事曆更新
+            designerSelect.change(tryShowCalendar);
+
+            // 顯示成功訊息後倒數跳轉
+            const countdownSpan = document.getElementById("countdown");
+            if (countdownSpan) {
+                let seconds = 5;
+                const interval = setInterval(() => {
+                    seconds--;
+                    countdownSpan.textContent = `（${seconds} 秒後自動跳轉）`;
+                    if (seconds <= 0) {
+                        clearInterval(interval);
+                        window.location.href = "/MyReservations";
+                    }
+                }, 1000);
+            }
         });
     </script>
+
+
 
 </body>
 </html>

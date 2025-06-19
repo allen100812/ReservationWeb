@@ -1,58 +1,62 @@
-﻿@page
-@model Web0524.Pages.Management.NewsManagementModel
-@{
-    ViewData["Title"] = "新聞管理";
-    var tags = Enum.GetValues(typeof(Models.NewsTag)).Cast<Models.NewsTag>().ToList();
-}
+﻿    @page
+    @model Web0524.Pages.Management.NewsManagementModel
+    @{
+        ViewData["Title"] = "新聞管理";
+        var tags = Enum.GetValues(typeof(Models.NewsTag)).Cast<Models.NewsTag>().ToList();
+    }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
-    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
-    <link href="css/hover-min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link rel="stylesheet" href="~/css/Share.css">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+        <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+        <link href="css/hover-min.css" rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <link rel="stylesheet" href="~/css/Share.css">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
 
-    <div class="container" style="margin-top:200px;">
-        @Html.AntiForgeryToken()
-        <div class="container" style="margin-top:200px;">
-            <h2 class="mb-4">新聞管理</h2>
+        <div class="container" style="margin-top:200px; margin-bottom:200px; ">
+            @Html.AntiForgeryToken()
 
-            <div id="message-area"></div>
+                <h2 class="mb-4">新聞管理</h2>
+
+                <div id="message-area"></div>
 
             <form id="newsForm" enctype="multipart/form-data">
                 <input type="hidden" asp-for="NewItem.NewId" />
 
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label asp-for="NewItem.Title" class="form-label"></label>
-                        <input asp-for="NewItem.Title" class="form-control" />
+                        <label class="form-label">新聞標題</label>
+                        <input asp-for="NewItem.Title" class="form-control" placeholder="請輸入新聞標題" />
                     </div>
                     <div class="col-md-6">
-                        <label asp-for="NewItem.Author" class="form-label"></label>
-                        <input asp-for="NewItem.Author" class="form-control" />
+                        <label class="form-label">作者</label>
+                        <input asp-for="NewItem.Author" class="form-control" placeholder="請輸入作者名稱" />
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="NewItem.Content" class="form-label"></label>
-                    <textarea asp-for="NewItem.Content" class="form-control" rows="5"></textarea>
+                    <label class="form-label">新聞內容</label>
+                    <textarea asp-for="NewItem.Content" class="form-control" rows="5" placeholder="請輸入新聞內容..."></textarea>
                 </div>
 
                 <div class="row mb-3">
+                    @{
+                        var publishDateValue = Model.NewItem.PublishDate?.ToString("yyyy-MM-ddTHH:mm") ?? DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+                    }
                     <div class="col-md-4">
-                        <label asp-for="NewItem.PublishDate" class="form-label"></label>
-                        <input asp-for="NewItem.PublishDate" class="form-control" type="datetime-local" />
+                        <label class="form-label">發布時間</label>
+                        <input name="NewItem.PublishDate" class="form-control" type="datetime-local" value="@publishDateValue" />
                     </div>
+
                     <div class="col-md-4">
-                        <label asp-for="NewItem.Status" class="form-label"></label>
+                        <label class="form-label">狀態</label>
                         <select asp-for="NewItem.Status" class="form-select">
                             <option value="0">草稿</option>
                             <option value="1">已發布</option>
@@ -60,7 +64,7 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="NewItem.Tag" class="form-label">標籤</label>
+                        <label class="form-label">標籤</label>
                         <select asp-for="NewItem.Tag" class="form-select">
                             <option value="">-- 請選擇標籤 --</option>
                             @foreach (var tag in tags)
@@ -72,7 +76,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="NewItem.Photos" class="form-label">上傳圖片</label>
+                    <label class="form-label">上傳圖片（可複選）</label>
                     <input asp-for="NewItem.Photos" type="file" class="form-control" multiple />
 
                     <div id="existing-images" class="mt-3 row row-cols-2 row-cols-md-4 g-3">
@@ -89,187 +93,302 @@
                             }
                         }
                     </div>
-                </div>
 
+                </div>
+                <div class="mb-3">
+                    <div class="row row-cols-2 row-cols-md-4 g-3" id="existing-images"></div>
+                    <div class="row row-cols-2 row-cols-md-4 g-3" id="upload-preview"></div>
+
+                </div>
                 <button type="submit" class="btn btn-primary">儲存新聞</button>
             </form>
 
-            <hr />
+                <hr/>
 
-            <form method="get">
-                <div class="row mb-3">
-                    <div class="col-md-10">
-                        <input type="text" name="keyword" placeholder="搜尋標題" class="form-control" value="@Request.Query["keyword"]" />
+
+                <!-- 查詢區：套用用戶管理風格 -->
+                <form method="get" class="row g-3 align-items-center mb-4 mt-4">
+                    <div class="col-md-9">
+                        <input type="text" name="keyword" placeholder="搜尋標題 / 作者..." class="form-control" value="@Request.Query["keyword"]" />
                     </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-secondary w-100">查詢</button>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-dark w-100">查詢</button>
                     </div>
+                </form>
+
+
+
+
+                <!-- 桌機/手機表格區 -->
+            <div class="table-responsive  mb-4">
+                <div id="newsContainer" class=" mb-4"></div>
+
+                <div id="pagination-container" class="mb-4"></div>
+
                 </div>
-            </form>
 
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>標題</th>
-                        <th>作者</th>
-                        <th>狀態</th>
-                        <th>發布時間</th>
-                        <th>置頂</th>
-                        <th>標籤</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.NewsList)
-                    {
-                        <tr>
-                            <td>@item.Title</td>
-                            <td>@item.Author</td>
-                            <td>
-                                @if (item.Status == 0)
-                                {
-                                    <span class="text-muted">草稿</span>
-                                }
-                                else if (item.Status == 1)
-                                {
-                                    <span class="text-success">已發布</span>
-                                }
-                                else
-                                {
-                                    <span class="text-danger">下架</span>
-                                }
-                            </td>
-                            <td>@item.PublishDate?.ToString("yyyy-MM-dd HH:mm")</td>
-                            <td>
-                                @if (item.TopTime != null)
-                                {
-                                    <span class="badge bg-warning text-dark">置頂</span>
+           
 
-                                    <br />
-                                    <small>@item.TopTime?.ToString("MM-dd HH:mm")</small>
-                                }
-                            </td>
-                            <td><span class="badge bg-info">@((Web0524.Models.NewsTag?)item.Tag)</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-warning edit-btn" data-id="@item.NewId">編輯</button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="@item.NewId">下架</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+            </div>
+
+
         <script>
-    function getToken() {
-        return $('input[name="__RequestVerificationToken"]').val();
-    }
+            let selectedFiles = [];
+            let preservedOriginalIndexes = [];
 
-    // 儲存新聞（含上傳圖片）
-    $("#newsForm").submit(function (e) {
-        e.preventDefault();
-        let formData = new FormData(this);
+            const allNews = @Html.Raw(Json.Serialize(Model.NewsList));
+            const isMobile = window.innerWidth < 768;
+            const rowsPerPage = 10;
 
-        // 把被移除的圖片 index 收集下來傳送（若你未實作刪除同步可忽略這段）
-        $(".remove-photo-btn").each(function () {
-            let index = $(this).data("index");
-            formData.append("RemovedPhotoIndexes", index); // 自訂欄位，後端可取用
-        });
+            document.addEventListener('DOMContentLoaded', () => {
+                renderNewsPage(1);
+            });
 
-        $.ajax({
-            url: '?handler=Save',
-            method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: {
-                'RequestVerificationToken': getToken()
-            },
-            success: function (res) {
-                $("#message-area").html(`<div class="alert alert-success">${res.message}</div>`);
-                setTimeout(() => location.reload(), 1000);
-            },
-            error: function () {
-                $("#message-area").html(`<div class="alert alert-danger">儲存失敗，請再試一次。</div>`);
-            }
-        });
-    });
 
-    // 點擊下架按鈕
-    $(".delete-btn").click(function () {
-        if (!confirm("確認下架？")) return;
-        const id = $(this).data("id");
-        $.ajax({
-            url: `?handler=ToggleStatus&id=${id}&status=2`,
-            method: 'POST',
-            headers: {
-                'RequestVerificationToken': getToken()
-            },
-            success: function (res) {
-                $("#message-area").html(`<div class="alert alert-warning">${res.message}</div>`);
-                setTimeout(() => location.reload(), 1000);
-            },
-            error: function () {
-                $("#message-area").html(`<div class="alert alert-danger">下架失敗</div>`);
-            }
-        });
-    });
+            function renderNewsPage(page) {
+                const start = (page - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+                const visibleNews = allNews.slice(start, end);
+                const container = document.getElementById('newsContainer');
+                container.innerHTML = '';
 
-    // 點擊編輯按鈕，帶出資料與圖片
-    $(".edit-btn").click(function () {
-        const id = $(this).data("id");
-        $.ajax({
-            url: `?handler=Edit&id=${id}`,
-            method: 'POST',
-            headers: {
-                'RequestVerificationToken': getToken()
-            },
-            success: function (res) {
-                if (res.success && res.data) {
-                    const n = res.data;
-                    $("#NewItem_NewId").val(n.newId);
-                    $("#NewItem_Title").val(n.title);
-                    $("#NewItem_Author").val(n.author);
-                    $("#NewItem_Content").val(n.content);
-                    $("#NewItem_PublishDate").val(n.publishDate);
-                    $("#NewItem_Status").val(n.status);
-                    $("#NewItem_Tag").val(n.tag);
-
-                    // 清空原圖片預覽區
-                    $("#existing-images").empty();
-
-                    // 將圖片重新加入預覽區
-                    if (n.photoList && n.photoList.length > 0) {
-                        n.photoList.forEach((b64, i) => {
-                            let imgBlock = `
-                                <div class="position-relative col">
-                                    <img src="data:image/jpeg;base64,${b64}" class="img-thumbnail w-100" />
-                                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 remove-photo-btn" data-index="${i}" title="刪除圖片">✕</button>
+                if (isMobile) {
+                    let accordionHTML = `<div class="accordion" id="newsAccordion">`;
+                    visibleNews.forEach((item, index) => {
+                        const statusText = getStatusText(item.status);
+                        const statusColor = getStatusColor(item.status);
+                        const topLabel = item.topTime ? `<span class="badge bg-warning text-dark">置頂</span> <small>${item.topTime?.substring(5, 16)}</small>` : '';
+                        const tagName = item.tagName || '';
+                        accordionHTML += `
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="heading-${index}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${index}">
+                                            ${item.title}
+                                        </button>
+                                    </h2>
+                                    <div id="collapse-${index}" class="accordion-collapse collapse" data-bs-parent="#newsAccordion">
+                                        <div class="accordion-body">
+                                            <div><strong>作者：</strong>${item.author}</div>
+                                            <div><strong>狀態：</strong><span class="${statusColor}">${statusText}</span></div>
+                                            <div><strong>發布時間：</strong>${item.publishDate?.substring(0, 16) ?? ''}</div>
+                                            <div><strong>標籤：</strong><span class="badge bg-info">${tagName}</span></div>
+                                            <div><strong>置頂：</strong>${topLabel}</div>
+                                            <div class="mt-2 d-flex gap-2">
+                                                <button class="btn btn-sm btn-warning edit-btn" data-id="${item.newId}">編輯</button>
+                                                <button class="btn btn-sm btn-danger delete-btn" data-id="${item.newId}">下架</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>`;
-                            $("#existing-images").append(imgBlock);
-                        });
-                    }
+                    });
+                    accordionHTML += `</div>`;
+                    container.innerHTML = accordionHTML;
                 } else {
-                    showMsg("讀取失敗", false);
+                    let tableHTML = `
+                            <table class="table table-bordered align-middle text-center">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>標題</th><th>作者</th><th>狀態</th><th>發布時間</th><th>置頂</th><th>標籤</th><th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                    visibleNews.forEach(item => {
+                        const statusText = getStatusText(item.status);
+                        const statusColor = getStatusColor(item.status);
+                        const topLabel = item.topTime ? `<span class="badge bg-warning text-dark">置頂</span><br/><small>${item.topTime?.substring(5, 16)}</small>` : '';
+                        const tagName = item.tagName || '';
+                        tableHTML += `
+                                <tr>
+                                    <td>${item.title}</td>
+                                    <td>${item.author}</td>
+                                    <td><span class="${statusColor}">${statusText}</span></td>
+                                    <td>${item.publishDate?.substring(0, 16) ?? ''}</td>
+                                    <td>${topLabel}</td>
+                                    <td><span class="badge bg-info">${tagName}</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning edit-btn" data-id="${item.newId}">編輯</button>
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="${item.newId}">下架</button>
+                                    </td>
+                                </tr>`;
+                    });
+                    tableHTML += '</tbody></table>';
+                    container.innerHTML = tableHTML;
                 }
-            },
-            error: function () {
-                showMsg("編輯載入失敗", false);
+
+                renderPaginationControls(allNews.length, rowsPerPage, page);
             }
-        });
-    });
 
-    // 點擊 ✕ 按鈕移除圖片（僅畫面上消失）
-    $(document).on('click', '.remove-photo-btn', function () {
-        $(this).closest('.col').remove();
-    });
+            function renderPaginationControls(totalRows, rowsPerPage, currentPage) {
+                const container = document.getElementById('pagination-container');
+                const totalPages = Math.ceil(totalRows / rowsPerPage);
+                let html = '<nav aria-label="Page navigation"><ul class="pagination justify-content-center">';
 
-    function showMsg(msg, success) {
-        const cls = success ? 'success' : 'danger';
-        $('#message-area').html(`<div class="alert alert-${cls}">${msg}</div>`);
-    }
-</script>
+                html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="renderNewsPage(${currentPage - 1})">&laquo;</a></li>`;
 
-        </div>
+                const maxVisible = 5;
+                let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let end = Math.min(totalPages, start + maxVisible - 1);
+                if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
 
-    </body>
-</html>
+                for (let i = start; i <= end; i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="renderNewsPage(${i})">${i}</a></li>`;
+                }
+
+                html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="renderNewsPage(${currentPage + 1})">&raquo;</a></li>`;
+                html += '</ul></nav>';
+                container.innerHTML = html;
+            }
+
+            function getStatusText(status) {
+                return status === 0 ? '草稿' : status === 1 ? '已發布' : '下架';
+            }
+
+            function getStatusColor(status) {
+                return status === 0 ? 'text-muted' : status === 1 ? 'text-success' : 'text-danger';
+            }
+
+            function getToken() {
+                return $('input[name="__RequestVerificationToken"]').val();
+            }
+
+            function showMsg(msg, success) {
+                const cls = success ? 'success' : 'danger';
+                $('#message-area').html(`<div class="alert alert-${cls} mt-3">${msg}</div>`);
+            }
+
+            // 上傳圖片預覽（保留原圖）
+            $(document).on('change', '#NewItem_Photos', function () {
+                const files = this.files;
+                if (files && files.length > 0) {
+                    Array.from(files).forEach((file, index) => {
+                        const reader = new FileReader();
+                        const idx = selectedFiles.length;
+                        selectedFiles.push(file);
+                        reader.onload = function (e) {
+                            const base64 = e.target.result;
+                            const html = `
+                                    <div class="position-relative col upload-preview-block" data-index="${idx}">
+                                        <img src="${base64}" class="img-thumbnail w-100" />
+                                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 remove-photo-btn" data-index="${idx}" title="刪除圖片">✕</button>
+                                    </div>`;
+                            $("#existing-images").append(html);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+                this.value = null;
+            });
+
+            // 移除圖片（原圖與新圖）
+            $(document).on('click', '.remove-photo-btn', function () {
+                const index = $(this).data("index");
+                const isOriginal = $(this).closest('.existing-photo').length > 0;
+                if (isOriginal) {
+                    preservedOriginalIndexes = preservedOriginalIndexes.filter(i => i !== index);
+                } else {
+                    selectedFiles[index] = null;
+                }
+                $(this).closest('.upload-preview-block, .existing-photo').remove();
+            });
+
+            // 儲存表單
+            $("#newsForm").submit(function (e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+
+                selectedFiles.forEach(file => {
+                    if (file) formData.append("NewItem.Photos", file);
+                });
+
+                preservedOriginalIndexes.forEach(idx => {
+                    formData.append("PreservedPhotoIndexes", idx);
+                });
+
+                $.ajax({
+                    url: '?handler=Save',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'RequestVerificationToken': getToken()
+                    },
+                    success: function (res) {
+                        showMsg(res.message, true);
+                        setTimeout(() => location.reload(), 1000);
+                    },
+                    error: function () {
+                        showMsg("儲存失敗，請再試一次。", false);
+                    }
+                });
+            });
+
+            // 下架
+            $(document).on('click', '.delete-btn', function () {
+                if (!confirm("確認下架？")) return;
+                const id = $(this).data("id");
+                $.ajax({
+                    url: `?handler=ToggleStatus&id=${id}&status=2`,
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': getToken() },
+                    success: function (res) {
+                        showMsg(res.message, true);
+                        setTimeout(() => location.reload(), 1000);
+                    },
+                    error: function () {
+                        showMsg("下架失敗", false);
+                    }
+                });
+            });
+
+            // 編輯新聞
+            $(document).on('click', '.edit-btn', function () {
+                const id = $(this).data("id");
+                $.ajax({
+                    url: `?handler=Edit&id=${id}`,
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': getToken() },
+                    success: function (res) {
+                        if (res.success && res.data) {
+                            const n = res.data;
+                            selectedFiles = [];
+                            preservedOriginalIndexes = [];
+
+                            $("#NewItem_NewId").val(n.newId);
+                            $("#NewItem_Title").val(n.title);
+                            $("#NewItem_Author").val(n.author);
+                            $("#NewItem_Content").val(n.content);
+                            $("#NewItem_PublishDate").val(n.publishDate);
+                            $("#NewItem_Status").val(n.status);
+                            $("#NewItem_Tag").val(n.tag);
+                            $("#existing-images").empty();
+
+                            if (n.photoList?.length > 0) {
+                                n.photoList.forEach((b64, i) => {
+                                    preservedOriginalIndexes.push(i);
+                                    $("#existing-images").append(`
+                                            <div class="position-relative col existing-photo" data-index="${i}">
+                                                <img src="data:image/jpeg;base64,${b64}" class="img-thumbnail w-100" />
+                                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 remove-photo-btn" data-index="${i}" title="刪除圖片">✕</button>
+                                            </div>`);
+                                });
+                            }
+                        } else {
+                            showMsg("讀取失敗", false);
+                        }
+                    },
+                    error: function () {
+                        showMsg("編輯載入失敗", false);
+                    }
+                });
+            });
+        </script>
+
+
+
+
+        </body>
+    </html>

@@ -17,90 +17,336 @@
     <link rel="stylesheet" href="~/css/Share.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            color: #212529;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+
+        h2 {
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            background-color: #fff;
+        }
+
+        .form-control,
+        .btn {
+            border-radius: 6px;
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.85rem;
+        }
+        /* 統一按鈕大小 */
+.action-buttons .action-btn {
+    min-width: 100px;
+}
+
+/* 手機版：按鈕改為直排 + 滿版 */
+@@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons .action-btn {
+        width: 100%;
+    }
+}
+
+        .accordion-button:not(.collapsed) {
+            background-color: #e2e6ea;
+        }
+
+        .accordion-body .form-control-sm {
+            max-width: 300px;
+        }
+        @@media (max-width: 768px) {
+            .table thead {
+                display: none;
+            }
+
+            .table tbody tr {
+                display: block;
+                margin-bottom: 1rem;
+                background: #fff;
+                border: 1px solid #dee2e6;
+                padding: 1rem;
+                border-radius: 8px;
+            }
+
+            .table tbody td {
+                display: flex;
+                justify-content: space-between;
+                padding: 0.4rem 0;
+                border: none;
+            }
+
+            .table tbody td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                color: #6c757d;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+
+
+
 </head>
 <body>
     @Html.AntiForgeryToken()
-    <div class="container" style="margin-top:200px;">
-        <h2 class="mb-4">用戶管理</h2>
 
-        <div class="mb-3 row">
-            <label for="keyword" class="col-sm-2 col-form-label">關鍵字查詢</label>
-            <div class="col-sm-6">
+    <div class="container" style="margin-top:200px; margin-bottom:200px; ">
+
+        <!-- 1. 在查詢區塊加入篩選欄位 -->
+        <div class="row g-3 align-items-center mb-4">
+            <div class="col-md-3">
+                <label for="keyword" class="form-label">關鍵字查詢</label>
+            </div>
+            <div class="col-md-6">
                 <input type="text" id="keyword" class="form-control" placeholder="輸入姓名、Email、電話...">
             </div>
-            <div class="col-sm-4">
-                <button class="btn btn-primary" onclick="loadUsers()">查詢</button>
+            <div class="col-md-3">
+                <button class="btn btn-dark w-100" onclick="loadUsers()">查詢</button>
+            </div>
+
+            <!-- 篩選條件 -->
+            <div class="col-md-3">
+                <select class="form-select" id="filterRole">
+                    <option value="">全部角色</option>
+                    <option value="Developer">Developer</option>
+                    <option value="SuperAdmin">SuperAdmin</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Editor">Editor</option>
+                    <option value="VipMember">VipMember</option>
+                    <option value="Member">Member</option>
+                </select>
+
+
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterPermission">
+                    <option value="">全部權限</option>
+                    <option value="P1">P1</option>
+                    <option value="P2">P2</option>
+                    <option value="P3">P3</option>
+                    <option value="P4">P4</option>
+                    <option value="P5">P5</option>
+                </select>
+
+
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterSource">
+                    <option value="">全部來源</option>
+                    <option value="Email">Email</option>
+                    <option value="Line">Line</option>
+                </select>
+
+
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterDeleted">
+                    <option value="">是否停權</option>
+                    <option value="false">未停權</option>
+                    <option value="true">已停權</option>
+                </select>
             </div>
         </div>
 
-        <div id="message-area"></div>
+        <!-- 2. 加入會員總數顯示 -->
+        <div class="mb-3">
+            <strong>會員總數：</strong> <span id="totalCount">0</span> 位
+        </div>
+        <div class="table-responsive">
+            <div id="message-area"></div>
+            <div class="accordion mt-4" id="userAccordion"></div>
+            <div id="pagination-container" class="mt-4"></div>
+            
+        </div>
+        
+        <!-- 3. 分頁容器區塊 -->
+       
+        <!-- 4. 修改 loadUsers() 函式加上篩選與分頁支援 -->
+        <script>
 
-        <table class="table table-bordered mt-4">
-            <thead>
-                <tr>
-                    <th>帳號</th>
-                    <th>姓名</th>
-                    <th>Email</th>
-                    <th>電話</th>
-                    <th>訂單數</th>
-                    <th>取消數</th>
-                    <th>角色</th>
-                    <th>權限</th>
-                    <th>來源</th>
-                    <th>停權</th>
-                    <th>備註</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody id="userTableBody">
-            </tbody>
-        </table>
+
+            function renderPaginationControls(totalRows, rowsPerPage, currentPage) {
+                const paginationContainer = document.getElementById('pagination-container');
+                const totalPages = Math.ceil(totalRows / rowsPerPage);
+                let html = '<nav aria-label="Page navigation"><ul class="pagination justify-content-center">';
+
+                html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="renderTablePage(${currentPage - 1})">&laquo;</a></li>`;
+
+                const maxVisible = 5;
+                let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let end = Math.min(totalPages, start + maxVisible - 1);
+                if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+
+                for (let i = start; i <= end; i++) {
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="renderTablePage(${i})">${i}</a></li>`;
+                }
+
+                html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="renderTablePage(${currentPage + 1})">&raquo;</a></li>`;
+
+                html += '</ul></nav>';
+                paginationContainer.innerHTML = html;
+            }
+        </script>
+
     </div>
+    <script>
+        // 當欄位值變動就重新載入頁面 1
+        ['#keyword', '#filterRole', '#filterPermission', '#filterSource', '#filterDeleted'].forEach(selector => {
+            $(document).on('change keyup', selector, () => renderTablePage(1));
+        });
+
+        $(document).ready(loadUsers);
+    </script>
 
     <script>
+        let allUsers = [];
+
         function getToken() {
             return $('input[name="__RequestVerificationToken"]').val();
         }
 
         function loadUsers() {
-            const keyword = $('#keyword').val();
             $.ajax({
                 url: '/Management/UserManagement?handler=List',
                 method: 'GET',
-                data: { keyword },
                 headers: {
                     'RequestVerificationToken': getToken()
                 },
                 success: function (data) {
-                    const tbody = $('#userTableBody');
-                    tbody.empty();
-                    data.forEach(u => {
-                        tbody.append(`
-                                    <tr>
-                                        <td>${u.id}</td>
-                                        <td>${u.name}</td>
-                                        <td>${u.email}</td>
-                                        <td>${u.phone}</td>
-                                        <td>${u.orderNum}</td>
-                                        <td>${u.cancelNum}</td>
-                                        <td>${u.role}</td>
-                                        <td>${u.permission}</td>
-                                        <td>${u.userType}</td>
-                                        <td>${u.isDeleted ? '是' : '否'}</td>
-                                        <td><input class="form-control form-control-sm" value="${u.remark}" onchange="updateRemark('${u.id}', this.value)"></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-secondary" onclick="resetPassword('${u.id}')">改密碼</button>
-                                            <button class="btn btn-sm btn-danger" onclick="disableUser('${u.id}')">停權</button>
-                                        </td>
-                                    </tr>
-                                `);
-                    });
+                    console.log('✅ 取得用戶資料：', data); // 👉 加這行
+                    allUsers = data;
+                    renderTablePage(1);
                 },
                 error: function () {
                     showMsg('讀取用戶失敗', false);
                 }
             });
+        }
+        function filterUsers() {
+            const keyword = $('#keyword').val()?.toLowerCase();
+            const role = $('#filterRole').val();
+            const permission = $('#filterPermission').val();
+            const userType = $('#filterSource').val();
+            const isDeleted = $('#filterDeleted').val();
+            return allUsers.filter(u => {
+                const matchKeyword = !keyword || u.name?.toLowerCase().includes(keyword) || u.email?.toLowerCase().includes(keyword) || u.phone?.toLowerCase().includes(keyword);
+                const matchRole = !role || u.role === role;
+                const matchPermission = !permission || u.permission === permission;
+                const matchSource = !userType || u.userType === userType;
+                const matchDeleted = isDeleted === '' || u.isDeleted.toString() === isDeleted;
+                return matchKeyword && matchRole && matchPermission && matchSource && matchDeleted;
+            });
+        }
+        function renderPaginationControls(totalRows, rowsPerPage, currentPage) {
+            const paginationContainer = document.getElementById('pagination-container');
+            const totalPages = Math.ceil(totalRows / rowsPerPage);
+            let html = '<nav aria-label="Page navigation"><ul class="pagination justify-content-center">';
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="renderTablePage(${currentPage - 1})">&laquo;</a></li>`;
+            const maxVisible = 5;
+            let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let end = Math.min(totalPages, start + maxVisible - 1);
+            if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+            for (let i = start; i <= end; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="renderTablePage(${i})">${i}</a></li>`;
+            }
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="renderTablePage(${currentPage + 1})">&raquo;</a></li>`;
+            html += '</ul></nav>';
+            paginationContainer.innerHTML = html;
+        }
+        function renderTablePage(page) {
+            const rowsPerPage = 10;
+            const filtered = filterUsers();
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const visibleUsers = filtered.slice(start, end);
+            $('#totalCount').text(filtered.length);
+            const container = $('#userAccordion');
+            container.empty();
+
+            const isMobile = window.innerWidth < 768; // 小於 md 視為手機
+
+            if (isMobile) {
+                // ✅ 手機版：使用 Accordion 呈現
+                visibleUsers.forEach((u, i) => {
+                    const itemId = `accordion-item-${page}-${i}`;
+                    container.append(`
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading-${itemId}">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${itemId}" aria-expanded="false" aria-controls="collapse-${itemId}">
+                                    <strong>${u.id}</strong> / ${u.name}
+                                </button>
+                            </h2>
+                            <div id="collapse-${itemId}" class="accordion-collapse collapse" aria-labelledby="heading-${itemId}" data-bs-parent="#userAccordion">
+                                <div class="accordion-body">
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-6"><strong>Email:</strong> ${u.email}</div>
+                                        <div class="col-12 col-md-6"><strong>電話:</strong> ${u.phone}</div>
+                                        <div class="col-12 col-md-4"><strong>訂單數:</strong> ${u.orderNum}</div>
+                                        <div class="col-12 col-md-4"><strong>取消數:</strong> ${u.cancelNum}</div>
+                                        <div class="col-12 col-md-4"><strong>角色:</strong> ${u.role}</div>
+                                        <div class="col-12 col-md-4"><strong>權限:</strong> ${u.permission}</div>
+                                        <div class="col-12 col-md-4"><strong>來源:</strong> ${u.userType}</div>
+                                        <div class="col-12 col-md-4"><strong>停權:</strong> ${u.isDeleted ? '是' : '否'}</div>
+                                        <div class="col-12 mt-2"><input class="form-control form-control-sm" value="${u.remark}" onchange="updateRemark('${u.id}', this.value)"></div>
+                                        <div class="col-12 d-flex gap-2 mt-3">
+                                            <button class="btn btn-sm btn-secondary" onclick="resetPassword('${u.id}')">改密碼</button>
+                                                 <button class="btn btn-sm ${u.isDeleted ? 'btn-success' : 'btn-danger'}" onclick="${u.isDeleted ? `enableUser('${u.id}')` : `disableUser('${u.id}')`}">
+            ${u.isDeleted ? '啟用' : '停權'}
+        </button>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`);
+                });
+            } else {
+                // ✅ 桌機版：使用表格方式呈現
+                let table = `<table class="table table-bordered align-middle text-center">
+                                        <thead class="table-dark"><tr>
+                                    <th>帳號</th><th>姓名</th><th>Email</th><th>電話</th>
+                                    <th>訂單</th><th>取消</th><th>角色</th><th>權限</th><th>來源</th><th>停權</th>
+                                    <th>備註</th><th>操作</th>
+                                </tr></thead><tbody>`;
+                visibleUsers.forEach(u => {
+                    table += `<tr>
+                        <td>${u.id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.phone}</td>
+                        <td>${u.orderNum}</td><td>${u.cancelNum}</td><td>${u.role}</td><td>${u.permission}</td><td>${u.userType}</td>
+                        <td>${u.isDeleted ? '是' : '否'}</td>
+                        <td><input class="form-control form-control-sm" value="${u.remark}" onchange="updateRemark('${u.id}', this.value)"></td>
+                        <td class="d-flex gap-2">
+                            <button class="btn btn-sm btn-secondary" onclick="resetPassword('${u.id}')">改密碼</button>
+                                    <button class="btn btn-sm ${u.isDeleted ? 'btn-success' : 'btn-danger'}" onclick="${u.isDeleted ? `enableUser('${u.id}')` : `disableUser('${u.id}')`}">
+            ${u.isDeleted ? '啟用' : '停權'}
+        </button>
+
+                        </td>
+                    </tr>`;
+                });
+                table += '</tbody></table>';
+                container.html(table);
+            }
+
+            renderPaginationControls(filtered.length, rowsPerPage, page);
         }
 
         function updateRemark(id, remark) {
@@ -146,15 +392,26 @@
                 error: () => showMsg('停權失敗', false)
             });
         }
+        function enableUser(id) {
+            if (!confirm("確認啟用此用戶？")) return;
 
+            $.ajax({
+                url: '/Management/UserManagement?handler=EnableUser',
+                method: 'POST',
+                data: { id },
+                headers: {
+                    'RequestVerificationToken': getToken()
+                },
+                success: res => showMsg(res.message, res.success),
+                error: () => showMsg('啟用失敗', false)
+            });
+        }
         function showMsg(msg, success) {
             const cls = success ? 'success' : 'danger';
-            $('#message-area').html(`<div class="alert alert-${cls}">${msg}</div>`);
+            $('#message-area').html(`<div class="alert alert-${cls} mt-3">${msg}</div>`);
         }
 
         $(document).ready(loadUsers);
     </script>
-
-
 </body>
 </html>

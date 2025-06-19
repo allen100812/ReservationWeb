@@ -1,129 +1,142 @@
 ﻿@page
 @model Web0524.Pages.Management.PortfolioManagementModel
-@{
-    var isEditing = Model.NewPortfolio?.Portfolio_Id != null;
-}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="all">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
     <link href="css/hover-min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="~/css/Share.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        .photo-wrapper {
-            position: relative;
-            display: inline-block;
-            margin: 2px;
+<style>
+    /* 圖片外層容器 */
+    .photo-wrapper {
+        position: relative;
+        display: inline-block;
+        margin: 4px;
+        width: 300px;  /* 原本100，放大3倍 */
+        height: 300px;
+        overflow: hidden;
+    }
+
+    /* 預覽圖片 */
+    .photo-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 6px;
+        display: block;
+    }
+
+    /* 刪除按鈕樣式（叉叉） */
+    .photo-wrapper .delete-btn,
+    .photo-wrapper .remove-photo-btn,
+    .photo-wrapper .remove-upload-photo {
+        position: absolute;
+        top: 8px;        /* 微調位置 */
+        right: 8px;
+        background-color: rgba(255, 0, 0, 0.8);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        width: 30px;     /* 放大一點點更好點 */
+        height: 30px;
+        font-size: 18px;
+        line-height: 28px;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* 訊息區 */
+    #message-area {
+        margin-bottom: 1rem;
+    }
+
+    /* 響應式切換 */
+    @@media (max-width: 768px) {
+        .responsive-table {
+            display: none;
         }
+        .accordion {
+            display: block;
+        }
+    }
 
-            .photo-wrapper img {
-                width: 80px;
-                height: 80px;
-                object-fit: cover;
-                border-radius: 5px;
-            }
+    @@media (min-width: 769px) {
+        .responsive-table {
+            display: block;
+        }
+        .accordion {
+            display: none;
+        }
+    }
+</style>
 
-            .photo-wrapper .delete-btn {
-                position: absolute;
-                top: 0;
-                right: 0;
-                background: rgba(0, 0, 0, 0.7);
-                color: white;
-                border: none;
-                border-radius: 50%;
-                width: 20px;
-                height: 20px;
-                font-size: 12px;
-                cursor: pointer;
-            }
-    </style>
+
+
 </head>
 <body>
     @Html.AntiForgeryToken()
-    <div class="container " style="margin-top:200px;">
-        <h2>作品集管理</h2>
-        <div id="message-area">
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger">
-                    @TempData["ErrorMessage"]
-                </div>
-            }
-        </div>
+    <div class="container " style="margin-top:200px; margin-bottom:200px; ">
+        <h2 class="mb-4">作品集管理</h2>
+        <div id="message-area"></div>
 
-        <form method="post" asp-page-handler="Update" enctype="multipart/form-data">
-            @Html.AntiForgeryToken()
-            <input type="hidden"  asp-for="NewPortfolio.Portfolio_Id" />
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input asp-for="NewPortfolio.Portfolio_Title" class="form-control" placeholder="作品標題" required />
+        <form id="portfolioForm" enctype="multipart/form-data">
+            <input type="hidden" name="id" id="portfolio-id">
+            <input type="hidden" name="preservedPhotoIds" id="preservedPhotoIds">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="title" placeholder="作品標題" required>
                 </div>
-                <div class="col-md-4">
-                    <input asp-for="NewPortfolio.Portfolio_URL" class="form-control" placeholder="連結 URL" />
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="url" placeholder="作品連結 URL">
                 </div>
-                <div class="col-md-4">
-                    <select asp-for="NewPortfolio.PortfolioGroup_Id" class="form-select">
+                <div class="col-md-6">
+                    <select name="groupId" class="form-select" required>
                         <option value="">-- 選擇群組 --</option>
-                        @foreach (var group in Model.AllGroups)
+                        @foreach (var g in Model.AllGroups)
                         {
-                            <option value="@group.PortfolioGroup_Id">@group.PortfolioGroup_Name</option>
+                            <option value="@g.PortfolioGroup_Id">@g.PortfolioGroup_Name</option>
                         }
                     </select>
                 </div>
-                <div class="col-md-12">
-                    <textarea asp-for="NewPortfolio.Portfolio_Content" class="form-control" rows="3" placeholder="作品內容"></textarea>
-                </div>
-                <div class="col-md-3">
-                    <input type="file" name="PhotoUploads" class="form-control" multiple accept="image/*" />
-                    <small class="text-muted">最多可上傳 10 張圖片</small>
-                </div>
-                <div class="col-md-2">
+                <div class="col-md-6">
                     <div class="form-check">
-                        <input asp-for="NewPortfolio.IsPublished" class="form-check-input" type="checkbox" />
-                        <label class="form-check-label" for="NewPortfolio_IsPublished">上架</label>
+                        <input type="checkbox" class="form-check-input" id="isPublished" name="isPublished">
+                        <label class="form-check-label" for="isPublished">上架</label>
                     </div>
                 </div>
-
-                @if (Model.NewPortfolio?.Portfolio_Id != null && Model.NewPortfolio.PhotoList?.Any() == true)
-                {
-                    <div class="col-md-12">
-                        <label>現有圖片：</label><br />
-                        @foreach (var photo in Model.NewPortfolio.PhotoList)
-                        {
-                            var base64 = Convert.ToBase64String(photo.Photo);
-                            <div class="photo-wrapper" id="photo_@photo.Photo_Id">
-                                <img src="data:image/png;base64,@base64" />
-                                <button type="button" class="delete-btn delete-photo-btn" data-id="@photo.Photo_Id">&times;</button>
-                            </div>
-                        }
-                    </div>
-                }
-
+                <div class="col-12">
+                    <textarea class="form-control" name="content" rows="4" placeholder="作品內容"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">新增圖片</label>
+                    <input type="file" id="photo-upload" name="photos" class="form-control" accept="image/*" multiple>
+                    <div class="row mt-3" id="preview-area"></div>
+                </div>
                 <div class="col-md-12">
-                    <button type="submit" name="action" value="@(Model.NewPortfolio?.Portfolio_Id != 0 ? "save" : "add")" class="btn @(Model.NewPortfolio?.Portfolio_Id != 0 ? "btn-primary" : "btn-success")">
-                        @(Model.NewPortfolio?.Portfolio_Id != 0 ? "儲存變更" : "新增作品")
-                    </button>
+                    <div id="existing-images" class="mt-3 row row-cols-2 row-cols-md-4 g-3"></div>
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">儲存作品</button>
                 </div>
             </div>
         </form>
+        <hr />
+        <h4 class="mt-4">目前所有作品集</h4>
 
-
-        @if (Model.AllPortfolios != null && Model.AllPortfolios.Any())
-        {
-            <hr />
-            <h4>所有作品列表</h4>
+        <div class="responsive-table mt-4">
             <table class="table table-bordered table-hover mt-3">
-                <thead>
+                <thead class="table-dark">
                     <tr>
-                        <th>編號</th>
                         <th>標題</th>
                         <th>連結</th>
                         <th>內容</th>
@@ -132,46 +145,19 @@
                         <th>操作</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach (var p in Model.AllPortfolios)
-                    {
-                        var group_item = Model.AllGroups.FirstOrDefault(x=>x.PortfolioGroup_Id == p.PortfolioGroup_Id);
-
-                        <tr>
-                            <td>@p.Portfolio_Id</td>
-                            <td>@p.Portfolio_Title</td>
-                            <td><a href="@p.Portfolio_URL" target="_blank">連結</a></td>
-                            <td>@p.Portfolio_Content</td>
-                            <td>@(group_item != null ? group_item.PortfolioGroup_Name : "未知群組")</td>
-                            <td>
-                                @if (p.IsPublished)
-                                {
-                                    <span class="badge bg-success">已上架</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">未上架</span>
-                                }
-                            </td>
-                            <td>
-                                <!-- 編輯按鈕（觸發 OnPostEditAsync） -->
-                                <form method="post" asp-page-handler="Edit" class="d-inline">
-                                    <input type="hidden" name="portfolioId" value="@p.Portfolio_Id" />
-                                    <button type="submit" class="btn btn-sm btn-info">編輯</button>
-                                </form>
-
-                                <!-- 刪除按鈕（觸發 OnPostDeleteAsync） -->
-                                <form method="post" asp-page-handler="Delete" class="d-inline">
-                                    <input type="hidden" name="portfolioId" value="@p.Portfolio_Id" />
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('確認刪除？');">刪除</button>
-                                </form>
-                            </td>
-
-                        </tr>
-                    }
+                <tbody id="portfolio-table-body">
+                    <!-- JS 動態渲染 -->
                 </tbody>
             </table>
-        }
+        </div>
+        
+        <!-- 手機手風琴 -->
+        <div class="accordion mt-4" id="portfolio-accordion">
+            <!-- JS 動態渲染 -->
+        </div>
+
+
+        <div id="pagination-container" class="mt-4"></div>
 
         <hr />
         <h4>作品群組管理</h4>
@@ -188,170 +174,441 @@
                 <button type="button" id="cancel-edit-btn" class="btn btn-outline-secondary d-none">取消修改</button>
                 <input type="hidden" id="edit-group-id" />
             </div>
-
         </form>
-        <table class="table table-bordered mt-3">
-            <thead>
-                <tr>
-                    <th>群組名稱</th>
-                    <th>內容</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody id="group-table">
-                @foreach (var g in Model.AllGroups)
-                {
-                    <tr id="group_row_@g.PortfolioGroup_Id">
-                        <td>@g.PortfolioGroup_Name</td>
-                        <td>@g.PortfolioGroup_Content</td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-warning edit-group-btn" data-id="@g.PortfolioGroup_Id">編輯</button>
-                            <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="@g.PortfolioGroup_Id">刪除</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+
+        <!-- 桌機版群組表格 -->
+        <div class="responsive-table mt-4">
+            <table class="table table-bordered">
+                <thead class="table-dark"><tr><th>群組名稱</th><th>內容</th><th>操作</th></tr></thead>
+                <tbody id="group-table-body">
+                    @foreach (var g in Model.AllGroups)
+                    {
+                        <tr>
+                            <td>@g.PortfolioGroup_Name</td>
+                            <td>@g.PortfolioGroup_Content</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-warning edit-group-btn" data-id="@g.PortfolioGroup_Id">編輯</button>
+                                <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="@g.PortfolioGroup_Id">刪除</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 手機版群組手風琴 -->
+        <div class="accordion mt-4" id="group-accordion">
+            @foreach (var g in Model.AllGroups.Select((item, i) => new { item, i }))
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="group-heading-@g.i">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#group-collapse-@g.i">
+                            @g.item.PortfolioGroup_Name
+                        </button>
+                    </h2>
+                    <div id="group-collapse-@g.i" class="accordion-collapse collapse" data-bs-parent="#group-accordion">
+                        <div class="accordion-body">
+                            <div><strong>內容：</strong>@g.item.PortfolioGroup_Content</div>
+                            <div class="mt-2 d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-warning edit-group-btn" data-id="@g.item.PortfolioGroup_Id">編輯</button>
+                                <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="@g.item.PortfolioGroup_Id">刪除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div id="group-pagination" class="mt-4"></div>
+
     </div>
+
+
     <script>
-        // 表單驗證：新增或儲存作品集前先檢查欄位
-        $("form[method='post'][asp-page-handler='Update']").on("submit", function (e) {
-            const title = $("input[name='NewPortfolio.Portfolio_Title']").val().trim();
-            const groupId = $("select[name='NewPortfolio.PortfolioGroup_Id']").val();
-
-            if (!title) {
-                e.preventDefault();
-                $("#message-area").html(`<div class="alert alert-warning">請填寫作品標題</div>`);
-                return;
-            }
-
-            if (!groupId) {
-                e.preventDefault();
-                $("#message-area").html(`<div class="alert alert-warning">請選擇群組</div>`);
-                return;
-            }
-        });
-
-        $(document).on("click", ".delete-photo-btn", function () {
-            if (!confirm("確認刪除？")) return;
-            const id = $(this).data("id");
+ 
+        function deletePortfolio(id) {
+            if (!confirm("確定要刪除此作品？")) return;
             $.ajax({
-                url: `?handler=DeletePhoto&photoId=${id}`,
+                url: `?handler=Delete&portfolioId=${id}`,
                 method: 'POST',
-                headers: {
-                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                },
+                headers: { 'RequestVerificationToken': getToken() },
                 success: function (res) {
                     if (res.success) {
-                        $("#photo_" + id).remove();
-                        $("#message-area").html(`<div class="alert alert-warning">圖片已刪除</div>`);
+                        showMsg("刪除成功", true);
+                        setTimeout(() => location.reload(), 800);
                     } else {
-                        $("#message-area").html(`<div class="alert alert-danger">刪除失敗：${res.message}</div>`);
+                        showMsg(res.message || "刪除失敗", false);
                     }
                 },
                 error: function () {
-                    $("#message-area").html(`<div class="alert alert-danger">刪除失敗</div>`);
+                    showMsg("刪除失敗，請稍後再試。", false);
                 }
             });
-        });// ✅ 新增群組（完成後刷新頁面）
+        }
+
         $("#add-group-btn").click(function () {
             const name = $("#new-group-name").val().trim();
             const content = $("#new-group-content").val().trim();
-            if (!name) {
-                alert("請輸入群組名稱");
-                return;
-            }
+            if (!name) return alert("請輸入群組名稱");
 
             $.ajax({
                 url: `?handler=AddGroup&name=${encodeURIComponent(name)}&content=${encodeURIComponent(content)}`,
                 method: 'POST',
-                headers: {
-                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                },
+                headers: { 'RequestVerificationToken': getToken() },
                 success: function (res) {
-                    if (res.success) {
-                        location.reload();
-                    } else {
-                        alert(res.message || "新增失敗");
-                    }
+                    if (res.success) location.reload();
+                    else alert("新增失敗");
                 }
             });
-
-
         });
 
-        // ✅ 編輯群組：將資料填入欄位，顯示儲存按鈕
         $(document).on("click", ".edit-group-btn", function () {
             const id = $(this).data("id");
-            const name = $(this).closest("tr").find("td:eq(0)").text().trim();
-            const content = $(this).closest("tr").find("td:eq(1)").text().trim();
-
+            const name = $(this).data("name");
+            const content = $(this).data("content");
             $("#edit-group-id").val(id);
             $("#new-group-name").val(name);
             $("#new-group-content").val(content);
-
             $("#add-group-btn").addClass("d-none");
             $("#save-group-btn, #cancel-edit-btn").removeClass("d-none");
         });
 
-        // ✅ 儲存修改
+
         $("#save-group-btn").click(function () {
             const id = $("#edit-group-id").val();
             const name = $("#new-group-name").val().trim();
             const content = $("#new-group-content").val().trim();
-            if (!name) {
-                alert("請輸入群組名稱");
-                return;
-            }
+            if (!name) return alert("請輸入群組名稱");
 
             $.ajax({
                 url: `?handler=UpdateGroup&id=${id}&name=${encodeURIComponent(name)}&content=${encodeURIComponent(content)}`,
                 method: 'POST',
-                headers: {
-                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                },
+                headers: { 'RequestVerificationToken': getToken() },
                 success: function (res) {
-                    if (res.success) {
-                        location.reload(); // ✅ 修改成功後刷新頁面
-                    } else {
-                        alert("更新失敗");
-                    }
+                    if (res.success) location.reload();
+                    else alert("更新失敗");
                 }
             });
         });
 
-        // ✅ 取消編輯
         $("#cancel-edit-btn").click(function () {
             $("#edit-group-id").val("");
             $("#new-group-name").val("");
             $("#new-group-content").val("");
-
             $("#add-group-btn").removeClass("d-none");
             $("#save-group-btn, #cancel-edit-btn").addClass("d-none");
         });
 
-        // ✅ 刪除群組
         $(document).on("click", ".delete-group-btn", function () {
             const id = $(this).data("id");
-            if (!confirm("確定要刪除此群組嗎？")) return;
+            if (!confirm("確定要刪除此群組？")) return;
 
             $.ajax({
                 url: `?handler=DeleteGroup&id=${id}`,
                 method: 'POST',
-                headers: {
-                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                },
+                headers: { 'RequestVerificationToken': getToken() },
                 success: function (res) {
-                    if (res.success) {
-                        location.reload(); // ✅ 刪除成功後刷新頁面
-                    } else {
-                        alert("刪除失敗");
-                    }
+                    if (res.success) location.reload();
+                    else alert("刪除失敗");
                 }
             });
         });
+    </script>
 
 
+    <script>
+        let selectedFiles = []; // [{ id, file }]
+        let preservedPhotoIds = []; // [int]
+        let fileCounter = 0;
+
+        function getToken() {
+            return $('input[name="__RequestVerificationToken"]').val();
+        }
+
+        function showMsg(msg, success = true) {
+            const cls = success ? 'success' : 'danger';
+            $('#message-area').html(`<div class="alert alert-${cls}">${msg}</div>`);
+        }
+
+        function editPortfolio(id) {
+            $.ajax({
+                url: `?handler=Edit&portfolioId=${id}`,
+                method: 'POST',
+                headers: { 'RequestVerificationToken': getToken() },
+                success: function (res) {
+                    if (res.success && res.data) {
+                        const p = res.data;
+                        selectedFiles = [];
+                        preservedPhotoIds = [];
+                        fileCounter = 0;
+
+                        $("#portfolio-id").val(p.id);
+                        $("input[name='title']").val(p.title);
+                        $("input[name='url']").val(p.url);
+                        $("select[name='groupId']").val(p.groupId);
+                        $("textarea[name='content']").val(p.content);
+                        $("#isPublished").prop("checked", p.isPublished);
+                        $("#existing-images").empty();
+                        $("#preview-area").empty();
+
+                        if (p.photoList?.length > 0) {
+                            p.photoList.forEach((img) => {
+                                preservedPhotoIds.push(img.photoId);
+                                $("#existing-images").append(`
+                                                <div class="photo-wrapper" id="photo_${img.photoId}" data-preserved="true">
+                                            <img src="data:image/jpeg;base64,${img.base64}" />
+                                                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 remove-photo-btn" data-id="${img.photoId}">&times;</button>
+                                        </div>`);
+                            });
+                        }
+                    } else {
+                        showMsg("載入失敗", false);
+                    }
+                },
+                error: function () {
+                    showMsg("無法載入資料", false);
+                }
+            });
+        }
+
+        $(document).on('change', '#photo-upload', function () {
+            const files = this.files;
+            if (files.length > 0) {
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    const fileId = `file_${fileCounter++}`;
+                    reader.onload = function (e) {
+                        $('#preview-area').append(`
+                                <div class="photo-wrapper" data-id="${fileId}">
+                                    <img src="${e.target.result}" />
+                                    <button type="button" class="delete-btn remove-upload-photo" data-id="${fileId}">&times;</button>
+                                </div>`);
+                        selectedFiles.push({ id: fileId, file: file });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+            this.value = null;
+        });
+
+        $(document).on('click', '.remove-upload-photo', function () {
+            const fileId = $(this).data('id');
+            selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+            $(this).closest('.photo-wrapper').remove();
+        });
+
+        $(document).on('click', '.delete-photo-btn', function () {
+            const photoId = $(this).data('id');
+            preservedPhotoIds = preservedPhotoIds.filter(id => id !== photoId);
+            $(this).closest('.photo-wrapper').remove();
+        });
+
+        $('#portfolioForm').submit(function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            // 加入舊圖 ID
+            preservedPhotoIds.forEach(id => formData.append("preservedPhotoIds", id));
+            // 加入新圖檔
+            selectedFiles.forEach(obj => formData.append("photos", obj.file));
+
+            $.ajax({
+                url: '?handler=Save',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: { 'RequestVerificationToken': getToken() },
+                success: function (res) {
+                    showMsg(res.message, res.success);
+                    if (res.success) {
+                        selectedFiles = [];
+                        preservedPhotoIds = [];
+                        $('#preview-area').empty();
+                        $('#existing-images').empty();
+                        $('#portfolioForm')[0].reset();
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                },
+                error: function () {
+                    showMsg("儲存失敗，請稍後再試。", false);
+                }
+            });
+        });
+    </script>
+    <script>
+        const allData = @Html.Raw(Json.Serialize(Model.AllPortfolios));
+        const allGroups = @Html.Raw(Json.Serialize(Model.AllGroups));
+        const isMobile = window.innerWidth < 768;
+        const rowsPerPage = 10;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPage(1);
+        });
+
+        function renderPage(page) {
+            const start = (page - 1) * rowsPerPage;
+            const visible = allData.slice(start, start + rowsPerPage);
+
+            if (isMobile) {
+                let html = '';
+                visible.forEach((p, i) => {
+                    const group = allGroups.find(g => g.portfolioGroup_Id === p.portfolioGroup_Id)?.portfolioGroup_Name || '未知';
+                    html += `<div class="accordion-item">
+                            <h2 class="accordion-header" id="heading-${i}">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${i}">
+                                    ${p.portfolio_Title}
+                                </button>
+                            </h2>
+                            <div id="collapse-${i}" class="accordion-collapse collapse" data-bs-parent="#portfolio-accordion">
+                                <div class="accordion-body">
+                                    <div><strong>內容：</strong>${p.portfolio_Content}</div>
+                                    <div><strong>群組：</strong>${group}</div>
+                                    <div><strong>狀態：</strong>${p.isPublished ? '<span class="badge bg-success">上架</span>' : '<span class="badge bg-secondary">未上架</span>'}</div>
+                                    <div class="mt-2 d-flex gap-2">
+                                        <button class="btn btn-sm btn-warning" onclick="editPortfolio(${p.portfolio_Id})">編輯</button>
+                                        <button class="btn btn-sm btn-danger" onclick="deletePortfolio(${p.portfolio_Id})">刪除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                document.getElementById('portfolio-accordion').innerHTML = html;
+            } else {
+                let html = '';
+                visible.forEach(p => {
+                    const group = allGroups.find(g => g.portfolioGroup_Id === p.portfolioGroup_Id)?.portfolioGroup_Name || '未知';
+                    html += `<tr>
+                            <td>${p.portfolio_Title}</td>
+                            <td><a href="${p.portfolio_URL}" target="_blank">連結</a></td>
+                            <td>${p.portfolio_Content}</td>
+                            <td>${group}</td>
+                            <td>${p.isPublished ? '<span class="badge bg-success">上架</span>' : '<span class="badge bg-secondary">未上架</span>'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="editPortfolio(${p.portfolio_Id})">編輯</button>
+                                <button class="btn btn-sm btn-danger" onclick="deletePortfolio(${p.portfolio_Id})">刪除</button>
+                            </td>
+                        </tr>`;
+                });
+                document.getElementById('portfolio-table-body').innerHTML = html;
+            }
+
+            renderPaginationControls(allData.length, rowsPerPage, page);
+        }
+
+        function renderPaginationControls(totalRows, rowsPerPage, currentPage) {
+            const container = document.getElementById('pagination-container');
+            const totalPages = Math.ceil(totalRows / rowsPerPage);
+            let html = '<nav><ul class="pagination justify-content-center">';
+
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="renderPage(${currentPage - 1})">&laquo;</a></li>`;
+
+            const maxVisible = 5;
+            let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let end = Math.min(totalPages, start + maxVisible - 1);
+            if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+
+            for (let i = start; i <= end; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="renderPage(${i})">${i}</a></li>`;
+            }
+
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="renderPage(${currentPage + 1})">&raquo;</a></li>`;
+
+            html += '</ul></nav>';
+            container.innerHTML = html;
+        }
+    </script>
+    <script>
+        const groupData = @Html.Raw(Json.Serialize(Model.AllGroups));
+        const groupsPerPage = 5;
+
+        function renderGroupPage(page) {
+            const start = (page - 1) * groupsPerPage;
+            const visibleGroups = groupData.slice(start, start + groupsPerPage);
+
+            if (isMobile) {
+                let accordionHTML = '';
+                visibleGroups.forEach((g, i) => {
+                    const safeName = g.portfolioGroup_Name.replaceAll('"', '&quot;');
+                    const safeContent = g.portfolioGroup_Content.replaceAll('"', '&quot;');
+                    accordionHTML += `<div class="accordion-item">
+                            <h2 class="accordion-header" id="group-heading-${i}">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#group-collapse-${i}">
+                                    ${g.portfolioGroup_Name}
+                                </button>
+                            </h2>
+                            <div id="group-collapse-${i}" class="accordion-collapse collapse" data-bs-parent="#group-accordion">
+                                <div class="accordion-body">
+                                    <div><strong>內容：</strong>${g.portfolioGroup_Content}</div>
+                                    <div class="mt-2 d-flex gap-2">
+                                                        <button class="btn btn-sm btn-warning edit-group-btn"
+                        data-id="${g.portfolioGroup_Id}"
+                        data-name="${safeName}"
+                        data-content="${safeContent}">編輯</button>
+                                        <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="${g.portfolioGroup_Id}">刪除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                document.getElementById('group-accordion').innerHTML = accordionHTML;
+            } else {
+                let tableHTML = '';
+                visibleGroups.forEach(g => {
+                    tableHTML += `<tr>
+                            <td>${g.portfolioGroup_Name}</td>
+                            <td>${g.portfolioGroup_Content}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-warning edit-group-btn" data-id="${g.portfolioGroup_Id}" data-name="${g.portfolioGroup_Name}" data-content="${g.portfolioGroup_Content}">編輯</button>
+                                <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="${g.portfolioGroup_Id}">刪除</button>
+                            </td>
+                        </tr>`;
+                });
+                document.getElementById('group-table-body').innerHTML = tableHTML;
+            }
+
+            renderGroupPagination(groupData.length, groupsPerPage, page);
+        }
+
+        function renderGroupPagination(totalRows, rowsPerPage, currentPage) {
+            const container = document.getElementById('group-pagination');
+            const totalPages = Math.ceil(totalRows / rowsPerPage);
+            let html = '<nav><ul class="pagination justify-content-center">';
+
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="renderGroupPage(${currentPage - 1})">&laquo;</a></li>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="renderGroupPage(${i})">${i}</a></li>`;
+            }
+
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="renderGroupPage(${currentPage + 1})">&raquo;</a></li>`;
+            html += '</ul></nav>';
+
+            container.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPage(1);
+            renderGroupPage(1);
+        });
+
+        $(document).on("click", ".edit-group-btn", function () {
+            const id = $(this).data("id");
+            const name = $(this).data("name");
+            const content = $(this).data("content");
+            $("#edit-group-id").val(id);
+            $("#new-group-name").val(name);
+            $("#new-group-content").val(content);
+            $("#add-group-btn").addClass("d-none");
+            $("#save-group-btn, #cancel-edit-btn").removeClass("d-none");
+        });
     </script>
 </body>
 </html>
+

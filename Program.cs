@@ -10,6 +10,8 @@ using System.Diagnostics;
 using Web0524.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Web0524.Models.Helper;
+using Web0524.Models.Marketing;
+using Web0524.Models.LineMessage;
 
 
 
@@ -79,6 +81,8 @@ builder.Services.AddScoped<IMarketingService, MarketingService>();
 builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddScoped<IPortfolioGroupService, PortfolioGroupService>();
 builder.Services.AddHostedService<DailyOrderCompletionService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+
 
 builder.Services.AddHostedService<CouponDispatchBackgroundService>();
 

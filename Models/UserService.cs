@@ -2,6 +2,7 @@
 using System.Data;
 using System.Collections.Generic;
 using System.Linq;
+using Web0524.Models.Marketing;
 
 namespace Web0524.Models
 {

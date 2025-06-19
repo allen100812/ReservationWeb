@@ -4,7 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Text;
 
-namespace Web0524.Models
+namespace Web0524.Models.Marketing
 {
     public interface IMarketingService
     {
@@ -162,7 +162,7 @@ namespace Web0524.Models
                     if (string.IsNullOrWhiteSpace(user.Id)) continue;
 
                     bool match = false;
-                    switch ((AutoAssignRuleEnum)coupon.AutoAssignRule)
+                    switch (coupon.AutoAssignRule)
                     {
                         case AutoAssignRuleEnum.RegisterNow:
                         case AutoAssignRuleEnum.SpecificDate:
@@ -362,6 +362,7 @@ VALUES (@couponId, @memberId, @dispatchDate, 0, @note)",
 
         public string ApplyCouponByRecordId(int recordId, Order order)
         {
+
             if (order == null || order.OrderId <= 0)
                 return "❌ 訂單資料錯誤";
 
@@ -388,10 +389,10 @@ VALUES (@couponId, @memberId, @dispatchDate, 0, @note)",
             // 商品類別限制（若有）
             if (!string.IsNullOrEmpty(coupon.CategoryLimit))
             {
-                var orderProduct = _dbConnection.QueryFirstOrDefault<dynamic>(
+                var orderProduct = _dbConnection.QueryFirstOrDefault<int>(
                     "SELECT PGid FROM ProductTB WHERE ProductId = @id", new { id = order.ProductId });
 
-                if (orderProduct == null || !coupon.CategoryLimit.Contains(orderProduct.Category))
+                if (orderProduct == null || !coupon.CategoryLimit.Contains(orderProduct.ToString()))
                     return "❌ 優惠券不適用於此產品";
             }
 
@@ -411,9 +412,9 @@ VALUES (@couponId, @memberId, @dispatchDate, 0, @note)",
             // 更新 OrderTB
             _dbConnection.Execute(@"
         UPDATE OrderTB 
-        SET DiscountAmount = @discount, UsedCouponId = @recordId 
+        SET DiscountAmount = @discount, UsedCouponId = @couponId 
         WHERE OrderId = @orderId",
-                new { discount, recordId, orderId = order.OrderId });
+                new { discount, couponId = dispatch.CouponId, orderId = order.OrderId });
 
             // 更新 CouponDispatchRecordTB
             _dbConnection.Execute(@"

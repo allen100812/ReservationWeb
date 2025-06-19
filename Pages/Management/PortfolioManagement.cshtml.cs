@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Quartz.Util;
 using Web0524.Models;
 
 namespace Web0524.Pages.Management
@@ -16,111 +15,144 @@ namespace Web0524.Pages.Management
             _groupService = groupService;
         }
 
-        [BindProperty]
-        public Portfolio NewPortfolio { get; set; } = new();
-
-        [BindProperty]
-        public List<IFormFile> PhotoUploads { get; set; } = new();
-
         public List<Portfolio> AllPortfolios { get; set; } = new();
         public List<PortfolioGroup> AllGroups { get; set; } = new();
 
-        public async Task OnGetAsync()
+        public void OnGet()
         {
-            AllPortfolios = (await _portfolioService.GetAllAsync()).ToList();
-            AllGroups = (await _groupService.GetAllAsync()).ToList();
+            AllPortfolios = _portfolioService.GetAllAsync().Result.ToList();
+            AllGroups = _groupService.GetAllAsync().Result.ToList();
         }
 
-        public async Task<IActionResult> OnPostUpdateAsync(string action)
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnPostEdit(int portfolioId)
         {
-            Console.WriteLine($"✅ OnPostUpdateAsync called, Action = {action}");
-            if (NewPortfolio.PortfolioGroup_Id <= 0)
-            {
-                Console.WriteLine("CreateAsync1");
-                TempData["ErrorMessage"] = "請選擇作品集群組";
-                return Page();
-            }
+            var p = _portfolioService.GetByIdAsync(portfolioId).Result;
+            if (p == null)
+                return new JsonResult(new { success = false });
 
-            AllGroups = (await _groupService.GetAllAsync()).ToList(); // 保證錯誤時仍可用
-            AllPortfolios = (await _portfolioService.GetAllAsync()).ToList(); // 同上
-            if (!ModelState.IsValid)
+            return new JsonResult(new
             {
-                foreach (var key in ModelState.Keys)
+                success = true,
+                data = new
                 {
-                    foreach (var error in ModelState[key].Errors)
+                    id = p.Portfolio_Id,
+                    title = p.Portfolio_Title,
+                    content = p.Portfolio_Content,
+                    url = p.Portfolio_URL,
+                    isPublished = p.IsPublished,
+                    groupId = p.PortfolioGroup_Id,
+                    photoList = p.PhotoList.Select(photo => new
                     {
-                        Console.WriteLine($"❌ 驗證失敗：{key} = {error.ErrorMessage}");
-                    }
+                        photoId = photo.Photo_Id,
+                        base64 = Convert.ToBase64String(photo.Photo)
+                    }).ToList()
                 }
+            });
+        }
 
-                // 重新讀取 PhotoList（若為編輯模式）
-                if (NewPortfolio?.Portfolio_Id > 0)
-                {
-                    var dbPortfolio = await _portfolioService.GetByIdAsync(NewPortfolio.Portfolio_Id);
-                    if (dbPortfolio != null)
-                    {
-                        NewPortfolio.PhotoList = dbPortfolio.PhotoList;
-                    }
-                }
-
-                TempData["ErrorMessage"] = "欄位驗證失敗，請檢查欄位是否正確填寫。";
-                return Page();
-            }
-
-
-            var photoBytes = new List<byte[]>();
-            foreach (var file in PhotoUploads)
-            {
-                using var ms = new MemoryStream();
-                await file.CopyToAsync(ms);
-                photoBytes.Add(ms.ToArray());
-            }
-            Console.WriteLine(action);
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnPostSave()
+        {
             try
             {
-                if (action == "add")
+                var form = Request.Form;
+                var files = Request.Form.Files;
+
+                var portfolioId = string.IsNullOrEmpty(form["id"]) ? 0 : int.Parse(form["id"]);
+                var original = portfolioId > 0 ? _portfolioService.GetByIdAsync(portfolioId).Result : null;
+
+                var portfolio = new Portfolio
                 {
-                    await _portfolioService.CreateAsync(NewPortfolio, photoBytes);
-                }
-                else if (action == "save")
+                    Portfolio_Id = portfolioId,
+                    PortfolioGroup_Id = int.Parse(form["groupId"]),
+                    Portfolio_Title = form["title"],
+                    Portfolio_Content = form["content"],
+                    Portfolio_URL = form["url"],
+                    IsPublished = form["isPublished"] == "true",
+                    PhotoList = new List<PortfolioPhoto>()
+                };
+
+                var preservedIds = form["preservedPhotoIds"].ToArray()
+                    .Where(s => int.TryParse(s, out _))
+                    .Select(int.Parse)
+                    .ToHashSet();
+
+                if (original != null)
                 {
-                    await _portfolioService.UpdateAsync(NewPortfolio, photoBytes, new List<int>());
+                    foreach (var photo in original.PhotoList)
+                    {
+                        if (preservedIds.Contains(photo.Photo_Id))
+                            portfolio.PhotoList.Add(photo);
+                    }
                 }
+
+
+                foreach (var file in files)
+                {
+                    if (file?.Length > 0)
+                    {
+                        using var ms = new MemoryStream();
+                        file.CopyTo(ms);
+                        portfolio.PhotoList.Add(new PortfolioPhoto
+                        {
+                            Portfolio_Id = portfolio.Portfolio_Id,
+                            Photo = ms.ToArray()
+                        });
+                    }
+                }
+
+                if (portfolioId == 0)
+                {
+                    _portfolioService.CreateAsync(portfolio, portfolio.PhotoList.Select(p => p.Photo).ToList()).Wait();
+                }
+                else
+                {
+                    var deletePhotoIds = original?.PhotoList
+                        .Where(p => !preservedIds.Contains(p.Photo_Id))
+                        .Select(p => p.Photo_Id)
+                        .ToList() ?? new List<int>();
+
+                    _portfolioService.UpdateAsync(
+                        portfolio,
+                        portfolio.PhotoList.Where(p => p.Photo_Id == 0).Select(p => p.Photo).ToList(),
+                        deletePhotoIds
+                    ).Wait();
+                }
+
+
+
+                return new JsonResult(new { success = true, message = "儲存成功" });
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "儲存過程中發生錯誤：" + ex.Message;
-                return Page();
+                return new JsonResult(new { success = false, message = "儲存失敗：" + ex.Message });
             }
-
-            return RedirectToPage();
         }
 
         [IgnoreAntiforgeryToken]
-        public async Task<IActionResult> OnPostDeletePhotoAsync(int photoId)
+        public JsonResult OnPostDelete(int portfolioId)
         {
-            var success = await _portfolioService.DeletePhotoAsync(photoId);
+            try
+            {
+                _portfolioService.DeleteAsync(portfolioId).Wait();
+                return new JsonResult(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return new JsonResult(new { success = false, message = ex.Message });
+            }
+        }
+
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnPostDeletePhoto(int photoId)
+        {
+            var success = _portfolioService.DeletePhotoAsync(photoId).Result;
             return new JsonResult(new { success });
         }
 
-        public async Task<IActionResult> OnPostEditAsync(int portfolioId)
-        {
-            Console.WriteLine($"⚙️ 編輯作品集 ID = {portfolioId}"); // 先確認有執行
-
-            NewPortfolio = await _portfolioService.GetByIdAsync(portfolioId) ?? new();
-            AllPortfolios = (await _portfolioService.GetAllAsync()).ToList();
-            AllGroups = (await _groupService.GetAllAsync()).ToList();
-
-            return Page(); // 回到原本頁面，表單會用 NewPortfolio 資料渲染
-        }
-
-        public async Task<IActionResult> OnPostDeleteAsync(int portfolioId)
-        {
-            await _portfolioService.DeleteAsync(portfolioId);
-            return RedirectToPage();
-        }
         [IgnoreAntiforgeryToken]
-        public async Task<IActionResult> OnPostAddGroupAsync(string name, string content)
+        public JsonResult OnPostAddGroup(string name, string content)
         {
             var group = new PortfolioGroup
             {
@@ -128,23 +160,29 @@ namespace Web0524.Pages.Management
                 PortfolioGroup_Content = content
             };
 
-            var success = await _groupService.CreateAsync(group);
+            var success = _groupService.CreateAsync(group).Result;
             return new JsonResult(new { success, group });
         }
 
-
         [IgnoreAntiforgeryToken]
-        public async Task<IActionResult> OnPostDeleteGroupAsync(int id)
+        public JsonResult OnPostDeleteGroup(int id)
         {
-            var result = await _groupService.DeleteAsync(id);
+            var result = _groupService.DeleteAsync(id).Result;
             return new JsonResult(new { success = result });
         }
+
         [IgnoreAntiforgeryToken]
-        public async Task<IActionResult> OnPostUpdateGroupAsync(int id, string name, string content)
+        public JsonResult OnPostUpdateGroup(int id, string name, string content)
         {
-            var result = await _groupService.UpdateAsync(new PortfolioGroup { PortfolioGroup_Id = id, PortfolioGroup_Name = name, PortfolioGroup_Content = content });
+            var group = new PortfolioGroup
+            {
+                PortfolioGroup_Id = id,
+                PortfolioGroup_Name = name,
+                PortfolioGroup_Content = content
+            };
+
+            var result = _groupService.UpdateAsync(group).Result;
             return new JsonResult(new { success = result });
         }
     }
 }
-

@@ -1,4 +1,4 @@
-﻿namespace Web0524.Models
+﻿namespace Web0524.Models.Marketing
 {
     public class CouponDispatchBackgroundService : BackgroundService
     {

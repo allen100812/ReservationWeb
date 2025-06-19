@@ -9,22 +9,38 @@ namespace Web0524.Models
 {
     public interface IReportService
     {
-        ReportSummary GetOverallSummary();
-        List<MonthlyOrderReport> GetMonthlyOrderStats(int year);
-        List<User> GetTopPointUsers(int topN);
-        List<Coupon> GetMostUsedCoupons(int topN);
-        List<DesignerPerformance> GetDesignerPerformance();
-        List<ServicePopularity> GetPopularServices(int topN);
-        List<User> GetActiveMembers(int topN);
-        List<User> GetBirthdayMembers(bool todayOnly);
-        int GetFirstTimeUserCount(DateTime startDate, DateTime endDate);
-        List<Order> GetDailyOrders(DateTime date);
-        List<(string serviceOrDesigner, double cancelRate)> GetCancelRateReport();
-        List<(string hour, int count)> GetPeakHours();
-        List<(string code, int totalIssued, int usedCount)> GetCouponUsageStats();
-        double GetMonthlyRevenue(int year, int month);
-        List<(string uid, double ltv)> GetUserLTV();
-        List<User> GetInactiveMembers(int inactiveDays);
+        // 1. 總預約統計：每日 / 每月 / 區間
+        Task<IEnumerable<ReservationSummaryDto>> GetReservationSummaryAsync(DateTime? startDate, DateTime? endDate);
+
+        // 2. 設計師接單報表
+        Task<IEnumerable<DesignerReservationStatsDto>> GetDesignerReservationStatsAsync(DateTime? startDate, DateTime? endDate);
+
+        // 3. 高峰時段分析
+        Task<IEnumerable<PeakHourStatsDto>> GetPeakHourStatsAsync(DateTime? startDate, DateTime? endDate);
+
+        // 4. 營收統計報表（日/月）
+        Task<IEnumerable<RevenueSummaryDto>> GetRevenueSummaryAsync(DateTime? startDate, DateTime? endDate);
+
+        // 5. 設計師營收報表
+        Task<IEnumerable<DesignerRevenueDto>> GetDesignerRevenueAsync(DateTime? startDate, DateTime? endDate);
+
+        // 6. 支付方式分析
+        Task<IEnumerable<PaymentMethodStatsDto>> GetPaymentMethodStatsAsync(DateTime? startDate, DateTime? endDate);
+
+        // 7. 會員活躍度分析
+        Task<IEnumerable<MemberActivityDto>> GetMemberActivityAsync(DateTime? startDate, DateTime? endDate);
+
+        // 8. 點數使用分析
+        Task<IEnumerable<PointUsageDto>> GetPointUsageSummaryAsync(DateTime? startDate, DateTime? endDate);
+
+        // 9. 高貢獻會員排行
+        Task<IEnumerable<TopMemberDto>> GetTopMembersAsync(DateTime? startDate, DateTime? endDate, int topN = 20);
+
+        // 10. 優惠券使用分析
+        Task<IEnumerable<CouponUsageDto>> GetCouponUsageSummaryAsync(DateTime? startDate, DateTime? endDate);
+
+        // 11. 預約明細匯出
+        Task<IEnumerable<ReservationDetailDto>> GetReservationDetailsAsync(DateTime? startDate, DateTime? endDate, int? designerId = null);
     }
 
     public class ReportService : IReportService
@@ -36,191 +52,205 @@ namespace Web0524.Models
             _db = dbConnection;
         }
 
-        public ReportSummary GetOverallSummary()
-        {
-            var now = DateTime.Now;
-            return new ReportSummary
-            {
-                TotalUsers = _db.ExecuteScalar<int>("SELECT COUNT(*) FROM UserTB"),
-                ActiveUsersThisMonth = _db.ExecuteScalar<int>(@"
-                    SELECT COUNT(DISTINCT Uid) FROM OrderTB 
-                    WHERE YEAR(ReservationDateTime) = @Year AND MONTH(ReservationDateTime) = @Month",
-                    new { Year = now.Year, Month = now.Month }),
-                TotalOrders = _db.ExecuteScalar<int>("SELECT COUNT(*) FROM OrderTB"),
-                UsedCoupons = _db.ExecuteScalar<int>("SELECT COUNT(*) FROM MemberCouponTB WHERE IsUsed = 1"),
-                TotalPoints = _db.ExecuteScalar<int>("SELECT ISNULL(SUM(Points), 0) FROM PointLogTB")
-            };
-        }
-
-        public List<MonthlyOrderReport> GetMonthlyOrderStats(int year)
-        {
-            var list = new List<MonthlyOrderReport>();
-            for (int month = 1; month <= 12; month++)
-            {
-                var orderCount = _db.ExecuteScalar<int>("SELECT COUNT(*) FROM OrderTB WHERE YEAR(ReservationDateTime) = @Year AND MONTH(ReservationDateTime) = @Month", new { Year = year, Month = month });
-                var revenue = _db.ExecuteScalar<decimal>("SELECT ISNULL(SUM(Price), 0) FROM OrderTB WHERE YEAR(ReservationDateTime) = @Year AND MONTH(ReservationDateTime) = @Month", new { Year = year, Month = month });
-                list.Add(new MonthlyOrderReport { Year = year, Month = month, OrderCount = orderCount, TotalRevenue = (double)revenue });
-            }
-            return list;
-        }
-
-        public List<User> GetTopPointUsers(int topN)
+        public async Task<IEnumerable<ReservationSummaryDto>> GetReservationSummaryAsync(DateTime? startDate, DateTime? endDate)
         {
             var sql = @"
-                SELECT TOP (@TopN) u.*
-                FROM (
-                    SELECT MemberId, SUM(Points) AS TotalPoints
-                    FROM PointLogTB
-                    GROUP BY MemberId
-                ) AS p
-                JOIN UserTB u ON u.Id = p.MemberId
-                ORDER BY p.TotalPoints DESC";
-            return _db.Query<User>(sql, new { TopN = topN }).ToList();
+                SELECT
+                    CAST(Orderdate AS DATE) AS Date,
+                    COUNT(*) AS TotalReservations,
+                    SUM(CASE WHEN Status = 1 THEN 1 ELSE 0 END) AS CompletedCount,
+                    SUM(CASE WHEN Status = 2 THEN 1 ELSE 0 END) AS CancelledCount
+                FROM OrderTB
+                WHERE (@startDate IS NULL OR Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR Orderdate <= @endDate)
+                GROUP BY CAST(Orderdate AS DATE)
+                ORDER BY Date
+            ";
+            return await _db.QueryAsync<ReservationSummaryDto>(sql, new { startDate, endDate });
         }
 
-        public List<Coupon> GetMostUsedCoupons(int topN)
+        public async Task<IEnumerable<DesignerReservationStatsDto>> GetDesignerReservationStatsAsync(DateTime? startDate, DateTime? endDate)
         {
             var sql = @"
-                SELECT TOP (@TopN) c.*
-                FROM MemberCouponTB mc
-                JOIN CouponTB c ON c.CouponId = mc.CouponId
-                WHERE mc.IsUsed = 1
-                GROUP BY c.CouponId, c.Title, c.Code, c.DiscountAmount, c.MinAmount, c.ValidFrom, c.ValidTo, c.ForFirstTimeUser, c.IsActive
-                ORDER BY COUNT(*) DESC";
-            return _db.Query<Coupon>(sql, new { TopN = topN }).ToList();
-        }
-
-        public List<DesignerPerformance> GetDesignerPerformance()
-        {
-            var sql = @"
-                SELECT d.Name AS DesignerName, COUNT(o.OrderId) AS OrderCount, SUM(o.Price) AS TotalRevenue
+                SELECT
+                    d.DesignerId,
+                    d.Name AS DesignerName,
+                    COUNT(o.OrderId) AS TotalReservations,
+                    SUM(CASE WHEN o.Status = 1 THEN 1 ELSE 0 END) AS Completed,
+                    SUM(CASE WHEN o.Status = 2 THEN 1 ELSE 0 END) AS Cancelled
                 FROM OrderTB o
                 JOIN DesignerTB d ON o.DesignerId = d.DesignerId
-                GROUP BY d.Name";
-            return _db.Query<DesignerPerformance>(sql).ToList();
+                WHERE (@startDate IS NULL OR o.Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR o.Orderdate <= @endDate)
+                GROUP BY d.DesignerId, d.Name
+                ORDER BY TotalReservations DESC
+            ";
+            return await _db.QueryAsync<DesignerReservationStatsDto>(sql, new { startDate, endDate });
         }
 
-        public List<ServicePopularity> GetPopularServices(int topN)
+        public async Task<IEnumerable<PeakHourStatsDto>> GetPeakHourStatsAsync(DateTime? startDate, DateTime? endDate)
         {
             var sql = @"
-                SELECT TOP (@TopN) p.Name AS ServiceName, COUNT(o.OrderId) AS OrderCount
-                FROM OrderTB o
-                JOIN ProductTB p ON o.ProductId = p.ProductId
-                GROUP BY p.Name
-                ORDER BY COUNT(o.OrderId) DESC";
-            return _db.Query<ServicePopularity>(sql, new { TopN = topN }).ToList();
+                SELECT
+                    DATEPART(HOUR, ReservationDateTime) AS Hour,
+                    COUNT(*) AS ReservationCount
+                FROM OrderTB
+                WHERE (@startDate IS NULL OR Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR Orderdate <= @endDate)
+                GROUP BY DATEPART(HOUR, ReservationDateTime)
+                ORDER BY Hour
+            ";
+            return await _db.QueryAsync<PeakHourStatsDto>(sql, new { startDate, endDate });
         }
 
-        public List<User> GetActiveMembers(int topN)
+        public async Task<IEnumerable<RevenueSummaryDto>> GetRevenueSummaryAsync(DateTime? startDate, DateTime? endDate)
         {
             var sql = @"
-                SELECT TOP (@TopN) u.*
-                FROM (
-                    SELECT Uid, SUM(Price) AS TotalAmount
-                    FROM OrderTB
-                    GROUP BY Uid
-                ) AS t
-                JOIN UserTB u ON u.Id = t.Uid
-                ORDER BY t.TotalAmount DESC";
-            return _db.Query<User>(sql, new { TopN = topN }).ToList();
+                SELECT
+                    CAST(Orderdate AS DATE) AS Date,
+                    SUM(Price) AS TotalRevenue,
+                    SUM(ISNULL(DiscountAmount, 0)) AS DiscountAmount
+                FROM OrderTB
+                WHERE (@startDate IS NULL OR Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR Orderdate <= @endDate)
+                  AND Status = 1
+                GROUP BY CAST(Orderdate AS DATE)
+                ORDER BY Date
+            ";
+            return await _db.QueryAsync<RevenueSummaryDto>(sql, new { startDate, endDate });
         }
 
-        public List<User> GetBirthdayMembers(bool todayOnly)
-        {
-            string sql = todayOnly
-                ? "SELECT * FROM UserTB WHERE MONTH(Birthday) = @Month AND DAY(Birthday) = @Day"
-                : "SELECT * FROM UserTB WHERE MONTH(Birthday) = @Month";
-
-            var today = DateTime.Today;
-            return _db.Query<User>(sql, new { Month = today.Month, Day = today.Day }).ToList();
-        }
-
-        public int GetFirstTimeUserCount(DateTime startDate, DateTime endDate)
+        public async Task<IEnumerable<DesignerRevenueDto>> GetDesignerRevenueAsync(DateTime? startDate, DateTime? endDate)
         {
             var sql = @"
-                SELECT COUNT(*) FROM (
-                    SELECT Uid, MIN(ReservationDateTime) AS FirstTime
-                    FROM OrderTB
-                    GROUP BY Uid
-                ) AS firstOrders
-                WHERE FirstTime BETWEEN @StartDate AND @EndDate";
-            return _db.ExecuteScalar<int>(sql, new { StartDate = startDate, EndDate = endDate });
-        }
-
-        public List<Order> GetDailyOrders(DateTime date)
-        {
-            var sql = "SELECT * FROM OrderTB WHERE CAST(ReservationDateTime AS DATE) = @Date";
-            return _db.Query<Order>(sql, new { Date = date.Date }).ToList();
-        }
-
-        public List<(string serviceOrDesigner, double cancelRate)> GetCancelRateReport()
-        {
-            var result = new List<(string, double)>();
-
-            var designerSql = @"
-                SELECT d.Name AS Name, 
-                       CAST(SUM(CASE WHEN o.Status = 2 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS CancelRate
+                SELECT
+                    d.DesignerId,
+                    d.Name AS DesignerName,
+                    SUM(o.Price) AS TotalRevenue
                 FROM OrderTB o
                 JOIN DesignerTB d ON o.DesignerId = d.DesignerId
-                GROUP BY d.Name";
-            result.AddRange(_db.Query<(string, double)>(designerSql));
+                WHERE (@startDate IS NULL OR o.Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR o.Orderdate <= @endDate)
+                  AND o.Status = 1
+                GROUP BY d.DesignerId, d.Name
+                ORDER BY TotalRevenue DESC
+            ";
+            return await _db.QueryAsync<DesignerRevenueDto>(sql, new { startDate, endDate });
+        }
 
-            var serviceSql = @"
-                SELECT p.Name AS Name, 
-                       CAST(SUM(CASE WHEN o.Status = 2 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS CancelRate
+        public async Task<IEnumerable<PaymentMethodStatsDto>> GetPaymentMethodStatsAsync(DateTime? startDate, DateTime? endDate)
+        {
+            var sql = @"
+                SELECT
+                    PaymentMethod,
+                    COUNT(*) AS Count,
+                    SUM(Price) AS TotalAmount
+                FROM OrderTB
+                WHERE (@startDate IS NULL OR Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR Orderdate <= @endDate)
+                  AND Status = 1
+                GROUP BY PaymentMethod
+            ";
+            return await _db.QueryAsync<PaymentMethodStatsDto>(sql, new { startDate, endDate });
+        }
+
+        public async Task<IEnumerable<MemberActivityDto>> GetMemberActivityAsync(DateTime? startDate, DateTime? endDate)
+        {
+            var sql = @"
+                SELECT
+                    u.Id AS MemberId,
+                    u.Name AS MemberName,
+                    COUNT(o.OrderId) AS ReservationCount,
+                    MAX(o.Orderdate) AS LastReservationDate
                 FROM OrderTB o
-                JOIN ProductTB p ON o.ProductId = p.ProductId
-                GROUP BY p.Name";
-            result.AddRange(_db.Query<(string, double)>(serviceSql));
-
-            return result;
+                JOIN UserTB u ON o.Uid = u.Id
+                WHERE (@startDate IS NULL OR o.Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR o.Orderdate <= @endDate)
+                GROUP BY u.Id, u.Name
+                ORDER BY ReservationCount DESC
+            ";
+            return await _db.QueryAsync<MemberActivityDto>(sql, new { startDate, endDate });
         }
 
-        public List<(string hour, int count)> GetPeakHours()
+        public async Task<IEnumerable<PointUsageDto>> GetPointUsageSummaryAsync(DateTime? startDate, DateTime? endDate)
         {
             var sql = @"
-                SELECT FORMAT(ReservationDateTime, 'HH:00') AS Hour,
-                       COUNT(*) AS Count
-                FROM OrderTB
-                GROUP BY FORMAT(ReservationDateTime, 'HH:00')
-                ORDER BY Count DESC";
-            return _db.Query<(string, int)>(sql).ToList();
+                SELECT
+                    MemberId,
+                    SUM(CASE WHEN Points > 0 THEN Points ELSE 0 END) AS PointsEarned,
+                    SUM(CASE WHEN Points < 0 THEN -Points ELSE 0 END) AS PointsUsed
+                FROM PointLogTB
+                WHERE (@startDate IS NULL OR CreateTime >= @startDate)
+                  AND (@endDate IS NULL OR CreateTime <= @endDate)
+                GROUP BY MemberId
+            ";
+            return await _db.QueryAsync<PointUsageDto>(sql, new { startDate, endDate });
         }
 
-        public List<(string code, int totalIssued, int usedCount)> GetCouponUsageStats()
+        public async Task<IEnumerable<TopMemberDto>> GetTopMembersAsync(DateTime? startDate, DateTime? endDate, int topN = 20)
         {
             var sql = @"
-                SELECT c.Code, COUNT(*) AS totalIssued,
-                       SUM(CASE WHEN mc.IsUsed = 1 THEN 1 ELSE 0 END) AS usedCount
-                FROM MemberCouponTB mc
-                JOIN CouponTB c ON mc.CouponId = c.CouponId
-                GROUP BY c.Code";
-            return _db.Query<(string, int, int)>(sql).ToList();
+                SELECT TOP (@topN)
+                    u.Id AS MemberId,
+                    u.Name AS MemberName,
+                    SUM(o.Price) AS TotalSpent,
+                    COUNT(o.OrderId) AS ReservationCount
+                FROM OrderTB o
+                JOIN UserTB u ON o.Uid = u.Id
+                WHERE (@startDate IS NULL OR o.Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR o.Orderdate <= @endDate)
+                  AND o.Status = 1
+                GROUP BY u.Id, u.Name
+                ORDER BY TotalSpent DESC
+            ";
+            return await _db.QueryAsync<TopMemberDto>(sql, new { startDate, endDate, topN });
         }
 
-        public double GetMonthlyRevenue(int year, int month)
-        {
-            var sql = "SELECT ISNULL(SUM(Price), 0) FROM OrderTB WHERE YEAR(ReservationDateTime) = @Year AND MONTH(ReservationDateTime) = @Month";
-            return _db.ExecuteScalar<double>(sql, new { Year = year, Month = month });
-        }
-
-        public List<(string uid, double ltv)> GetUserLTV()
-        {
-            var sql = @"
-                SELECT Uid, SUM(Price) AS LTV
-                FROM OrderTB
-                GROUP BY Uid";
-            return _db.Query<(string, double)>(sql).ToList();
-        }
-
-        public List<User> GetInactiveMembers(int inactiveDays)
+        public async Task<IEnumerable<CouponUsageDto>> GetCouponUsageSummaryAsync(DateTime? startDate, DateTime? endDate)
         {
             var sql = @"
-                SELECT * FROM UserTB
-                WHERE Id NOT IN (
-                    SELECT DISTINCT Uid FROM OrderTB WHERE ReservationDateTime > @Cutoff
-                )";
-            return _db.Query<User>(sql, new { Cutoff = DateTime.Today.AddDays(-inactiveDays) }).ToList();
+                SELECT
+                    c.CouponId,
+                    c.Title,
+                    COUNT(d.RecordId) AS UsageCount,
+                    SUM(ISNULL(o.DiscountAmount, 0)) AS TotalDiscountAmount
+                FROM CouponDispatchRecordTB d
+                JOIN CouponTB c ON d.CouponId = c.CouponId
+                LEFT JOIN OrderTB o ON d.OrderId = o.OrderId
+                WHERE d.IsDispatched = 1
+                  AND (@startDate IS NULL OR d.DispatchDate >= @startDate)
+                  AND (@endDate IS NULL OR d.DispatchDate <= @endDate)
+                GROUP BY c.CouponId, c.Title
+            ";
+            return await _db.QueryAsync<CouponUsageDto>(sql, new { startDate, endDate });
+        }
+
+        public async Task<IEnumerable<ReservationDetailDto>> GetReservationDetailsAsync(DateTime? startDate, DateTime? endDate, int? designerId = null)
+        {
+            var sql = @"
+                SELECT
+                    o.OrderId,
+                    o.ReservationDateTime,
+                    d.Name AS DesignerName,
+                    u.Name AS MemberName,
+                    p.Name AS ServiceName,
+                    o.Price,
+                    CASE o.Status
+                        WHEN 0 THEN '未處理'
+                        WHEN 1 THEN '已完成'
+                        WHEN 2 THEN '已取消'
+                        ELSE '其他'
+                    END AS Status
+                FROM OrderTB o
+                LEFT JOIN DesignerTB d ON o.DesignerId = d.DesignerId
+                LEFT JOIN UserTB u ON o.Uid = u.Id
+                LEFT JOIN ProductTB p ON o.ProductId = p.ProductId
+                WHERE (@startDate IS NULL OR o.Orderdate >= @startDate)
+                  AND (@endDate IS NULL OR o.Orderdate <= @endDate)
+                  AND (@designerId IS NULL OR o.DesignerId = @designerId)
+                ORDER BY o.ReservationDateTime DESC
+            ";
+            return await _db.QueryAsync<ReservationDetailDto>(sql, new { startDate, endDate, designerId });
         }
     }
 }

@@ -79,5 +79,12 @@ namespace Web0524.Pages.Management
             var success = _userService.DeleteUser(id);
             return new JsonResult(new { success, message = success ? "已停權該用戶" : "停權失敗" });
         }
+
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnPostEnableUser(string id)
+        {
+            var success = _userService.RestoreUser(id);
+            return new JsonResult(new { success, message = success ? "已恢復該用戶" : "恢復失敗" });
+        }
     }
 }

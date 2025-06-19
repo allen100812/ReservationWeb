@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Reflection;
 using Web0524.Models;
+using Web0524.Models.Marketing;
 
 namespace Web0524.Pages
 {
@@ -8,39 +10,41 @@ namespace Web0524.Pages
     {
         private readonly IReservationService _reservationService;
         private readonly IUserService _userService;
+        
+            private readonly IPgroupService _pgroupService;
         private readonly IProductService _productService;
         private readonly IMarketingService _marketingService;
-        
+
         public MakeReservationModel(
             IReservationService reservationService,
             IUserService userService,
-            IProductService productService, IMarketingService marketingService)
+            IProductService productService,
+            IMarketingService marketingService,
+            IPgroupService pgroupService)
         {
             _reservationService = reservationService;
             _userService = userService;
             _productService = productService;
             _marketingService = marketingService;
+            _pgroupService = pgroupService;
         }
 
-
         [BindProperty]
-        public int? SelectedCouponRecordId { get; set; } // 綁定前端選擇的 RecordId
+        public int? SelectedCouponRecordId { get; set; }
 
         public List<CouponDispatchRecord> AvailableCoupons { get; set; } = new();
+        public List<Coupon> AllCoupons { get; set; } = new();
+        public List<Designer> AllDesigners { get; set; } = new();
 
+        public List<Pgroup> AllPgroup { get; set; } = new();
+        public List<Product> AllProducts { get; set; } = new();
+        public List<DateTime> AvailableTimeSlots { get; set; } = new();
 
         [BindProperty]
         public Order NewOrder { get; set; } = new();
 
         [BindProperty(SupportsGet = true)]
         public DateTime SelectedDate { get; set; } = DateTime.Today;
-
-        public List<Designer> AllDesigners { get; set; } = new();
-        public List<Product> AllProducts { get; set; } = new();
-
-         
-        public List<Coupon> AllCoupons { get; set; } = new();
-        public List<DateTime> AvailableTimeSlots { get; set; } = new();
 
         public int CurrentUserId { get; set; }
         public string Message { get; set; } = "";
@@ -56,70 +60,65 @@ namespace Web0524.Pages
 
             if (action == "add")
             {
-
-                // 嘗試從登入資訊取得使用者 ID
                 var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
-
 
                 if (string.IsNullOrEmpty(uidStr))
                 {
-                    // 未登入時導向登入頁
-                    Response.Redirect("/Account/Login"); // 可依你的實際登入路徑調整
+                    return RedirectToPage("/Account/Login");
+                }
+
+                if (NewOrder.DesignerId <= 0 || NewOrder.ProductId <= 0 || NewOrder.ReservationDateTime == default)
+                {
+                    Message = "請確認所有欄位皆已填寫。";
                     return Page();
                 }
 
-                // 驗證資料
-                if (NewOrder.DesignerId <= 0 || NewOrder.ProductId <= 0 || NewOrder.Uid != "" || NewOrder.ReservationDateTime == default)
+                if (string.IsNullOrWhiteSpace(uidStr))
                 {
-                    if (NewOrder.DesignerId <= 0)
-                    {
-                        Message = "請選擇設計師。";
-                        return Page();
-                    }
-
-                    if (NewOrder.ProductId <= 0)
-                    {
-                        Message = "請選擇服務項目。";
-                        return Page();
-                    }
-
-                    if (string.IsNullOrWhiteSpace(NewOrder.Uid))
-                    {
-                        Message = "使用者資訊錯誤，請重新登入。";
-                        return Page();
-                    }
-
-                    if (NewOrder.ReservationDateTime == default)
-                    {
-                        Message = "請選擇預約時間。";
-                        return Page();
-                    }
-
+                    Message = "使用者驗證失敗，請重新登入。";
+                    return Page();
                 }
 
-                var Product = AllProducts.FirstOrDefault(x => x.ProductId == NewOrder.ProductId);
-                // 設定其他必要欄位
-                NewOrder.Status = 0; // 預設狀態：未處理
+                var product = AllProducts.FirstOrDefault(x => x.ProductId == NewOrder.ProductId);
+                NewOrder.Status = OrderStatus.Confirmed;
                 NewOrder.Orderdate = DateTime.Now;
-                NewOrder.Price = Product.Price;  // 如有定價邏輯，可補上
+                NewOrder.Price = product?.Price ?? 0;
                 NewOrder.Uid = uidStr;
-                // 呼叫服務層建立訂單（使用你的版本）
+
                 var createdOrder = _reservationService.CreateOrder(NewOrder);
                 if (createdOrder != null)
                 {
-                    Message = $"預約成功！訂單編號：{createdOrder.OrderId}";
+                    var designer = AllDesigners.FirstOrDefault(x => x.DesignerId == NewOrder.DesignerId);
+                    var coupon = AllCoupons.FirstOrDefault(c => c.CouponId == SelectedCouponRecordId);
 
-                    // ✅ 若有選擇優惠券，直接套用
+                    string formattedOrderId = createdOrder.OrderId.ToString("D4");
+                    string formattedDate = NewOrder.ReservationDateTime.ToString("yyyy/MM/dd");
+                    string formattedTime = NewOrder.ReservationDateTime.ToString("HH:mm");
+
+                    Message = $@"預約成功！<br>
+        訂單編號：{formattedOrderId}<br>
+        日期：{formattedDate}<br>
+        時間：{formattedTime}<br>
+        設計師：{designer?.Name}<br>
+        項目：{product?.Name}<br>
+        金額：${NewOrder.Price:0}<br>";
+
                     if (SelectedCouponRecordId.HasValue)
                     {
                         var resultMsg = _marketingService.ApplyCouponByRecordId(SelectedCouponRecordId.Value, createdOrder);
-                        Message += $"<br>{resultMsg}";
+                        Message += $"優惠券：{coupon?.Title ?? "已套用"}<br>{resultMsg}";
                     }
+
+                    //1.Line通知
+
+
+
                 }
                 else
                 {
-                    Message = "該時段已被預約，請選擇其他時間。";
+                    Message = "該時段已被預約，請重新選擇。";
                 }
+
             }
 
             return Page();
@@ -128,47 +127,68 @@ namespace Web0524.Pages
         private void LoadData()
         {
             AllDesigners = _reservationService.GetAllDesigners().ToList();
+            AllPgroup = _pgroupService.GetAllPgroups().ToList();
             AllProducts = _productService.GetAllProducts().ToList();
             AllCoupons = _marketingService.GetAllCoupons().ToList();
-            // 嘗試從登入資訊取得使用者 ID
-            var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
 
+            var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
             if (string.IsNullOrEmpty(uidStr))
             {
-                // 未登入時導向登入頁
-                Response.Redirect("/Account/Login"); // 可依你的實際登入路徑調整
+                Response.Redirect("/Account/Login");
                 return;
             }
 
             AvailableCoupons = _marketingService.GetAvailableCouponRecords(uidStr);
             AvailableTimeSlots = GenerateAvailableTimeSlots(SelectedDate);
         }
+
         [IgnoreAntiforgeryToken]
-        public JsonResult OnGetGetAvailableTimeSlots(int designerId, int productId, DateTime date)
+        public JsonResult OnGetGetAvailableTimeSlots(int designerId, int productId)
         {
-            var times = GenerateAvailableTimeSlots(date);
-            var available = times
-                .Where(t => _reservationService.IsSlotAvailable(designerId, productId, t))
-                .Select(t => new { time = t.ToString("yyyy-MM-ddTHH:mm"), label = t.ToString("HH:mm") })
-                .ToList();
+            var today = DateTime.Today;
+            var endDate = today.AddMonths(1).AddDays(-1);
+            var result = new List<object>();
 
-            return new JsonResult(available);
+            for (var date = today; date <= endDate; date = date.AddDays(1))
+            {
+                var slots = GenerateAvailableTimeSlots(date)
+                    .Where(t => _reservationService.IsSlotAvailable(designerId, productId, t))
+                    .ToList();
+
+                if (slots.Any())
+                {
+                    result.Add(new
+                    {
+                        title = $"可預約 {slots.Count} 筆",
+                        start = date.ToString("yyyy-MM-dd"),
+                        allDay = true,
+                        extendedProps = new
+                        {
+                            slots = slots.Select(t => new
+                            {
+                                time = t.ToString("yyyy-MM-ddTHH:mm"),
+                                label = t.ToString("HH:mm")
+                            })
+                        }
+                    });
+                }
+            }
+
+            return new JsonResult(result);
         }
-
 
         private List<DateTime> GenerateAvailableTimeSlots(DateTime date)
         {
-            var slots = new List<DateTime>();
+            var list = new List<DateTime>();
             var start = date.Date.AddHours(9);
             var end = date.Date.AddHours(18);
 
-            for (var time = start; time < end; time = time.AddMinutes(30))
-            {
-                slots.Add(time);
-            }
+            for (var t = start; t < end; t = t.AddMinutes(30))
+                list.Add(t);
 
-            return slots;
+            return list;
         }
+
         [IgnoreAntiforgeryToken]
         public JsonResult OnGetGetProducts(int designerId)
         {
@@ -177,13 +197,24 @@ namespace Web0524.Pages
                 return new JsonResult(new { success = false });
 
             var productIds = designer.ScheduleRules.Select(r => r.ProductId).Distinct().ToList();
-            var validProducts = _productService.GetAllProducts()
+
+            var products = _productService.GetAllProducts()
                 .Where(p => productIds.Contains(p.ProductId))
                 .Select(p => new { productId = p.ProductId, name = p.Name })
                 .ToList();
 
-            return new JsonResult(validProducts);
+            return new JsonResult(products);
         }
+        public IActionResult OnGetImage(int id)
+        {
+            var product = _productService.GetAllProducts().FirstOrDefault(p => p.ProductId == id);
+            if (product == null || product.Photo == null)
+                return NotFound();
+
+            return File(product.Photo, "image/jpeg"); // 也可以是 image/png 看你的圖片格式
+        }
+
+
 
     }
 }

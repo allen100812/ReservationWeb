@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
 using Web0524.Models;
+using Web0524.Models.Marketing;
 
 namespace Web0524.Pages.Management
 {

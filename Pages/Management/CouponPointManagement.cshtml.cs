@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Web0524.Models;
+using Web0524.Models.Marketing;
 
 namespace Web0524.Pages.Management
 {

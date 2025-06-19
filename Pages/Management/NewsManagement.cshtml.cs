@@ -65,14 +65,28 @@ namespace Web0524.Pages.Management
                     PublishDate = DateTime.TryParse(form["NewItem.PublishDate"], out var dt) ? dt : null,
                     Status = int.TryParse(form["NewItem.Status"], out var st) ? st : 0,
                     Tag = int.TryParse(form["NewItem.Tag"], out var tag) ? tag : null,
+                    PhotoList = new List<byte[]>()
                 };
 
-                // 儲存圖片
-                news.PhotoList = new();
-                foreach (var photo in files)
+                // 取得保留的原圖索引（來自前端 hidden 欄位）
+                var preservedIndexes = form["PreservedPhotoIndexes"].ToArray().Select(int.Parse).ToList();
+
+                // 取得舊圖（從資料庫撈出）
+                var original = news.NewId != null ? _newService.GetNewListById(news.NewId.Value) : null;
+                var oldPhotos = original?.PhotoList ?? new List<byte[]>();
+
+                // 把保留的原圖依索引加回
+                foreach (var idx in preservedIndexes)
+                {
+                    if (idx >= 0 && idx < oldPhotos.Count)
+                        news.PhotoList.Add(oldPhotos[idx]);
+                }
+
+                // 加入新上傳的圖
+                foreach (var file in files)
                 {
                     using var ms = new MemoryStream();
-                    photo.CopyTo(ms);
+                    file.CopyTo(ms);
                     news.PhotoList.Add(ms.ToArray());
                 }
 
@@ -97,6 +111,7 @@ namespace Web0524.Pages.Management
                 return new JsonResult(new { success = false, message = "儲存錯誤: " + ex.Message });
             }
         }
+
 
         public JsonResult OnPostToggleStatus(int id, int status)
         {

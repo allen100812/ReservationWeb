@@ -24,7 +24,7 @@ namespace Web0524.Models
         List<Reservation_AvailableSlotDetail> GetAvailableServiceSlots(int designerId, DateTime date, int cooldownMinutes, int advanceMinutes);
 
         // 檢查某設計師在指定時間是否可預約某服務
-        bool IsSlotAvailable(int designerId, int ProductId, DateTime time);
+        bool IsSlotAvailable(int? designerId, int? ProductId, DateTime time);
 
         // 建立新預約單
         Order? CreateOrder(Order order);
@@ -336,45 +336,150 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
         }
 
 
-        public bool IsSlotAvailable(int designerId, int productId, DateTime time)
+        //public bool IsSlotAvailable(int designerId, int productId, DateTime time)
+        //{
+        //    Console.WriteLine($"🔍 檢查是否可預約：設計師ID={designerId}, 產品ID={productId}, 時間={time:yyyy-MM-dd HH:mm}");
+
+        //    var designer = GetDesignerById(designerId);
+        //    if (designer == null)
+        //    {
+        //        Console.WriteLine("❌ 找不到該設計師");
+        //        return false;
+        //    }
+
+        //    var rule = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == productId);
+        //    if (rule == null)
+        //    {
+        //        Console.WriteLine("❌ 該設計師沒有設定此服務項目的排程規則");
+        //        return false;
+        //    }
+
+        //    if (Reservation_IsFixedHoliday(designerId, time.Date))
+        //    {
+        //        Console.WriteLine("❌ 該日為固定假日");
+        //        return false;
+        //    }
+
+        //    if (Reservation_IsDayOff(designerId, time.Date))
+        //    {
+        //        Console.WriteLine("❌ 該設計師當日為休假日");
+        //        return false;
+        //    }
+
+        //    var orders = GetOrdersForDay(designerId, time);
+        //    Console.WriteLine($"✅ 當天已有預約 {orders.Count} 筆");
+
+        //    DateTime serviceStart = time;
+        //    DateTime serviceEnd = time.AddMinutes(rule.DurationMinutes);
+
+        //    var overlappingOrders = orders.Where(o =>
+        //    {
+        //        if (o.DesignerId != designerId || o.Status == OrderStatus.Cancelled)
+        //            return false;
+
+        //        var bookedRule = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == o.ProductId);
+        //        if (bookedRule == null) return false;
+
+        //        var bookedStart = o.ReservationDateTime;
+        //        var bookedEnd = bookedStart.AddMinutes(bookedRule.DurationMinutes);
+
+        //        return !(serviceEnd <= bookedStart || serviceStart >= bookedEnd);
+        //    }).ToList();
+
+        //    Console.WriteLine($"🔄 發現有 {overlappingOrders.Count} 筆重疊預約");
+
+        //    if (overlappingOrders.Any(o => o.ProductId != productId))
+        //    {
+        //        Console.WriteLine("❌ 時段已被其他服務項目預約");
+        //        return false;
+        //    }
+
+        //    if (overlappingOrders.Any(o => o.ProductId == productId && o.ReservationDateTime != time))
+        //    {
+        //        Console.WriteLine("❌ 同一服務有不同時間重疊");
+        //        return false;
+        //    }
+
+        //    int countAtT = orders.Count(o =>
+        //        o.DesignerId == designerId &&
+        //        o.ProductId == productId &&
+        //        o.ReservationDateTime == time &&
+        //        o.Status != OrderStatus.Cancelled);
+
+        //    Console.WriteLine($"⏱ 同時間點已有相同服務 {countAtT} 筆 / 最大上限 {rule.MaxCustomers}");
+
+        //    bool result = countAtT < rule.MaxCustomers;
+        //    Console.WriteLine(result ? "✅ 時段可預約" : "❌ 該時段已達最大上限");
+
+        //    return result;
+        //}
+
+        public bool IsSlotAvailable(int? designerId, int? productId, DateTime time)
         {
             Console.WriteLine($"🔍 檢查是否可預約：設計師ID={designerId}, 產品ID={productId}, 時間={time:yyyy-MM-dd HH:mm}");
 
-            var designer = GetDesignerById(designerId);
+            if (designerId == null)
+            {
+                // 如果未指定設計師，就檢查所有設計師是否任一人可預約
+                var allDesigners = GetAllDesigners();
+                foreach (var d in allDesigners)
+                {
+                    if (IsSlotAvailable(d.DesignerId, productId, time))  // 遞迴進實際判斷
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            var designer = GetDesignerById(designerId.Value);
             if (designer == null)
             {
                 Console.WriteLine("❌ 找不到該設計師");
                 return false;
             }
 
-            var rule = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == productId);
-            if (rule == null)
-            {
-                Console.WriteLine("❌ 該設計師沒有設定此服務項目的排程規則");
-                return false;
-            }
-
-            if (Reservation_IsFixedHoliday(designerId, time.Date))
+            if (Reservation_IsFixedHoliday(designer.DesignerId, time.Date))
             {
                 Console.WriteLine("❌ 該日為固定假日");
                 return false;
             }
 
-            if (Reservation_IsDayOff(designerId, time.Date))
+            if (Reservation_IsDayOff(designer.DesignerId, time.Date))
             {
                 Console.WriteLine("❌ 該設計師當日為休假日");
                 return false;
             }
 
-            var orders = GetOrdersForDay(designerId, time);
+            var orders = GetOrdersForDay(designer.DesignerId, time);
             Console.WriteLine($"✅ 當天已有預約 {orders.Count} 筆");
 
+            // 如果未指定服務項目，就檢查該設計師當時段是否有任何服務還可以預約
+            if (productId == null)
+            {
+                foreach (var rule in designer.ScheduleRules)
+                {
+                    if (IsSlotAvailable(designer.DesignerId, rule.ProductId, time))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            var ruleForProduct = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == productId);
+            if (ruleForProduct == null)
+            {
+                Console.WriteLine("❌ 該設計師沒有設定此服務項目的排程規則");
+                return false;
+            }
+
             DateTime serviceStart = time;
-            DateTime serviceEnd = time.AddMinutes(rule.DurationMinutes);
+            DateTime serviceEnd = time.AddMinutes(ruleForProduct.DurationMinutes);
 
             var overlappingOrders = orders.Where(o =>
             {
-                if (o.DesignerId != designerId || o.Status == OrderStatus.Cancelled)
+                if (o.DesignerId != designer.DesignerId || o.Status == OrderStatus.Cancelled)
                     return false;
 
                 var bookedRule = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == o.ProductId);
@@ -401,19 +506,18 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
             }
 
             int countAtT = orders.Count(o =>
-                o.DesignerId == designerId &&
+                o.DesignerId == designer.DesignerId &&
                 o.ProductId == productId &&
                 o.ReservationDateTime == time &&
                 o.Status != OrderStatus.Cancelled);
 
-            Console.WriteLine($"⏱ 同時間點已有相同服務 {countAtT} 筆 / 最大上限 {rule.MaxCustomers}");
+            Console.WriteLine($"⏱ 同時間點已有相同服務 {countAtT} 筆 / 最大上限 {ruleForProduct.MaxCustomers}");
 
-            bool result = countAtT < rule.MaxCustomers;
+            bool result = countAtT < ruleForProduct.MaxCustomers;
             Console.WriteLine(result ? "✅ 時段可預約" : "❌ 該時段已達最大上限");
 
             return result;
         }
-
 
         public List<Reservation_AvailableSlotDetail> GetAvailableServiceSlots(int designerId, DateTime date, int cooldownMinutes, int advanceMinutes)
         {

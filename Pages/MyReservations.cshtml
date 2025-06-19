@@ -20,13 +20,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-    <div class="container " style="margin-top:200px;">
+    <div class="container" style="margin-top:200px; margin-bottom:200px;">
         <h2 class="text-center mb-4">我的預約紀錄</h2>
 
         <form method="get" class="row g-3 mb-4">
             <div class="col-md-3">
-                <label class="form-label">預約日期</label>
-                <input type="date" class="form-control" name="FilterDate" value="@Model.FilterDate?.ToString("yyyy-MM-dd")">
+                <label class="form-label">預約月份</label>
+                <input type="month" class="form-control" name="FilterMonth" value="@Model.FilterMonth?.ToString("yyyy-MM")">
             </div>
             <div class="col-md-3">
                 <label class="form-label">設計師</label>
@@ -34,7 +34,9 @@
                     <option value="">全部</option>
                     @foreach (var d in Model.AllDesigners)
                     {
-                        <option value="@d.DesignerId" selected="@(Model.FilterDesignerId == d.DesignerId ? "selected" : null)">@d.Name</option>
+                        <option value="@d.DesignerId" selected="@(Model.FilterDesignerId == d.DesignerId ? "selected" : null)">
+                            @d.Name
+                        </option>
                     }
                 </select>
             </div>
@@ -52,6 +54,7 @@
                             @(status switch
                             {
                                 Models.OrderStatus.Pending => "未處理",
+                                Models.OrderStatus.Confirmed => "已成立",
                                 Models.OrderStatus.Completed => "已完成",
                                 Models.OrderStatus.Cancelled => "已取消",
                                 _ => status.ToString()
@@ -67,58 +70,239 @@
 
         @if (Model.MyOrders.Any())
         {
-            <table class="table table-bordered table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <th>日期</th>
-                        <th>時間</th>
-                        <th>設計師</th>
-                        <th>服務項目</th>
-                        <th>狀態</th>
-                        <th>備註</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var order in Model.MyOrders)
-                    {
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
-                            <td>@order.ReservationDateTime.ToString("yyyy-MM-dd")</td>
-                            <td>@order.ReservationDateTime.ToString("HH:mm")</td>
-                            <td>@Model.GetDesignerName(order.DesignerId)</td>
-                            <td>@Model.GetProductName(order.ProductId)</td>
-                            <td>
-                                @switch (order.Status)
-                                {
-                                    case Models.OrderStatus.Pending:
-                                        <span class="text-warning">⏳ 未處理</span>
-                                        ; break;
-                                    case Models.OrderStatus.Completed:
-                                        <span class="text-success">✅ 已完成</span>
-                                        ; break;
-                                    case Models.OrderStatus.Cancelled:
-                                        <span class="text-danger">❌ 已取消</span>
-                                        ; break;
-                                }
-                            </td>
-                            <td>@order.Remark</td>
-                            <td>
-                                @if (order.Status == Models.OrderStatus.Pending && (order.ReservationDateTime - DateTime.Now).TotalHours >= Models.My.CancelLimitHours)
-                                {
-                                    <form method="post" asp-page-handler="Cancel" asp-route-id="@order.OrderId" onsubmit="return confirm('確定要取消此預約嗎？')">
-                                        <button class="btn btn-sm btn-danger">取消</button>
-                                    </form>
-                                }
-                            </td>
+                            <th>預約日期</th>
+                            <th>時間</th>
+                            <th>設計師</th>
+                            <th>服務項目</th>
+                            <th>價格</th>
+                            <th>付款方式</th>
+                            <th>優惠券</th>
+                            <th>應付金額</th>
+                            <th>狀態</th>
+                            <th>備註</th>
+                            <th>操作</th>
+                            <th>下單時間</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @{
+                            int rowIndex = 0;
+                            foreach (var order in Model.MyOrders.OrderByDescending(x=>x.Orderdate))
+                            {
+                                <tr data-index="@rowIndex">
+
+                                    <td data-label="預約日期" class="text-bold text-nowrap">@order.ReservationDateTime.ToString("yyyy-MM-dd")</td>
+                                    <td data-label="時間" class="text-bold text-nowrap">@order.ReservationDateTime.ToString("HH:mm")</td>
+                                    <td data-label="設計師" class="text-nowrap">【@Model.GetDesignerName(order.DesignerId)】</td>
+                                    <td data-label="服務項目" class="text-nowrap">【@Model.GetProductName(order.ProductId)】</td>
+                                    <td data-label="價格" class="text-nowrap">@order.Price.ToString("C")</td>
+                                    <td data-label="付款方式" class="text-nowrap">@Model.GetPaymentMethodName(order.PaymentMethod)</td>
+                                    <td data-label="優惠券" class="text-nowrap">
+                                        @{
+                                            var title = Model.GetCouponTitle(order.UsedCouponId);
+                                            var discountAmount = order.DiscountAmount ?? 0;
+                                            var showTitle = (title != "—") ? $"【{title}】" : "-";
+                                            var showDiscount = (discountAmount > 0) ? $"(折扣 {discountAmount:C0})" : "";
+                                        }
+                                        @showTitle @showDiscount
+                                    </td>
+
+                                    <td data-label="應付金額" class="text-bold text-nowrap">
+                                        @{
+                                            decimal discount = order.DiscountAmount ?? 0;
+                                            var finalPrice = order.Price - (double)discount;
+                                        }
+                                        @finalPrice.ToString("C")
+                                    </td>
+                                    <td data-label="狀態" class="text-bold text-nowrap">
+                                        @switch (order.Status)
+                                        {
+                                            case Models.OrderStatus.Pending:
+                                                <span class="text-warning">⏳ 待確認</span>
+                                                ; break;
+                                            case Models.OrderStatus.Confirmed:
+                                                <span class="text-primary">📌 預約完成</span>
+                                                ; break;
+                                            case Models.OrderStatus.Completed:
+                                                <span class="text-success">✅ 已完成</span>
+                                                ; break;
+                                            case Models.OrderStatus.Cancelled:
+                                                <span class="text-danger">❌ 已取消</span>
+                                                ; break;
+                                        }
+                                    </td>
+                                    <td data-label="備註">@order.Remark</td>
+                                    <td data-label="操作" class="text-nowrap">
+                                        <div class="d-flex justify-content-between gap-2 flex-wrap">
+                                            @if (order.Status == Models.OrderStatus.Pending &&
+                                       (order.ReservationDateTime - DateTime.Now).TotalHours >= Models.My.CancelLimitHours)
+                                            {
+                                                <form method="post" asp-page-handler="Cancel" asp-route-id="@order.OrderId"
+                                                      onsubmit="return confirm('確定要取消此預約嗎？')" class="flex-grow-1">
+                                                    <button class="btn btn-sm btn-danger w-100">取消</button>
+                                                </form>
+                                            }
+                                            <a class="btn btn-sm btn-outline-secondary w-100 flex-grow-1" asp-page="/contact">聯繫店家</a>
+                                        </div>
+                                    </td>
+                                    <td data-label="下單時間" class="text-nowrap"> @order.Orderdate.ToString("yyyy-MM-dd HH:mm")</td>
+
+                                </tr>
+                                rowIndex++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分頁按鈕 -->
+            <div id="pagination-container" class="mt-4 d-flex justify-content-center"></div>
+
+
         }
         else
         {
             <div class="alert alert-info text-center">目前沒有任何預約紀錄。</div>
         }
     </div>
+    <style>
+
+@@media (max-width: 768px) {
+    .table thead {
+        display: none;
+    }
+
+    .table tbody tr {
+        display: block;
+        margin-bottom: 1.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        padding: 1rem;
+        background-color: #fff;
+    }
+
+    .table tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border: none;
+        border-bottom: 1px solid #f1f1f1;
+        font-size: 0.95rem;
+    }
+
+    .table tbody td:last-child {
+        border-bottom: none;
+    }
+
+    .table tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #495057;
+        flex-basis: 45%;
+        text-align: left;
+    }
+
+    .table tbody td > *:not(:first-child) {
+        margin-left: auto;
+        text-align: right;
+    }
+}
+</style>
+    <style>
+        #pagination button {
+            min-width: 36px;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const rows = document.querySelectorAll('table tbody tr');
+            const paginationContainer = document.getElementById('pagination-container');
+            const isMobile = window.innerWidth <= 768;
+            const rowsPerPage = isMobile ? 1 : 10;
+            const totalPages = Math.ceil(rows.length / rowsPerPage);
+            let currentPage = 1;
+
+            function showPage(page) {
+                currentPage = page;
+                rows.forEach((row, i) => {
+                    row.style.display = (i >= (page - 1) * rowsPerPage && i < page * rowsPerPage) ? '' : 'none';
+                });
+                renderPagination();
+            }
+
+            function renderPagination() {
+                const nav = document.createElement('nav');
+                nav.setAttribute('aria-label', 'Page navigation');
+                const ul = document.createElement('ul');
+                ul.className = 'pagination';
+
+                // Previous button
+                const prevLi = document.createElement('li');
+                prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+                const prevLink = document.createElement('a');
+                prevLink.className = 'page-link';
+                prevLink.href = '#';
+                prevLink.innerHTML = '&laquo;';
+                prevLink.onclick = e => {
+                    e.preventDefault();
+                    if (currentPage > 1) showPage(currentPage - 1);
+                };
+                prevLi.appendChild(prevLink);
+                ul.appendChild(prevLi);
+
+                // Numbered pages (最多 5 個)
+                const maxVisible = 5;
+                let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let end = Math.min(totalPages, start + maxVisible - 1);
+                if (end - start < maxVisible - 1) {
+                    start = Math.max(1, end - maxVisible + 1);
+                }
+
+                for (let i = start; i <= end; i++) {
+                    const li = document.createElement('li');
+                    li.className = 'page-item' + (i === currentPage ? ' active' : '');
+                    const a = document.createElement('a');
+                    a.className = 'page-link';
+                    a.href = '#';
+                    a.textContent = i;
+                    a.onclick = e => {
+                        e.preventDefault();
+                        showPage(i);
+                    };
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                }
+
+                // Next button
+                const nextLi = document.createElement('li');
+                nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+                const nextLink = document.createElement('a');
+                nextLink.className = 'page-link';
+                nextLink.href = '#';
+                nextLink.innerHTML = '&raquo;';
+                nextLink.onclick = e => {
+                    e.preventDefault();
+                    if (currentPage < totalPages) showPage(currentPage + 1);
+                };
+                nextLi.appendChild(nextLink);
+                ul.appendChild(nextLi);
+
+                nav.appendChild(ul);
+                paginationContainer.innerHTML = '';
+                paginationContainer.appendChild(nav);
+            }
+
+            showPage(1);
+            window.addEventListener('resize', () => location.reload());
+        });
+    </script>
+
+
 </body>
 </html>

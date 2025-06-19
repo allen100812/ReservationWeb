@@ -3,7 +3,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace Web0524.Models
+namespace Web0524.Models.LineMessage
 {
 
     public class LineMessageService

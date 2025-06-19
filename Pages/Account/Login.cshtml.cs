@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Text;
 using Microsoft.Win32;
+using Web0524.Models.LineMessage;
 
 namespace Web0524.Pages.Account
 {
