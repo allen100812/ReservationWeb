@@ -71,5 +71,19 @@ namespace Web0524.Pages.Management
             _productService.DeleteProduct(id);
             return new JsonResult(new { success = true, message = "產品已刪除。" });
         }
+
+        [IgnoreAntiforgeryToken]
+        public IActionResult OnGetImage(int id)
+        {
+            Products = _productService.GetAllProducts().ToList();
+            var product = Products.FirstOrDefault(p => p.ProductId == id);
+            if (product?.Photo != null)
+            {
+                return File(product.Photo, "image/jpeg"); // 或 "image/png"，根據實際格式
+            }
+
+            return NotFound();
+        }
+
     }
 }

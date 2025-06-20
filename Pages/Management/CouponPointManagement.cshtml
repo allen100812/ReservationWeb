@@ -14,6 +14,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="~/js/responsivePaginator.js"></script>
+
+
+
     <link href="https://unpkg.com/fullcalendar@6.1.10/main.min.css" rel="stylesheet">
     <script src="https://unpkg.com/fullcalendar@6.1.10/main.min.js"></script>
 
@@ -27,160 +31,242 @@
     <link rel="stylesheet" href="~/css/Share.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #memberList {
+            max-height: 300px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+    </style>
 </head>
 <body>
 
-    <div class="container" style="margin-top:200px;">
-        <h2>優惠券管理</h2>
-        <a class="btn btn-success mb-3" asp-page="/Management/CreateCoupon">➕ 建立新優惠券</a>
+    <div class="container" style="margin-top:200px; margin-bottom:200px;">
 
-        <div style="overflow-x:auto;">
-            <table class="table table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>標題</th>
-                        <th>代碼</th>
-                        <th>類型</th>
-                        <th>折扣值</th>
-                        <th>固定金額</th>
-                        <th>門檻金額</th>
-                        <th>效期</th>
-                        <th>首次使用者</th>
-                        <th>新會員註冊</th>
-                        <th>來源</th>
-                        <th>限制分類</th>
-                        <th>自動派發</th>
-                        <th>派發日期</th>
-                        <th>備註</th>
-                        <th>狀態</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var c in allCoupons)
-                    {
-                        <tr>
-                            <td>@(string.IsNullOrEmpty(c.Title) ? "-" : c.Title)</td>
-                            <td>@(string.IsNullOrEmpty(c.Code) ? "-" : c.Code)</td>
-                            <td>@c.DiscountType.ToString()</td>
-                            <td>@(c.DiscountType == DiscountTypeEnum.Percentage ? c.DiscountAmount + "%" : "-")</td>
-                            <td>@(c.FixedDiscountAmount.HasValue ? c.FixedDiscountAmount + " 元" : "-")</td>
-                            <td>滿 @c.MinAmount 元</td>
-                            <td>
-                                @(c.ValidFrom != DateTime.MinValue && c.ValidTo != DateTime.MinValue
-                                    ? $"{c.ValidFrom:yyyy-MM-dd} - {c.ValidTo:yyyy-MM-dd}" : "-")
-                            </td>
-                            <td>@(c.ForFirstTimeUser ? "✅" : "❌")</td>
-                            <td>@(c.IsWelcome ? "✅" : "❌")</td>
-                            <td>@c.CouponSource.ToString()</td>
-                            <td>@(string.IsNullOrEmpty(c.CategoryLimit) ? "-" : c.CategoryLimit)</td>
-                            <td>@(c.AutoAssign ? "✅" : "❌")</td>
-                            <td>@(c.AutoDate.HasValue ? c.AutoDate.Value.ToString("yyyy-MM-dd") : "-")</td>
-                            <td>@(string.IsNullOrEmpty(c.Remark) ? "-" : c.Remark)</td>
-                            <td>@(c.IsActive ? "啟用中" : "已停用")</td>
+        <ul class="nav nav-tabs" id="tabSelector">
+            <li class="nav-item">
+                <a class="nav-link active" id="coupon-tab" data-bs-toggle="tab" href="#coupon-pane">優惠券管理</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="batchDistribute-tab" data-bs-toggle="tab" href="#batchDistribute-pane">優惠券派發</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="point-tab" data-bs-toggle="tab" href="#point-pane">會員點數管理</a>
+            </li>
+        </ul>
 
-                            <td>
-                                <a class="btn btn-sm btn-info" asp-page="/Management/EditCoupon" asp-route-id="@c.CouponId">編輯</a>
-                                <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@c.CouponId" style="display:inline;">
-                                    <button class="btn btn-sm @(c.IsActive ? "btn-danger" : "btn-success")"
-                                            onclick="return confirm('確定要@(c.IsActive ? "停用" : "啟用")這張優惠券嗎？')">
-                                        @(c.IsActive ? "停用" : "啟用")
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="tab-content pt-3">
+            <div class="tab-pane fade show active" id="coupon-pane">
+                <!-- ✅ 優惠券管理區塊（請將原本的優惠券區塊搬到這裡） -->
+                <h2>建立新優惠券</h2>
+                @if (!string.IsNullOrEmpty(ViewData["Message"] as string))
+                {
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        @Html.Raw(ViewData["Message"])
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <form method="post" asp-page-handler="AddCoupon">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">優惠券標題</label>
+                            <input asp-for="NewCoupon.Title" class="form-control" required />
+                            <span asp-validation-for="NewCoupon.Title" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">自動產生的優惠券代碼</label>
+                            <input asp-for="NewCoupon.Code" class="form-control" readonly value="@(Model.NewCoupon.Code ?? "將於提交時自動生成")" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">優惠券類型</label>
+                            <select asp-for="NewCoupon.DiscountType" class="form-select discountTypeSelect">
+                                <option value="FixedAmount">🎟️ 固定金額折抵券</option>
+                                <option value="Percentage">📉 百分比折扣券</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 discountAmountWrapper">
+                            <label class="form-label">折扣值（例如 10 表示 10% OFF）</label>
+                            <input asp-for="NewCoupon.DiscountAmount" class="form-control discountAmountInput" />
+                            <span asp-validation-for="NewCoupon.DiscountAmount" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 fixedDiscountWrapper" style="display:none">
+                            <label class="form-label">固定折扣金額（如 100 元）</label>
+                            <input asp-for="NewCoupon.FixedDiscountAmount" class="form-control fixedDiscountAmountInput" />
+                            <span asp-validation-for="NewCoupon.FixedDiscountAmount" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">使用門檻金額</label>
+                            <input asp-for="NewCoupon.MinAmount" class="form-control" />
+                            <span asp-validation-for="NewCoupon.MinAmount" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">指定分類（可多選）</label>
+                            <select asp-for="SelectedCategories" asp-items="Model.PGroupSelectList" class="form-select" multiple></select>
+                            <span asp-validation-for="SelectedCategories" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">起始日</label>
+                            <input asp-for="NewCoupon.ValidFrom" type="date" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">結束日</label>
+                            <input asp-for="NewCoupon.ValidTo" type="date" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">是否啟用</label><br />
+                            <input asp-for="NewCoupon.IsActive" type="checkbox" /> 啟用
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3"></div>
+                        <div class="col-md-3">
+                            <input asp-for="NewCoupon.IsWelcome" type="checkbox" /> 新會員註冊發放
+                        </div>
+                        <div class="col-md-3">
+                            <input asp-for="NewCoupon.AutoAssign" type="checkbox" class="autoAssignCheckbox" /> 自動派發
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">自動派發設定</label>
+                            <select class="form-select autoAssignRule" asp-for="NewCoupon.AutoAssignRule">
+                                <option value="None">-- 選擇派發邏輯 --</option>
+
+                                <option value="RegisterNow">新會員註冊當天</option>
+                                <option value="BeforeBirthday20">會員生日前 20 天</option>
+                                <option value="SpecificDate">指定日期</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 specificDateWrapper" style="display:none">
+                        <div class="col-md-4">
+                            <label class="form-label">指定派發日期</label>
+                            <input asp-for="NewCoupon.AutoDate" type="date" class="form-control" />
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">✅ 建立優惠券</button>
+                </form>
+
+                <h2>優惠券清單</h2>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered mt-2" id="coupon-table-wrapper"></table>
+                </div>
+                <div class="accordion product-accordion" id="couponAccordion"></div>
+
+                <!-- ✅ 分頁與總筆數統一輸出區 -->
+                <div id="pagination" class="mt-3 text-center"></div>
+            </div>
+            <div class="tab-pane fade" id="batchDistribute-pane">
+
+                <h3 class="mt-3">派發優惠券</h3>
+                <form method="post" asp-page-handler="BatchDistribute">
+                    <div class="row">
+                        <!-- 左側：選擇優惠券與目標欄位 -->
+                        <div class="col-md-6">
+                            <label>選擇優惠券：</label>
+                            <select name="SelectedCouponId" class="form-select mb-2">
+                                @foreach (var c in allCoupons.Where(x => x.IsActive))
+                                {
+                                    <option value="@c.CouponId">@c.Title (@c.Code)</option>
+                                }
+                            </select>
+
+                            <label>目標會員 ID（多筆以逗號分隔）：</label>
+                            <textarea id="targetMemberIds" name="TargetMemberIds" class="form-control" rows="3"></textarea>
+
+                            <button type="submit" class="btn btn-primary mt-2">派發優惠券</button>
+                        </div>
+
+
+                        <!-- 右側：會員選擇清單含關鍵字搜尋 -->
+                        <div class="col-md-6">
+                            <label>會員清單（點選可加入）</label>
+                            <input type="text" id="memberSearch" class="form-control mb-2" placeholder="🔍 搜尋會員 ID...">
+                            <div class="border rounded p-2" id="memberList" style="max-height: 300px; overflow-y: auto;">
+                                @foreach (var m in Model.AllUser)
+                                {
+                                    <div class="form-check mb-1">
+                                        <input type="checkbox" class="form-check-input member-checkbox" value="@m.Id" id="chk_@m.Id" />
+                                        <label class="form-check-label" for="chk_@m.Id">@m.Name (@m.Id)</label>
+                                    </div>
+
+                                }
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <div class="tab-pane fade" id="point-pane">
+                <!-- ✅ 會員點數查詢與紀錄區塊（請將會員點數區塊搬到這裡） -->
+                <h2>用戶點數查詢 / 操作</h2>
+                <form method="get">
+                    <div class="input-group mb-3">
+                        <input type="text" name="memberId" class="form-control" placeholder="輸入會員帳號查詢點數與紀錄" value="@memberId" />
+                        <button class="btn btn-outline-secondary">查詢</button>
+                    </div>
+                </form>
+                @if (!string.IsNullOrEmpty(memberId))
+                {
+                    <h5>目前點數：<span class="fw-bold text-success">@memberPoints</span></h5>
+                    <form method="post" asp-page-handler="AddPoints">
+                        <input type="hidden" name="MemberId" value="@memberId" />
+                        <div class="row g-2 align-items-end">
+                            <div class="col">
+                                <label>調整點數：</label>
+                                <input type="number" name="Points" class="form-control" />
+                            </div>
+                            <div class="col">
+                                <label>原因：</label>
+                                <input type="text" name="Action" class="form-control" />
+                            </div>
+                            <div class="col">
+                                <button type="submit" class="btn btn-warning">手動發放 / 扣除</button>
+                            </div>
+                        </div>
+                    </form>
+                    <table class="table table-striped mt-4">
+                        <thead>
+                            <tr>
+                                <th>動作</th>
+                                <th>點數</th>
+                                <th>時間</th>
+                                <th>備註</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in pointLogs)
+                            {
+                                <tr>
+                                    <td>@log.Action</td>
+                                    <td>@log.Points</td>
+                                    <td>@log.CreateTime.ToString("yyyy/MM/dd HH:mm")</td>
+                                    <td>@log.Remark</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
         </div>
 
 
-        <h3>➤ 批次派發優惠券</h3>
-        <form method="post" asp-page-handler="BatchDistribute">
-            <div class="row">
-                <!-- 左側：選擇優惠券與目標欄位 -->
-                <div class="col-md-6">
-                    <label>選擇優惠券：</label>
-                    <select name="SelectedCouponId" class="form-select mb-2">
-                        @foreach (var c in allCoupons.Where(x => x.IsActive))
-                        {
-                            <option value="@c.CouponId">@c.Title (@c.Code)</option>
-                        }
-                    </select>
 
-                    <label>目標會員 ID（多筆以逗號分隔）：</label>
-                    <textarea id="targetMemberIds" name="TargetMemberIds" class="form-control" rows="3"></textarea>
-
-                    <button type="submit" class="btn btn-primary mt-2">派發優惠券</button>
-                </div>
-
-
-                <!-- 右側：會員選擇清單含關鍵字搜尋 -->
-                <div class="col-md-6">
-                    <label>會員清單（點選可加入）</label>
-                    <input type="text" id="memberSearch" class="form-control mb-2" placeholder="🔍 搜尋會員 ID...">
-                    <div class="border rounded p-2" id="memberList" style="max-height: 300px; overflow-y: auto;">
-                        @foreach (var m in Model.AllUser)
-                        {
-                            <div class="member-item">
-                                <input type="checkbox" class="form-check-input member-checkbox" value="@m.Id" id="chk_@m" />
-                                <label for="chk_@m.Id">@m.Name</label>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-            </div>
-        </form>
-        <hr />
-        <h2>用戶點數查詢 / 操作</h2>
-        <form method="get">
-            <div class="input-group mb-3">
-                <input type="text" name="memberId" class="form-control" placeholder="輸入會員帳號查詢點數與紀錄" value="@memberId" />
-                <button class="btn btn-outline-secondary">查詢</button>
-            </div>
-        </form>
-        @if (!string.IsNullOrEmpty(memberId))
-        {
-            <h5>目前點數：<span class="fw-bold text-success">@memberPoints</span></h5>
-            <form method="post" asp-page-handler="AddPoints">
-                <input type="hidden" name="MemberId" value="@memberId" />
-                <div class="row g-2 align-items-end">
-                    <div class="col">
-                        <label>調整點數：</label>
-                        <input type="number" name="Points" class="form-control" />
-                    </div>
-                    <div class="col">
-                        <label>原因：</label>
-                        <input type="text" name="Action" class="form-control" />
-                    </div>
-                    <div class="col">
-                        <button type="submit" class="btn btn-warning">手動發放 / 扣除</button>
-                    </div>
-                </div>
-            </form>
-            <table class="table table-striped mt-4">
-                <thead>
-                    <tr>
-                        <th>動作</th>
-                        <th>點數</th>
-                        <th>時間</th>
-                        <th>備註</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var log in pointLogs)
-                    {
-                        <tr>
-                            <td>@log.Action</td>
-                            <td>@log.Points</td>
-                            <td>@log.CreateTime.ToString("yyyy/MM/dd HH:mm")</td>
-                            <td>@log.Remark</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
 
     </div>
     <script>
@@ -208,8 +294,152 @@
         });
     </script>
 
+    <script>
+        $(function () {
+            // ⏺ 初次讀取上次的 tab 狀態
+            const lastTab = localStorage.getItem('activeTab');
+            if (lastTab) {
+                $('#tabSelector a[href="' + lastTab + '"]').tab('show');
+            }
+
+            // 🧠 每次點擊 tab 時記錄下來
+            $('#tabSelector a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                localStorage.setItem('activeTab', $(e.target).attr('href'));
+            });
+
+            // ✅ 既有點選會員勾選功能與搜尋功能
+            $('.member-checkbox').change(function () {
+                updateSelectedMembers();
+            });
+
+            function updateSelectedMembers() {
+                let selected = $('.member-checkbox:checked').map(function () {
+                    return this.value;
+                }).get();
+                $('#targetMemberIds').val(selected.join(','));
+            }
+
+            $('#memberSearch').on('input', function () {
+                let keyword = $(this).val().toLowerCase();
+                $('.member-item').each(function () {
+                    let label = $(this).text().toLowerCase();
+                    $(this).toggle(label.includes(keyword));
+                });
+            });
+        });
+    </script>
 
 
+    <script>
+        const allCoupons = @Html.Raw(Json.Serialize(allCoupons));
+        const allPgroup = @Html.Raw(Json.Serialize(Model.AllPgroup));
+        const pgroupMap = Object.fromEntries(allPgroup.map(g => [g.pGid, g.pGname]));
+
+
+        initResponsivePaginator({
+            data: allCoupons,
+            pageSize: 10,
+            tableWrapperId: 'coupon-table-wrapper',
+            accordionWrapperId: 'couponAccordion',
+            paginationWrapperId: 'pagination',
+            tableColumns: [
+                { title: '券名', className: 'text-nowrap', render: c => c.title || '-' },
+                { title: '代碼', className: 'text-nowrap small', render: c => c.code || '-' },
+                { title: '類型', className: 'text-nowrap', render: c => ['固定金額', '百分比'][c.discountType] || '-' },
+                { title: '折扣值', className: 'text-nowrap small', render: c => c.discountType === 0 ? `${c.fixedDiscountAmount || 0} 元` : '-' },
+                { title: '百分比', className: 'text-nowrap small', render: c => c.discountType === 1 ? `${c.discountAmount || 0}%` : '-' },
+                { title: '門檻金額', className: 'text-nowrap small', render: c => `滿 ${c.minAmount} 元` },
+                {
+                    title: '效期',
+                    className: 'text-nowrap text-bold',
+                    render: c =>
+                        (c.validFrom && c.validTo)
+                            ? `${c.validFrom.split('T')[0]} - ${c.validTo.split('T')[0]}`
+                            : '-'
+                },
+                { title: '註冊送', className: 'text-nowrap', render: c => c.isWelcome ? '✅' : '❌' },
+                {
+                    title: '來源', className: 'text-nowrap', render: c => ({
+                        0: '手動發放', 1: '註冊禮', 2: '首購禮',
+                        3: '生日券', 4: '推薦獎勵', 5: '行銷活動'
+                    })[c.couponSource] || '-'
+                },
+                { title: '使用範圍', className: 'text-nowrap', render: c => pgroupMap[c.categoryLimit] || '-' },
+                {
+                    title: '自動派發', className: 'text-nowrap', render: c => ({
+                        0: '不指定', 1: '註冊當天', 2: '生日前20天', 3: '指定日期'
+                    })[c.autoAssignRule] || '❌'
+                },
+                { title: '派發日期', className: 'text-nowrap', render: c => c.autoDate ? c.autoDate.split('T')[0] : '-' },
+                { title: '備註', render: c => c.remark || '-' },
+                { title: '狀態', className: 'text-nowrap', render: c => c.isActive ? '啟用中' : '已停用' }
+            ],
+            renderRowButtons: c => `
+            <a class="btn btn-sm btn-info me-1" href="/Management/EditCoupon?id=${c.couponId}">編輯</a>
+            <form method="post" action="?handler=ToggleStatus&id=${c.couponId}" style="display:inline;">
+                <button type="submit" class="btn btn-sm ${c.isActive ? 'btn-danger' : 'btn-success'}"
+                    onclick="return confirm('確定要${c.isActive ? '停用' : '啟用'}這張優惠券嗎？')">
+                    ${c.isActive ? '停用' : '啟用'}
+                </button>
+            </form>
+        `,
+
+            accordionHeaderRender: c => `${c.title || '未命名'}｜${c.code || '-'}｜${c.discountType === 0 ? (c.fixedDiscountAmount || 0) + ' 元' : (c.discountAmount || 0) + '%'}`
+        });
+
+
+    </script>
+    <script>
+        function updateFieldStates() {
+            const type = document.querySelector('.discountTypeSelect')?.value;
+            const discountInput = document.querySelector('.discountAmountInput');
+            const discountWrapper = discountInput?.closest('.discountAmountWrapper');
+            const fixedDiscountInput = document.querySelector('.fixedDiscountAmountInput');
+            const fixedDiscountWrapper = document.querySelector('.fixedDiscountWrapper');
+            const ruleSelect = document.querySelector('.autoAssignRule');
+            const autoAssignCheckbox = document.querySelector('.autoAssignCheckbox');
+
+            if (!type || !discountInput || !fixedDiscountInput || !fixedDiscountWrapper || !discountWrapper || !ruleSelect || !autoAssignCheckbox) return;
+
+            if (type === 'FixedAmount') {
+                fixedDiscountWrapper.style.display = '';
+                fixedDiscountInput.readOnly = false;
+                fixedDiscountInput.value ||= '100';
+
+                discountWrapper.style.display = 'none';
+                discountInput.readOnly = true;
+                discountInput.value = '1.00';
+            } else {
+                discountWrapper.style.display = '';
+                discountInput.readOnly = false;
+                discountInput.placeholder = '輸入折扣百分比 (如10代表10%)';
+                discountInput.value ||= '10';
+
+                fixedDiscountWrapper.style.display = 'none';
+                fixedDiscountInput.readOnly = true;
+                fixedDiscountInput.value = '';
+            }
+
+            ruleSelect.style.display = autoAssignCheckbox.checked ? '' : 'none';
+            if (!autoAssignCheckbox.checked) ruleSelect.value = '';
+        }
+
+        document.querySelector('.discountTypeSelect')?.addEventListener('change', updateFieldStates);
+        document.querySelector('.autoAssignCheckbox')?.addEventListener('change', updateFieldStates);
+        document.querySelector('.autoAssignRule')?.addEventListener('change', function () {
+            const wrapper = document.querySelector('.specificDateWrapper');
+            if (wrapper) wrapper.style.display = this.value === 'SpecificDate' ? '' : 'none';
+        });
+
+        window.addEventListener('load', () => {
+            updateFieldStates();
+            const wrapper = document.querySelector('.specificDateWrapper');
+            const autoAssignRule = document.querySelector('.autoAssignRule');
+            if (wrapper && autoAssignRule) {
+                wrapper.style.display = autoAssignRule.value === 'SpecificDate' ? '' : 'none';
+            }
+        });
+    </script>
 
 </body>
 </html>
