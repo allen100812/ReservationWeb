@@ -140,12 +140,15 @@
     function handleResponsiveView() {
         function updateView() {
             const isMobile = window.innerWidth < 768;
-            const tableWrapper = document.getElementById(tableWrapperId)?.closest(".table-responsive");
-            const accordionWrapper = document.getElementById(accordionWrapperId)?.closest(".product-accordion");
+
+            const tableElement = document.getElementById(tableWrapperId);
+            const accordionElement = document.getElementById(accordionWrapperId);
+            console.log(accordionElement);
+            const tableWrapper = tableElement?.closest(".table-responsive");
+            const accordionWrapper = accordionElement; // 👈 直接本體
 
             if (tableWrapper && accordionWrapper) {
                 tableWrapper.style.display = isMobile ? "none" : "block";
-
                 accordionWrapper.style.display = isMobile ? "block" : "none";
             }
         }

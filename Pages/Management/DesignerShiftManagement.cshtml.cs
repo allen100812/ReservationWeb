@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+Ôªøusing Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Web0524.Models;
 
@@ -12,43 +12,68 @@ namespace Web0524.Pages.Management
         {
             _reservationService = reservationService;
         }
-
         [BindProperty]
-        public Designer_Shift NewShift { get; set; } = new();
+        public int? SelectedDesignerId { get; set; }
 
         public List<Designer> AllDesigners { get; set; } = new();
-        public List<Designer_Shift> Shifts { get; set; } = new();
-
-        [BindProperty(SupportsGet = true)]
-        public DateTime SelectedDate { get; set; } = DateTime.Today;
-
-        public string Message { get; set; } = string.Empty;
+        public Designer? SelectedDesigner { get; set; }
+        public List<Designer_Shift> DayOffList { get; set; } = new();
 
         public void OnGet()
         {
             AllDesigners = _reservationService.GetAllDesigners();
-            Shifts = _reservationService.GetShiftsForDay(SelectedDate);
+
         }
 
-        public IActionResult OnPost(string action)
+        public void OnPost()
         {
             AllDesigners = _reservationService.GetAllDesigners();
 
-            if (action == "add")
+            if (SelectedDesignerId.HasValue)
             {
-                var result = _reservationService.AddShift(NewShift);
-                Message = result != null ? "∑sºW¶®•\" : "¶π≥]≠pÆv∑Ì§—§w¶s¶b±∆ØZ∏ÍÆ∆";
-            }
-            else if (action == "remove")
-            {
-                var designerId = int.Parse(Request.Form["DesignerId"]);
-                var shiftDate = DateTime.Parse(Request.Form["ShiftDate"]);
-                bool success = _reservationService.RemoveShift(designerId, shiftDate);
-                Message = success ? "§w≤æ∞£±∆ØZ" : "≤æ∞£•¢±—";
-            }
+                SelectedDesigner = _reservationService.GetDesignerById(SelectedDesignerId.Value);
 
-            Shifts = _reservationService.GetShiftsForDay(SelectedDate);
-            return Page();
+                if (SelectedDesigner != null)
+                {
+                    SelectedDesigner.FixedHolidays = _reservationService.GetFixedHolidays(SelectedDesignerId.Value);
+                    DayOffList = _reservationService.GetShiftsByDesignerId(SelectedDesignerId.Value);
+                }
+                else
+                {
+                    Console.WriteLine("‚ùå Êâæ‰∏çÂà∞Ë®≠Ë®àÂ∏´ ID: " + SelectedDesignerId.Value);
+                }
+            }
+        }
+
+
+        public IActionResult OnPostUpdateFixedHolidays(int DesignerId, List<string> FixedHolidays)
+        {
+            Console.WriteLine($"‚ñ∂ Êõ¥Êñ∞Âõ∫ÂÆö‰ºëÂÅá DesignerId={DesignerId}, Days={string.Join(",", FixedHolidays)}");
+
+            bool success = _reservationService.SetFixedHolidays(DesignerId, FixedHolidays);
+
+            TempData["Message"] = success ? "‚úÖ Âõ∫ÂÆö‰ºëÂÅáÂ∑≤Êõ¥Êñ∞" : "‚ùå Âõ∫ÂÆö‰ºëÂÅáÊõ¥Êñ∞Â§±Êïó";
+
+            return RedirectToPage(new { SelectedDesignerId = DesignerId });
+        }
+
+
+        public IActionResult OnPostAddDayOff(int DesignerId, DateTime ShiftDate)
+        {
+            var shift = new Designer_Shift
+            {
+                DesignerId = DesignerId,
+                ShiftDate = ShiftDate.Date,
+                IsDayOff = true
+            };
+            _reservationService.AddShift(shift);
+            return RedirectToPage();
+        }
+
+        public IActionResult OnPostRemoveDayOff(int DesignerId, DateTime ShiftDate)
+        {
+            _reservationService.RemoveShift(DesignerId, ShiftDate.Date);
+            return RedirectToPage();
         }
     }
 }

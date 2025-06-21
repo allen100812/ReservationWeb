@@ -9,7 +9,7 @@
     <link href="https://unpkg.com/fullcalendar@6.1.10/main.min.css" rel="stylesheet">
     <script src="https://unpkg.com/fullcalendar@6.1.10/main.min.js"></script>
 
-
+    <script src="~/js/responsivePaginator.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
@@ -21,8 +21,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-
-    <div class="container" style="margin-top:200px;">
+    @Html.AntiForgeryToken()
+    <div class="container" style="margin-top:200px; margin-bottom:200px;">
         <h2>管理預約訂單</h2>
 
         <h4 class="mt-5">預約行事曆（Google Calendar）</h4>
@@ -32,140 +32,77 @@
 
 
 
+        <hr/>
 
+        <h4 class="mt-5 ">預約訂單列表</h4>
         <!-- 日期查詢表單 -->
-        <form method="get" class="mb-4">
-            <div class="row g-2 align-items-center">
-                <div class="col-auto">
-                    <label for="date" class="form-label">選擇日期</label>
-                    <input type="date" id="date" name="selectedDate" class="form-control"
-                           value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
-                </div>
-
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary mt-4">查詢可預約項目</button>
-                </div>
+        <form method="get" class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">起始日期</label>
+                <input type="date" class="form-control" name="FilterStartDate" value="@Model.FilterStartDate?.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">結束日期</label>
+                <input type="date" class="form-control" name="FilterEndDate" value="@Model.FilterEndDate?.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">設計師</label>
+                <select class="form-select" name="FilterDesignerId">
+                    <option value="">全部</option>
+                    @foreach (var d in Model.AllDesigners)
+                    {
+                        <option value="@d.DesignerId" selected="@(Model.FilterDesignerId == d.DesignerId ? "selected" : null)">
+                            @d.Name
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">服務名稱</label>
+                <input type="text" class="form-control" name="FilterProductName" value="@Model.FilterProductName">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">狀態</label>
+                <select class="form-select" name="FilterStatus">
+                    <option value="">全部</option>
+                    @foreach (Models.OrderStatus status in Enum.GetValues(typeof(Models.OrderStatus)))
+                    {
+                        <option value="@status" selected="@(Model.FilterStatus == status ? "selected" : null)">
+                            @(status switch
+                            {
+                                Models.OrderStatus.Pending => "未處理",
+                                Models.OrderStatus.Confirmed => "已成立",
+                                Models.OrderStatus.Completed => "已完成",
+                                Models.OrderStatus.Cancelled => "已取消",
+                                _ => status.ToString()
+                            })
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 text-end">
+                <button type="submit" class="btn btn-primary">查詢</button>
             </div>
         </form>
 
-        <!-- 可預約服務清單 -->
-        @if (Model.AvailableSlotDetails?.Any() == true)
-        {
-            <h4>可預約項目</h4>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>時間</th>
-                        <th>設計師</th>
-                        <th>服務ID</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var slot in Model.AvailableSlotDetails)
-                    {
-                        var designer = Model.AllDesigners.FirstOrDefault(d => d.DesignerId == slot.DesignerId);
-                        var modalId = $"modal_{slot.DesignerId}_{slot.ProductId}_{slot.StartTime:HHmm}";
-                        <tr>
-                            <td>@slot.StartTime.ToString("HH:mm")</td>
-                            <td>@designer?.Name</td>
-                            <td>@slot.ProductId</td>
-                            <td>
-                                <!-- 預約按鈕 -->
-                                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#@modalId">預約</button>
 
-                                <!-- Modal -->
-                                <div class="modal fade" id="@modalId" tabindex="-1" aria-labelledby="label_@modalId" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <form method="post">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="label_@modalId">填寫預約資訊</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <input type="hidden" name="NewOrder.DesignerId" value="@slot.DesignerId" />
-                                                    <input type="hidden" name="NewOrder.ProductId" value="@slot.ProductId" />
-                                                    <input type="hidden" name="NewOrder.ReservationDateTime" value="@slot.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
+        
 
-                                                    <div class="mb-3">
-                                                        <label>付款方式</label>
-                                                        <select name="NewOrder.PaymentMethod" class="form-select" required>
-                                                            <option value="">選擇付款方式</option>
-                                                            <option value="0">現金</option>
-                                                            <option value="1">刷卡</option>
-                                                            <option value="2">Line Pay</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <div class="mb-3">
-                                                        <label>選擇使用者</label>
-                                                        <select name="NewOrder.Uid" class="form-select" required>
-                                                            <option value="">選擇用戶</option>
-                                                            @foreach (var u in Model.AllUsers)
-                                                            {
-                                                                <option value="@u.Id">@u.Name (@u.Id)</option>
-                                                            }
-                                                        </select>
-                                                    </div>
-
-                                                    <div class="mb-3">
-                                                        <label>備註</label>
-                                                        <input type="text" name="NewOrder.Remark" class="form-control" placeholder="可留空" />
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="submit" name="action" value="add" class="btn btn-success">送出預約</button>
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
 
         <!-- 已預約清單 -->
-        <h4 class="mt-5">當日已預約訂單</h4>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>訂單ID</th>
-                    <th>設計師</th>
-                    <th>服務</th>
-                    <th>預約時間</th>
-                    <th>付款方式</th>
-                    <th>備註</th>
-                    <th>用戶</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var o in Model.AllOrders)
-                {
-                    var d = Model.AllDesigners.FirstOrDefault(x => x.DesignerId == o.DesignerId);
-                    <tr>
-                        <td>@o.OrderId</td>
-                        <td>@d?.Name</td>
-                        <td>@o.ProductId</td>
-                        <td>@o.ReservationDateTime.ToString("yyyy/MM/dd HH:mm")</td>
-                        <td>@o.PaymentMethod.ToDisplayName()</td>
-                        <td>@o.Remark</td>
-                        <td>@o.Uid</td>
-                        <td>
-                            <form method="post">
-                                <input type="hidden" name="NewOrder.OrderId" value="@o.OrderId" />
-                                <button type="submit" name="action" value="delete" class="btn btn-danger btn-sm">取消</button>
-                            </form>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-striped" id="order-table">
+                <!-- 表頭與內容將由 JS 動態生成 -->
+            </table>
+        </div>
+
+        <div id="order-accordion-wrapper">
+            <div class="accordion" id="order-accordion"></div>
+        </div>
+
+
+        <div id="order-pagination" class="mt-3"></div>
+
 
         <!-- 顯示訊息 -->
         @if (!string.IsNullOrEmpty(Model.Message))
@@ -174,7 +111,144 @@
         }
     </div>
 
+    @{
+        var orders = Model.AllOrders ?? new List<Order>();
+    }
 
+    <script type="application/json" id="order-data-json">
+        @Html.Raw(Json.Serialize(orders.Select(o => new
+            {
+                orderId = o.OrderId,
+                reservationDate = o.ReservationDateTime.ToString("yyyy-MM-dd"),
+                time = o.ReservationDateTime.ToString("HH:mm"),
+                designerName = Model.GetDesignerName(o.DesignerId),
+                productName = Model.GetProductName(o.ProductId),
+                price = o.Price,
+                payment = o.PaymentMethod.ToDisplayName(),
+                couponTitle = Model.GetCouponTitle(o.UsedCouponId),
+                discountAmount = o.DiscountAmount ?? 0,
+                finalPrice = o.Price - (double)(o.DiscountAmount ?? 0),
+                status = o.Status.ToString(),
+                remark = o.Remark,
+                orderDate = o.Orderdate.ToString("yyyy-MM-dd HH:mm")
+            })))
+    </script>
+
+    <script>
+
+
+
+        function loadOrdersFromJson() {
+            const raw = document.getElementById("order-data-json")?.textContent;
+            try {
+                return JSON.parse(raw);
+            } catch (err) {
+                console.error("❌ JSON 解析錯誤", err);
+                return [];
+            }
+        }
+
+        function renderOrderTable(data) {
+            window.initResponsivePaginator({
+                data,
+                tableColumns: [
+                    { title: "預約日期", render: o => o.reservationDate },
+                    { title: "時間", render: o => o.time },
+                    { title: "設計師", render: o => `【${o.designerName || "—"}】` },
+                    { title: "服務項目", render: o => `【${o.productName || "—"}】` },
+                    {
+                        title: "價格",
+                        render: o => parseFloat(o.price).toLocaleString("zh-TW", { style: "currency", currency: "TWD" })
+                    },
+                    { title: "付款方式", render: o => o.payment },
+                    {
+                        title: "優惠券", render: o => {
+                            const showTitle = o.couponTitle !== "—" ? `【${o.couponTitle}】` : "-";
+                            const showDiscount = o.discountAmount > 0
+                                ? ` (折扣 ${parseInt(o.discountAmount).toLocaleString("zh-TW", { style: "currency", currency: "TWD" })})`
+                                : "";
+                            return `${showTitle}${showDiscount}`;
+                        }
+                    },
+                    {
+                        title: "應付金額",
+                        render: o => parseFloat(o.finalPrice).toLocaleString("zh-TW", { style: "currency", currency: "TWD" }),
+                        className: "text-bold"
+                    },
+                    {
+                        title: "狀態", render: o => {
+                            switch (o.status) {
+                                case "Pending": return `<span class="text-warning">⏳ 待確認</span>`;
+                                case "Confirmed": return `<span class="text-primary">📌 預約完成</span>`;
+                                case "Completed": return `<span class="text-success">✅ 已完成</span>`;
+                                case "Cancelled": return `<span class="text-danger">❌ 已取消</span>`;
+                                default: return o.status;
+                            }
+                        }
+                    },
+                    { title: "備註", render: o => o.remark || "—" },
+                    {
+                        title: "操作", render: o => `
+                                <button class="btn btn-sm btn-danger w-100 cancel-btn" data-id="${o.orderId}">取消</button>
+                            `
+                    },
+                    { title: "下單時間", render: o => o.orderDate }
+                ],
+                tableWrapperId: "order-table",
+                accordionWrapperId: "order-accordion-wrapper",
+                paginationWrapperId: "order-pagination",
+                pageSize: 10,
+                accordionHeaderRender: o => `${o.reservationDate} - ${o.designerName || '未指定'}`
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const initialData = loadOrdersFromJson();
+            renderOrderTable(initialData);
+        });
+
+        document.addEventListener("click", function (e) {
+            if (e.target.classList.contains("cancel-btn")) {
+                const orderId = e.target.dataset.id;
+                if (!confirm(`確定要取消預約單 #${orderId} 嗎？`)) return;
+
+                fetch(window.location.href, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
+                    },
+                    body: new URLSearchParams({
+                        "NewOrder.OrderId": orderId,
+                        "action": "delete"
+                    })
+                })
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, "text/html");
+                        const newDataRaw = doc.getElementById("order-data-json")?.textContent;
+                        const newData = JSON.parse(newDataRaw || "[]");
+                        renderOrderTable(newData);
+
+                        const message = doc.querySelector(".alert-info");
+                        const container = document.querySelector(".container");
+                        const existingAlert = container.querySelector(".alert-info");
+                        if (existingAlert) existingAlert.remove();
+                        if (message) container.appendChild(message);
+                    })
+                    .catch(err => {
+                        alert("❌ 取消失敗，請稍後再試");
+                        console.error(err);
+                    });
+            }
+        });
+        document.addEventListener("DOMContentLoaded", function () {
+            const initialData = loadOrdersFromJson();
+            renderOrderTable(initialData);
+        });
+
+    </script>
 
 
 </body>

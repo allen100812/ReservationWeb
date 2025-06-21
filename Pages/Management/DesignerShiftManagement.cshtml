@@ -19,80 +19,89 @@
 
     <div class="container" style="margin-top:200px;">
 
+        <h2 class="mb-4">設計師排班管理</h2>
 
-
-        <h2>設計師排休管理</h2>
-
-        <form method="post" class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label">設計師</label>
-                <select asp-for="NewShift.DesignerId" class="form-select">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">選擇設計師</label>
+                <select name="SelectedDesignerId" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- 請選擇設計師 --</option>
                     @foreach (var d in Model.AllDesigners)
                     {
-                        <option value="@d.DesignerId">@d.Name</option>
+                        <option value="@d.DesignerId" selected="@(d.DesignerId == Model.SelectedDesignerId)"> @d.Name</option>
+
                     }
                 </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">日期</label>
-                <input asp-for="NewShift.ShiftDate" class="form-control" type="date" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">是否休假</label>
-                <select asp-for="NewShift.IsDayOff" class="form-select">
-                    <option value="true">是</option>
-                    <option value="false">否</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <button type="submit" name="action" value="add" class="btn btn-success">新增排班</button>
             </div>
         </form>
 
-        <hr />
-
-        @if (Model.Shifts.Any())
+        @if (Model.SelectedDesigner != null)
         {
-            <h5>指定日期的排班清單：@Model.SelectedDate.ToString("yyyy-MM-dd")</h5>
-            <form method="get" class="mb-3">
-                <input type="date" name="selectedDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="form-control d-inline-block w-auto me-2" />
-                <button type="submit" class="btn btn-secondary">查詢</button>
-            </form>
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>設計師</th>
-                        <th>日期</th>
-                        <th>是否休假</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var s in Model.Shifts)
-                    {
-                        var d = Model.AllDesigners.FirstOrDefault(x => x.DesignerId == s.DesignerId);
-                        <tr>
-                            <td>@d?.Name</td>
-                            <td>@s.ShiftDate.ToString("yyyy-MM-dd")</td>
-                            <td>@(s.IsDayOff ? "是" : "否")</td>
-                            <td>
-                                <form method="post" class="d-inline">
-                                    <input type="hidden" name="DesignerId" value="@s.DesignerId" />
-                                    <input type="hidden" name="ShiftDate" value="@s.ShiftDate.ToString("yyyy-MM-dd")" />
-                                    <button type="submit" name="action" value="remove" class="btn btn-sm btn-danger">移除</button>
-                                </form>
-                            </td>
-                        </tr>
+            <hr />
+            <h5>固定休假設定（每週）</h5>
+            <form method="post" asp-page-handler="UpdateFixedHolidays">
+                <input type="hidden" name="DesignerId" value="@Model.SelectedDesigner.DesignerId" />
+                <div class="row mb-3">
+                    @{
+                        var days = new[] { "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六" };
+                        for (int i = 0; i < 7; i++)
+                        {
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="FixedHolidays" value="@i" @(Model.SelectedDesigner.FixedHolidays.Contains(i.ToString()) ? "checked" : "") />
+                                    <label class="form-check-label">@days[i]</label>
+                                </div>
+                            </div>
+                        }
                     }
-                </tbody>
-            </table>
-        }
+                </div>
+                <button type="submit" class="btn btn-primary">儲存固定休假</button>
+            </form>
 
-        @if (!string.IsNullOrEmpty(Model.Message))
-        {
-            <div class="alert alert-info">@Model.Message</div>
-        }
+            <hr />
+            <h5 class="mt-4">指定日期排休</h5>
+            <form method="post" asp-page-handler="AddDayOff" class="row g-2 align-items-end mb-4">
+                <input type="hidden" name="DesignerId" value="@Model.SelectedDesigner.DesignerId" />
+                <div class="col-md-4">
+                    <label class="form-label">新增排休日期</label>
+                    <input type="date" name="ShiftDate" class="form-control" required />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-danger">新增排休</button>
+                </div>
+            </form>
 
+            @if (Model.DayOffList.Any())
+            {
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>排休日期</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.DayOffList)
+                        {
+                            <tr>
+                                <td>@s.ShiftDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    <form method="post" asp-page-handler="RemoveDayOff">
+                                        <input type="hidden" name="DesignerId" value="@Model.SelectedDesigner.DesignerId" />
+                                        <input type="hidden" name="ShiftDate" value="@s.ShiftDate.ToString("yyyy-MM-dd")" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">移除</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">目前沒有指定日期排休。</p>
+            }
+        }
     </div>
 </body>
 </html>

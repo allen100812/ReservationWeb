@@ -6,12 +6,22 @@ using System.Linq;
 using Dapper;
 using Web0524.Models.Helper;
 using Web0524.Models;
+using System.Data.Common;
 
 namespace Web0524.Models
 {
     public interface IReservationService
     {
 
+        // 取得指定設計師的所有固定休假
+        List<string> GetFixedHolidays(int designerId);
+
+        // 設定（覆蓋）固定休假清單
+        bool SetFixedHolidays(int designerId, List<string> weekdayList);
+
+
+        // 建議加入這個方法（比傳入 MinValue 更語意明確）
+        List<Designer_Shift> GetShiftsByDesignerId(int designerId);
 
         // 判斷是否為固定休假日
         bool Reservation_IsFixedHoliday(int designerId, DateTime date);
@@ -88,6 +98,56 @@ namespace Web0524.Models
         {
             _dbConnection = dbConnection;
             _calendarHelper= calendarHelper;
+        }
+
+        public List<string> GetFixedHolidays(int designerId)
+        {
+            var sql = "SELECT WeekdayString FROM DesignerFixedHolidayTB WHERE DesignerId = @designerId";
+            return _dbConnection.Query<string>(sql, new { designerId }).ToList();
+        }
+
+        public bool SetFixedHolidays(int designerId, List<string> weekdayList)
+        {
+            try
+            {
+                if (_dbConnection.State != ConnectionState.Open)
+                    _dbConnection.Open();
+
+                using var tran = _dbConnection.BeginTransaction();
+
+                // 刪除舊資料
+                _dbConnection.Execute("DELETE FROM DesignerFixedHolidayTB WHERE DesignerId = @designerId",
+                    new { designerId }, tran);
+
+                // 插入新資料
+                foreach (var wd in weekdayList)
+                {
+                    _dbConnection.Execute(
+                        "INSERT INTO DesignerFixedHolidayTB (DesignerId, WeekdayString) VALUES (@designerId, @wd)",
+                        new { designerId, wd }, tran);
+                }
+
+                tran.Commit();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("❌ 儲存固定休假失敗：" + ex.Message);
+                return false;
+            }
+            finally
+            {
+                if (_dbConnection.State == ConnectionState.Open)
+                    _dbConnection.Close();
+            }
+        }
+
+        public List<Designer_Shift> GetShiftsByDesignerId(int designerId)
+        {
+            // 撈所有指定設計師的排休（建議只包含未來日期）
+            return _dbConnection.Query<Designer_Shift>(
+                "SELECT * FROM DesignerShiftTB WHERE DesignerId = @id ORDER BY ShiftDate",
+                new { id = designerId }).ToList();
         }
 
         public Order? GetOrderById(int orderId)
