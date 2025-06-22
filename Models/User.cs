@@ -20,20 +20,8 @@ namespace Web0524.Models
         Line = 1
     }
 
-    public static class PermissionHelper
+    public static class UserHelper
     {
-        public static Permission GetPermissionFromSet(PermissionSet set)
-        {
-            return new Permission
-            {
-                CanView = set.CanView,
-                CanEdit = set.CanEdit,
-                CanDelete = set.CanDelete,
-                CanApprove = set.CanApprove,
-                CanManageUsers = set.CanManageUsers
-            };
-        }
-
         public static string GetRoleName(int roleInt)
         {
             return Enum.IsDefined(typeof(UserRoleEnum), roleInt)
@@ -62,12 +50,20 @@ namespace Web0524.Models
     {
         public int Id { get; set; }
         public string Name { get; set; } = "";
-        public bool CanView { get; set; }
-        public bool CanEdit { get; set; }
-        public bool CanDelete { get; set; }
-        public bool CanApprove { get; set; }
-        public bool CanManageUsers { get; set; }
+
+        public int CouponPointManagement { get; set; }    // 0 or 1
+        public int CreateCoupon { get; set; }             // 0 or 1
+        public int DesignerManagement { get; set; }       // 0 or 1
+        public int DesignerShiftManagement { get; set; }  // 0 or 1
+        public int ManageReservation { get; set; }        // 0 or 1
+        public int NewsManagement { get; set; }           // 0 or 1
+        public int PGManagement { get; set; }             // 0 or 1
+        public int PortfolioManagement { get; set; }      // 0 or 1
+        public int ProductManagement { get; set; }        // 0 or 1
+        public int UseCoupon { get; set; }                // 0 or 1
+        public int UserManagement { get; set; }           // 0 or 1
     }
+
 
     public class User
     {

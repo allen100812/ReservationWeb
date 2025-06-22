@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Web0524.Models;
 
 namespace Web0524.Pages.Management
@@ -12,11 +13,30 @@ namespace Web0524.Pages.Management
         {
             _userService = userService;
         }
+        public IActionResult OnGet()
+        {
+            var check = _userService.CheckCurrentUserPermission(this);
+            if (check != null) return check;
+
+            return Page();
+        }
 
         [IgnoreAntiforgeryToken]
         public JsonResult OnGetList(string? keyword)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
+
+
+
+
             var users = _userService.GetUserTB();
+            var currentUser = _userService.GetUserById(userId); // 根據登入帳號
+            int currentRole = currentUser?.Role ?? 5;
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
@@ -27,10 +47,9 @@ namespace Web0524.Pages.Management
                     u.Email.ToLower().Contains(keyword) ||
                     u.Phone.ToLower().Contains(keyword)
                 );
-                
             }
 
-            return new JsonResult(users.Select(u => new
+            var result = users.Select(u => new
             {
                 id = u.Id,
                 name = u.Name,
@@ -39,16 +58,28 @@ namespace Web0524.Pages.Management
                 orderNum = u.OrderNum,
                 cancelNum = u.CancelNum,
                 remark = u.Remark,
-                role = PermissionHelper.GetRoleName(u.Role),
-                permission = $"P{u.PermissionSetId}", // 或你可改抓名稱
-                userType = PermissionHelper.GetUserTypeName(u.UserType),
+                role = UserHelper.GetRoleName(u.Role),
+                roleValue = u.Role,
+                permission = $"P{u.PermissionSetId}",
+                permissionValue = u.PermissionSetId,
+                userType = UserHelper.GetUserTypeName(u.UserType),
                 isDeleted = u.IsDeleted
-            }));
+            }).ToList();
+
+            return new JsonResult(new { users = result, currentRole });
         }
+
 
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostUpdateRemark(string id, string remark)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
+
             var user = _userService.GetUserById(id);
             if (user == null)
                 return new JsonResult(new { success = false, message = "找不到用戶" });
@@ -61,6 +92,12 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostResetPassword(string id, string pwd)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             if (string.IsNullOrWhiteSpace(pwd) || pwd.Length < 8)
                 return new JsonResult(new { success = false, message = "密碼格式錯誤" });
 
@@ -76,6 +113,12 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostDisableUser(string id)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             var success = _userService.DeleteUser(id);
             return new JsonResult(new { success, message = success ? "已停權該用戶" : "停權失敗" });
         }
@@ -83,8 +126,49 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostEnableUser(string id)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            if (!_userService.HasPagePermissionByName(ClaimTypes.Sid, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             var success = _userService.RestoreUser(id);
             return new JsonResult(new { success, message = success ? "已恢復該用戶" : "恢復失敗" });
         }
+
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnPostEditUser(UserEditDto userEdit)
+        {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
+            var user = _userService.GetUserById(userEdit.Id);
+            if (user == null)
+                return new JsonResult(new { success = false, message = "找不到用戶" });
+
+            user.Name = userEdit.Name?.Trim();
+            user.Email = userEdit.Email?.Trim();
+            user.Phone = userEdit.Phone?.Trim();
+            user.Role = userEdit.Role;
+            user.PermissionSetId = userEdit.Permission;
+            user.Remark = userEdit.Remark?.Trim();
+
+            var success = _userService.UpdateUser(user);
+            return new JsonResult(new { success, message = success ? "會員資料已更新" : "更新失敗" });
+        }
+
+        public class UserEditDto
+        {
+            public string Id { get; set; }
+            public string Name { get; set; }
+            public string Email { get; set; }
+            public string Phone { get; set; }
+            public int Role { get; set; }
+            public int Permission { get; set; }
+            public string Remark { get; set; }
+        }
+
     }
 }

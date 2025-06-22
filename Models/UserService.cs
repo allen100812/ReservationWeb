@@ -3,6 +3,9 @@ using System.Data;
 using System.Collections.Generic;
 using System.Linq;
 using Web0524.Models.Marketing;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Web0524.Models
 {
@@ -24,6 +27,9 @@ namespace Web0524.Models
 
     public interface IUserService
     {
+        IActionResult CheckCurrentUserPermission(PageModel page);
+
+        bool HasPagePermissionByName(string userId, string pageName);
         IEnumerable<User> GetUserTB();
         User? GetUserById(string id);
         bool CreateUser(User user);
@@ -44,6 +50,50 @@ namespace Web0524.Models
         {
             _dbConnection = dbConnection;
             _marketingService = marketingService;
+        }
+
+        public IActionResult CheckCurrentUserPermission(PageModel page)
+        {
+            // 從當前頁面的 HttpContext 中取出登入使用者 ID（SID）
+            var userId = page.User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return page.RedirectToPage("/Login"); // 尚未登入就導去登入頁
+            }
+
+            var user = GetUserById(userId);
+            if (user == null)
+            {
+                return page.RedirectToPage("/Login"); // 使用者不存在
+            }
+
+            // 自動比對頁面名稱（類別名）對應權限欄位
+            var pageName = page.GetType().Name.Replace("Model", "");
+            if (!HasPagePermissionByName(user.Id, pageName))
+            {
+                return page.RedirectToPage("/AccessDenied"); // 沒有該頁面權限
+            }
+
+            return null; // ✅ 通過驗證
+        }
+
+        public bool HasPagePermissionByName(string userId, string pageName)
+        {
+            var sql = "SELECT * FROM UserTB WHERE Id = @Id AND IsDeleted = 0";
+            var user = _dbConnection.QueryFirstOrDefault<User>(sql, new { Id = userId });
+            if (user == null) return false;
+
+            var psql = "SELECT * FROM PermissionSetTB WHERE Id = @Id";
+            var permission = _dbConnection.QueryFirstOrDefault<PermissionSet>(psql, new { Id = user.PermissionSetId });
+            if (permission == null) return false;
+
+            // 透過反射依欄位名稱取得對應屬性值
+            var prop = typeof(PermissionSet).GetProperty(pageName);
+            if (prop == null) return false;
+
+            var value = prop.GetValue(permission);
+            return value is int intVal && intVal == 1;
         }
 
         public IEnumerable<User> GetUserTB()

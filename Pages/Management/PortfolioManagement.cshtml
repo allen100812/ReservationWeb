@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="~/css/Share.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="~/js/responsivePaginator.js"></script>
     <style>
         /* 圖片外層容器 */
         .photo-wrapper {
@@ -136,27 +137,15 @@
         <h4 class="mt-4">目前所有作品集</h4>
 
         <div class="responsive-table mt-4">
-            <table class="table table-bordered table-hover mt-3">
-                <thead class="table-dark">
-                    <tr>
-                        <th>標題</th>
-                        <th>連結</th>
-                        <th>內容</th>
-                        <th>群組</th>
-                        <th>狀態</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="portfolio-table-body">
-                    <!-- JS 動態渲染 -->
-                </tbody>
+            <table id="portfolio-table" class="table table-bordered table-hover mt-3">
+                <!-- thead 會由 JS 自動建立 -->
             </table>
         </div>
 
-        <!-- 手機手風琴 -->
-        <div class="accordion mt-4" id="portfolio-accordion">
-            <!-- JS 動態渲染 -->
-        </div>
+
+        <div id="portfolio-accordion" class="accordion mt-4"></div>
+        <div id="portfolio-pagination" class="mt-4"></div>
+
 
 
         <div id="pagination-container" class="mt-4"></div>
@@ -180,48 +169,16 @@
 
         <!-- 桌機版群組表格 -->
         <div class="responsive-table mt-4">
-            <table class="table table-bordered">
-                <thead class="table-dark"><tr><th>群組名稱</th><th>內容</th><th>操作</th></tr></thead>
-                <tbody id="group-table-body">
-                    @foreach (var g in Model.AllGroups)
-                    {
-                        <tr>
-                            <td>@g.PortfolioGroup_Name</td>
-                            <td>@g.PortfolioGroup_Content</td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-warning edit-group-btn" data-id="@g.PortfolioGroup_Id">編輯</button>
-                                <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="@g.PortfolioGroup_Id">刪除</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
+            <table id="group-table" class="table table-bordered">
+                <!-- thead/tbody 由 JS 自動產生 -->
             </table>
         </div>
 
-        <!-- 手機版群組手風琴 -->
-        <div class="accordion mt-4" id="group-accordion">
-            @foreach (var g in Model.AllGroups.Select((item, i) => new { item, i }))
-            {
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="group-heading-@g.i">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#group-collapse-@g.i">
-                            @g.item.PortfolioGroup_Name
-                        </button>
-                    </h2>
-                    <div id="group-collapse-@g.i" class="accordion-collapse collapse" data-bs-parent="#group-accordion">
-                        <div class="accordion-body">
-                            <div><strong>內容：</strong>@g.item.PortfolioGroup_Content</div>
-                            <div class="mt-2 d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-warning edit-group-btn" data-id="@g.item.PortfolioGroup_Id">編輯</button>
-                                <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="@g.item.PortfolioGroup_Id">刪除</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
+        <div class="accordion mt-4" id="group-accordion"></div>
+
 
         <div id="group-pagination" class="mt-4"></div>
+
 
     </div>
 
@@ -439,178 +396,60 @@
         });
     </script>
     <script>
-        const allData = @Html.Raw(Json.Serialize(Model.AllPortfolios));
-        const allGroups = @Html.Raw(Json.Serialize(Model.AllGroups));
-        const isMobile = window.innerWidth < 768;
-        const rowsPerPage = 10;
-
         document.addEventListener('DOMContentLoaded', () => {
-            renderPage(1);
+            window.initResponsivePaginator({
+                data: @Html.Raw(Json.Serialize(Model.AllPortfolios)),
+                tableColumns: [
+                    { title: '標題', render: row => row.portfolio_Title },
+                    { title: '連結', render: row => `<a href="${row.portfolio_URL}" target="_blank">連結</a>` },
+                    { title: '內容', render: row => row.portfolio_Content },
+                    {
+                        title: '群組', render: row => {
+                            const group = @Html.Raw(Json.Serialize(Model.AllGroups));
+                            const g = group.find(x => x.portfolioGroup_Id === row.portfolioGroup_Id);
+                            return g ? g.portfolioGroup_Name : '未知';
+                        }
+                    },
+                    {
+                        title: '狀態', render: row => row.isPublished
+                            ? '<span class="badge bg-success">上架</span>'
+                            : '<span class="badge bg-secondary">未上架</span>'
+                    }
+                ],
+                tableWrapperId: 'portfolio-table',
+                accordionWrapperId: 'portfolio-accordion',
+                paginationWrapperId: 'portfolio-pagination',
+                pageSize: 10,
+                renderRowButtons: row => `
+                        <button class="btn btn-sm btn-warning" onclick="editPortfolio(${row.portfolio_Id})">編輯</button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePortfolio(${row.portfolio_Id})">刪除</button>`
+            });
         });
-
-        function renderPage(page) {
-            const start = (page - 1) * rowsPerPage;
-            const visible = allData.slice(start, start + rowsPerPage);
-
-            if (isMobile) {
-                let html = '';
-                visible.forEach((p, i) => {
-                    const group = allGroups.find(g => g.portfolioGroup_Id === p.portfolioGroup_Id)?.portfolioGroup_Name || '未知';
-                    html += `<div class="accordion-item">
-                                    <h2 class="accordion-header" id="heading-${i}">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${i}">
-                                            ${p.portfolio_Title}
-                                        </button>
-                                    </h2>
-                                    <div id="collapse-${i}" class="accordion-collapse collapse" data-bs-parent="#portfolio-accordion">
-                                        <div class="accordion-body">
-                                            <div><strong>內容：</strong>${p.portfolio_Content}</div>
-                                            <div><strong>群組：</strong>${group}</div>
-                                            <div><strong>狀態：</strong>${p.isPublished ? '<span class="badge bg-success">上架</span>' : '<span class="badge bg-secondary">未上架</span>'}</div>
-                                            <div class="mt-2 d-flex gap-2">
-                                                <button class="btn btn-sm btn-warning" onclick="editPortfolio(${p.portfolio_Id})">編輯</button>
-                                                <button class="btn btn-sm btn-danger" onclick="deletePortfolio(${p.portfolio_Id})">刪除</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>`;
-                });
-                document.getElementById('portfolio-accordion').innerHTML = html;
-            } else {
-                let html = '';
-                visible.forEach(p => {
-                    const group = allGroups.find(g => g.portfolioGroup_Id === p.portfolioGroup_Id)?.portfolioGroup_Name || '未知';
-                    html += `<tr>
-                                    <td>${p.portfolio_Title}</td>
-                                    <td><a href="${p.portfolio_URL}" target="_blank">連結</a></td>
-                                    <td>${p.portfolio_Content}</td>
-                                    <td>${group}</td>
-                                    <td>${p.isPublished ? '<span class="badge bg-success">上架</span>' : '<span class="badge bg-secondary">未上架</span>'}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning" onclick="editPortfolio(${p.portfolio_Id})">編輯</button>
-                                        <button class="btn btn-sm btn-danger" onclick="deletePortfolio(${p.portfolio_Id})">刪除</button>
-                                    </td>
-                                </tr>`;
-                });
-                document.getElementById('portfolio-table-body').innerHTML = html;
-            }
-
-            renderPaginationControls(allData.length, rowsPerPage, page);
-        }
-
-        function renderPaginationControls(totalRows, rowsPerPage, currentPage) {
-            const container = document.getElementById('pagination-container');
-            const totalPages = Math.ceil(totalRows / rowsPerPage);
-            let html = '<nav><ul class="pagination justify-content-center">';
-
-            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                    <a class="page-link" href="#" onclick="renderPage(${currentPage - 1})">&laquo;</a></li>`;
-
-            const maxVisible = 5;
-            let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-            let end = Math.min(totalPages, start + maxVisible - 1);
-            if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
-
-            for (let i = start; i <= end; i++) {
-                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                                        <a class="page-link" href="#" onclick="renderPage(${i})">${i}</a></li>`;
-            }
-
-            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                    <a class="page-link" href="#" onclick="renderPage(${currentPage + 1})">&raquo;</a></li>`;
-
-            html += '</ul></nav>';
-            container.innerHTML = html;
-        }
     </script>
     <script>
-        const groupData = @Html.Raw(Json.Serialize(Model.AllGroups));
-        const groupsPerPage = 10;
-
-        function renderGroupPage(page) {
-            const start = (page - 1) * groupsPerPage;
-            const visibleGroups = groupData.slice(start, start + groupsPerPage);
-
-            if (isMobile) {
-                let accordionHTML = '';
-                visibleGroups.forEach((g, i) => {
-                    const safeName = g.portfolioGroup_Name.replaceAll('"', '&quot;');
-                    const safeContent = g.portfolioGroup_Content.replaceAll('"', '&quot;');
-                    accordionHTML += `<div class="accordion-item">
-                                    <h2 class="accordion-header" id="group-heading-${i}">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#group-collapse-${i}">
-                                            ${g.portfolioGroup_Name}
-                                        </button>
-                                    </h2>
-                                    <div id="group-collapse-${i}" class="accordion-collapse collapse" data-bs-parent="#group-accordion">
-                                        <div class="accordion-body">
-                                            <div><strong>內容：</strong>${g.portfolioGroup_Content}</div>
-                                            <div class="mt-2 d-flex gap-2">
-                                                                <button class="btn btn-sm btn-warning edit-group-btn"
-                                data-id="${g.portfolioGroup_Id}"
-                                data-name="${safeName}"
-                                data-content="${safeContent}">編輯</button>
-                                                <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="${g.portfolioGroup_Id}">刪除</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>`;
-                });
-                document.getElementById('group-accordion').innerHTML = accordionHTML;
-            } else {
-                let tableHTML = '';
-                visibleGroups.forEach(g => {
-                    tableHTML += `<tr>
-                                    <td>${g.portfolioGroup_Name}</td>
-                                    <td>${g.portfolioGroup_Content}</td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-warning edit-group-btn" data-id="${g.portfolioGroup_Id}" data-name="${g.portfolioGroup_Name}" data-content="${g.portfolioGroup_Content}">編輯</button>
-                                        <button type="button" class="btn btn-sm btn-danger delete-group-btn" data-id="${g.portfolioGroup_Id}">刪除</button>
-                                    </td>
-                                </tr>`;
-                });
-                document.getElementById('group-table-body').innerHTML = tableHTML;
-            }
-
-            renderGroupPagination(groupData.length, groupsPerPage, page);
-        }
-
-        function renderGroupPagination(totalRows, rowsPerPage, currentPage) {
-            const container = document.getElementById('group-pagination');
-            const totalPages = Math.ceil(totalRows / rowsPerPage);
-            let html = '<nav><ul class="pagination justify-content-center">';
-
-            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                    <a class="page-link" href="#" onclick="renderGroupPage(${currentPage - 1})">&laquo;</a></li>`;
-
-            for (let i = 1; i <= totalPages; i++) {
-                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                                        <a class="page-link" href="#" onclick="renderGroupPage(${i})">${i}</a></li>`;
-            }
-
-            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                    <a class="page-link" href="#" onclick="renderGroupPage(${currentPage + 1})">&raquo;</a></li>`;
-            html += '</ul></nav>';
-
-            container.innerHTML = html;
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            renderPage(1);
-            renderGroupPage(1);
-        });
-
-        $(document).on("click", ".edit-group-btn", function () {
-            const id = $(this).data("id");
-            const name = $(this).data("name");
-            const content = $(this).data("content");
-            $("#edit-group-id").val(id);
-            $("#new-group-name").val(name);
-            $("#new-group-content").val(content);
-            $("#add-group-btn").addClass("d-none");
-            $("#save-group-btn, #cancel-edit-btn").removeClass("d-none");
+            // ✅ 作品群組 JS 分頁
+            window.initResponsivePaginator({
+                data: @Html.Raw(Json.Serialize(Model.AllGroups)),
+                tableColumns: [
+                    { title: '群組名稱', render: row => row.portfolioGroup_Name },
+                    { title: '內容', render: row => row.portfolioGroup_Content }
+                ],
+                tableWrapperId: 'group-table',
+                accordionWrapperId: 'group-accordion',
+                paginationWrapperId: 'group-pagination',
+                pageSize: 10,
+                renderRowButtons: row => `
+                        <button type="button" class="btn btn-sm btn-warning edit-group-btn"
+                            data-id="${row.portfolioGroup_Id}"
+                            data-name="${row.portfolioGroup_Name.replaceAll('"', '&quot;')}"
+                            data-content="${row.portfolioGroup_Content.replaceAll('"', '&quot;')}">編輯</button>
+                        <button type="button" class="btn btn-sm btn-danger delete-group-btn"
+                            data-id="${row.portfolioGroup_Id}">刪除</button>`
+            });
         });
     </script>
+   
 </body>
 </html>
 
