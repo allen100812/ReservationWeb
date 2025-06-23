@@ -44,10 +44,16 @@ namespace Web0524.Pages.Management
 
 
 
-        public void OnGet()
+        public IActionResult OnGet()
         {
+
+            var check = _userService.CheckCurrentUserPermission(this);
+            if (check != null) return check;
+
             AllDesigners = _reservationService.GetAllDesigners();
             AllUsers = _userService.GetUserTB().ToList();
+            AllProducts = _productService.GetAllProducts().ToList(); // ✅ 加這行
+            AllCoupons = _marketingService.GetAllCoupons().ToList(); // 如有使用優惠券標題也建議補上
 
             var orders = _reservationService.GetAllOrders();
 
@@ -89,91 +95,134 @@ namespace Web0524.Pages.Management
                     advanceMinutes: 10);
                 AvailableSlotDetails.AddRange(slots);
             }
+
+            return Page();
         }
 
         [IgnoreAntiforgeryToken]
+
         public IActionResult OnPost(string action)
         {
-            AllDesigners = _reservationService.GetAllDesigners();
 
-            ModelState.Remove("NewOrder.OrderId");
-            ModelState.Remove("NewOrder.Status");
-            ModelState.Remove("NewOrder.Orderdate");
-            // ✅ 僅在「新增」或「更新」時才驗證欄位
-            if ((action == "add" || action == "update") && !ModelState.IsValid)
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
             {
-                var errors = string.Join("；", ModelState
-                    .Where(e => e.Value.Errors.Count > 0)
-                    .Select(e => $"欄位: {e.Key}, 錯誤: {string.Join(", ", e.Value.Errors.Select(er => er.ErrorMessage))}"));
-                Message = $"請填寫所有必要欄位：{errors}";
-                return Page();
+                return new JsonResult(new { success = false, message = "無權限" });
             }
+            // 重新載入必要資料
+            AllDesigners = _reservationService.GetAllDesigners();
+            AllUsers = _userService.GetUserTB().ToList();
+            AllProducts = _productService.GetAllProducts().ToList();
+            AllCoupons = _marketingService.GetAllCoupons().ToList();
 
+            if (SelectedDate == default)
+                SelectedDate = DateTime.Today;
 
             switch (action)
             {
-                case "add":
-                    var productRule = AllDesigners
-                        .SelectMany(d => d.ScheduleRules)
-                        .FirstOrDefault(r => r.ProductId == NewOrder.ProductId);
-                    NewOrder.Price = productRule != null ? productRule.DurationMinutes * 10 : 0; // 假設計價邏輯為每分鐘10元
-                    NewOrder.Orderdate = DateTime.Now;
-                    NewOrder.Status = OrderStatus.Confirmed;
-                    var created = _reservationService.CreateOrder(NewOrder);
-                    Message = created != null ? $"成功新增預約單：編號 {created.OrderId}" : "新增失敗，此時段已無法預約。";
-                    break;
-
                 case "update":
+                    if (NewOrder.OrderId <= 0)
+                    {
+                        Message = "❌ 缺少預約單編號。";
+                        break;
+                    }
                     var existing = _reservationService.GetOrderById(NewOrder.OrderId);
                     if (existing != null)
                     {
-                        existing.DesignerId = NewOrder.DesignerId;
-                        existing.ProductId = NewOrder.ProductId;
-                        existing.ReservationDateTime = NewOrder.ReservationDateTime;
-                        existing.PaymentMethod = NewOrder.PaymentMethod;
-                        existing.Price = NewOrder.Price;
-                        existing.Remark = NewOrder.Remark;
-                        existing.Uid = NewOrder.Uid;
+                        if (existing.Status != OrderStatus.Confirmed)
+                        {
+                            Message = "⚠️ 僅能對「預約中」的訂單進行狀態更新。";
+                            break;
+                        }
                         var updated = _reservationService.UpdateOrderStatus(existing.OrderId, NewOrder.Status);
-                        Message = updated ? "預約單已更新。" : "更新失敗。";
+                        Message = updated ? "✅ 預約單狀態已更新。" : "❌ 狀態更新失敗。";
                     }
                     else
                     {
-                        Message = "找不到預約單。";
+                        Message = "❌ 找不到預約單。";
                     }
                     break;
 
+
                 case "delete":
+                    if (NewOrder.OrderId <= 0)
+                    {
+                        Message = "❌ 缺少預約單編號。";
+                        break;
+                    }
+                    var target = _reservationService.GetOrderById(NewOrder.OrderId);
+                    if (target == null)
+                    {
+                        Message = "❌ 找不到預約單。";
+                        break;
+                    }
+                    if (target.Status != OrderStatus.Confirmed)
+                    {
+                        Message = "⚠️ 僅能取消「預約中」的訂單。";
+                        break;
+                    }
                     var deleted = _reservationService.CancelOrder(NewOrder.OrderId);
-                    Message = deleted ? "預約單已取消。" : "取消失敗。";
+                    Message = deleted ? "🗑️ 預約單已取消。" : "❌ 取消失敗。";
                     break;
 
+
                 default:
-                    Message = "未知操作。";
+                    Message = "❌ 未知操作。";
                     break;
             }
 
+            // 套用與 OnGet 一樣的篩選條件，避免資料被清空
+            var orders = _reservationService.GetAllOrders();
+
+            if (FilterDesignerId.HasValue)
+                orders = orders.Where(o => o.DesignerId == FilterDesignerId.Value).ToList();
+
+            if (!string.IsNullOrWhiteSpace(FilterProductName))
+                orders = orders.Where(o => GetProductName(o.ProductId).Contains(FilterProductName)).ToList();
+
+            if (FilterStatus.HasValue)
+                orders = orders.Where(o => o.Status == FilterStatus.Value).ToList();
+
+            if (FilterStartDate.HasValue && FilterEndDate.HasValue)
+            {
+                var start = FilterStartDate.Value.Date;
+                var end = FilterEndDate.Value.Date.AddDays(1).AddSeconds(-1);
+                orders = orders.Where(o => o.ReservationDateTime >= start && o.ReservationDateTime <= end).ToList();
+            }
+            else
+            {
+                var now = DateTime.Now;
+                var start = new DateTime(now.Year, now.Month, 1);
+                var end = start.AddMonths(1).AddSeconds(-1);
+                orders = orders.Where(o => o.ReservationDateTime >= start && o.ReservationDateTime <= end).ToList();
+            }
+
+            AllOrders = orders;
+
+            // 可用時段（非必要）
             AvailableSlotDetails = new();
             foreach (var designer in AllDesigners)
             {
                 var slots = _reservationService.GetAvailableServiceSlots(
                     designerId: designer.DesignerId,
-                    date: SelectedDate,
+                    date: DateTime.Today,
                     cooldownMinutes: 10,
                     advanceMinutes: 10);
                 AvailableSlotDetails.AddRange(slots);
             }
-            AllOrders = _reservationService.GetAllOrders().Where(o => o.ReservationDateTime.Date == SelectedDate).ToList();
 
             return Page();
         }
-
 
         public string GetDesignerName(int designerId) =>
             AllDesigners.FirstOrDefault(d => d.DesignerId == designerId)?.Name ?? "未知設計師";
 
         public string GetProductName(int productId) =>
             AllProducts.FirstOrDefault(p => p.ProductId == productId)?.Name ?? "未知服務";
+
+        public string GetUserName(string uid) =>
+    AllUsers.FirstOrDefault(p => p.Id == uid)?.Name ?? "未知客戶";
 
         public string GetPaymentMethodName(OrderPaymentMethod method) =>
             method switch

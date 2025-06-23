@@ -8,25 +8,40 @@ namespace Web0524.Pages.Management
     {
         private readonly IPortfolioService _portfolioService;
         private readonly IPortfolioGroupService _groupService;
+        private readonly IUserService _userService;
 
-        public PortfolioManagementModel(IPortfolioService portfolioService, IPortfolioGroupService groupService)
+        public PortfolioManagementModel(IPortfolioService portfolioService, IPortfolioGroupService groupService, IUserService userService)
         {
             _portfolioService = portfolioService;
             _groupService = groupService;
+            _userService = userService;
         }
 
         public List<Portfolio> AllPortfolios { get; set; } = new();
         public List<PortfolioGroup> AllGroups { get; set; } = new();
 
-        public void OnGet()
+        public IActionResult OnGet()
         {
+            var check = _userService.CheckCurrentUserPermission(this);
+            if (check != null) return check;
+
             AllPortfolios = _portfolioService.GetAllAsync().Result.ToList();
             AllGroups = _groupService.GetAllAsync().Result.ToList();
+
+            return Page();
         }
 
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostEdit(int portfolioId)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
+
+
             var p = _portfolioService.GetByIdAsync(portfolioId).Result;
             if (p == null)
                 return new JsonResult(new { success = false });
@@ -54,6 +69,13 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostSave()
         {
+
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             try
             {
                 var form = Request.Form;
@@ -133,6 +155,12 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostDelete(int portfolioId)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             try
             {
                 _portfolioService.DeleteAsync(portfolioId).Wait();
@@ -147,6 +175,12 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostDeletePhoto(int photoId)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             var success = _portfolioService.DeletePhotoAsync(photoId).Result;
             return new JsonResult(new { success });
         }
@@ -154,6 +188,12 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostAddGroup(string name, string content)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             var group = new PortfolioGroup
             {
                 PortfolioGroup_Name = name,
@@ -167,6 +207,12 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostDeleteGroup(int id)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             var result = _groupService.DeleteAsync(id).Result;
             return new JsonResult(new { success = result });
         }
@@ -174,6 +220,12 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostUpdateGroup(int id, string name, string content)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             var group = new PortfolioGroup
             {
                 PortfolioGroup_Id = id,

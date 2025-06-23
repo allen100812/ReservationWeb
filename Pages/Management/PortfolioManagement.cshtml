@@ -88,8 +88,9 @@
 <body>
     @Html.AntiForgeryToken()
     <div class="container " style="margin-top:200px; margin-bottom:200px; ">
-        <h2 class="mb-4">作品集管理</h2>
         <div id="message-area"></div>
+        <h2 class="mb-4 fw-bold">作品集管理</h2>
+        
 
         <form id="portfolioForm" enctype="multipart/form-data">
             <input type="hidden" name="id" id="portfolio-id">
@@ -97,12 +98,7 @@
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <input type="text" class="form-control" name="title" placeholder="作品標題" required>
-                </div>
-                <div class="col-md-6">
-                    <input type="text" class="form-control" name="url" placeholder="作品連結 URL">
-                </div>
-                <div class="col-md-6">
+                    <label class="form-label">作品集群組</label>
                     <select name="groupId" class="form-select" required>
                         <option value="">-- 選擇群組 --</option>
                         @foreach (var g in Model.AllGroups)
@@ -112,13 +108,26 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="isPublished" name="isPublished">
-                        <label class="form-check-label" for="isPublished">上架</label>
-                    </div>
+                    <label class="form-label">標題</label>
+                    <input type="text" class="form-control" name="title" placeholder="作品標題" required>
                 </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">作品連結</label>
+                    <input type="text" class="form-control" name="url" placeholder="作品連結 URL">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">上架狀態</label>
+                    <select class="form-select" name="isPublished" id="isPublishedSelect">
+                        <option value="true">上架</option>
+                        <option value="false">未上架</option>
+                    </select>
+                </div>
+
                 <div class="col-12">
-                    <textarea class="form-control" name="content" rows="4" placeholder="作品內容"></textarea>
+                    <label class="form-label">作品說明</label>
+                    <textarea class="form-control" name="content" rows="4" placeholder="作品說明"></textarea>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">新增圖片</label>
@@ -129,40 +138,23 @@
                     <div id="existing-images" class="mt-3 row row-cols-2 row-cols-md-4 g-3"></div>
                 </div>
                 <div class="col-md-12">
-                    <button type="submit" class="btn btn-primary">儲存作品</button>
+                    <button type="submit" class="btn btn-dark">儲存作品</button>
                 </div>
             </div>
         </form>
         <hr />
-        <h4 class="mt-4">目前所有作品集</h4>
-
-        <div class="responsive-table mt-4">
-            <table id="portfolio-table" class="table table-bordered table-hover mt-3">
-                <!-- thead 會由 JS 自動建立 -->
-            </table>
-        </div>
-
-
-        <div id="portfolio-accordion" class="accordion mt-4"></div>
-        <div id="portfolio-pagination" class="mt-4"></div>
-
-
-
-        <div id="pagination-container" class="mt-4"></div>
-
-        <hr />
-        <h4>作品群組管理</h4>
-        <form id="group-form" class="row g-2">
+        <h4 class="mt-4">作品群組管理</h4>
+        <form id="group-form" class="row g-3 mt-2">
             <div class="col-md-4">
-                <input type="text" id="new-group-name" class="form-control" placeholder="新增群組名稱" />
+                <input type="text" id="new-group-name" class="form-control" placeholder="群組名稱" />
             </div>
             <div class="col-md-4">
-                <input type="text" id="new-group-content" class="form-control" placeholder="群組備註（可選）" />
+                <input type="text" id="new-group-content" class="form-control" placeholder="群組說明（可選）" />
             </div>
             <div class="col-md-4">
-                <button type="button" id="add-group-btn" class="btn btn-outline-primary">新增群組</button>
-                <button type="button" id="save-group-btn" class="btn btn-outline-success d-none">儲存修改</button>
-                <button type="button" id="cancel-edit-btn" class="btn btn-outline-secondary d-none">取消修改</button>
+                <button type="button" id="add-group-btn" class="btn btn-dark w-100">新增群組</button>
+                <button type="button" id="save-group-btn" class="btn btn-dark d-none">儲存修改</button>
+                <button type="button" id="cancel-edit-btn" class="btn btn-outline-dark d-none">取消修改</button>
                 <input type="hidden" id="edit-group-id" />
             </div>
         </form>
@@ -178,6 +170,33 @@
 
 
         <div id="group-pagination" class="mt-4"></div>
+
+        <hr />
+        <h4 class="mt-4">目前所有作品集</h4>
+
+        <div class="input-group mb-3 mt-2">
+            <input type="text" id="portfolio-search" class="form-control" placeholder="輸入關鍵字搜尋標題 / 群組 / 內容">
+            <button class="btn btn-dark" type="button" id="clear-search">清除</button>
+        </div>
+
+
+        <div class="responsive-table mt-4">
+            <table id="portfolio-table" class="table table-bordered table-hover mt-3">
+                <!-- thead 會由 JS 自動建立 -->
+            </table>
+        </div>
+
+
+        <div id="portfolio-accordion" class="accordion mt-4"></div>
+        <div id="portfolio-pagination" class="mt-4"></div>
+
+
+
+        <div id="pagination-container" class="mt-4"></div>
+
+
+
+
 
 
     </div>
@@ -320,6 +339,8 @@
                                                 </div>`);
                             });
                         }
+                        // ✅ 滑動到頁面頂部
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     } else {
                         showMsg("載入失敗", false);
                     }
@@ -356,7 +377,7 @@
             $(this).closest('.photo-wrapper').remove();
         });
 
-        $(document).on('click', '.delete-photo-btn', function () {
+        $(document).on('click', '.remove-photo-btn', function () {
             const photoId = $(this).data('id');
             preservedPhotoIds = preservedPhotoIds.filter(id => id !== photoId);
             $(this).closest('.photo-wrapper').remove();
@@ -397,42 +418,72 @@
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            window.initResponsivePaginator({
-                data: @Html.Raw(Json.Serialize(Model.AllPortfolios)),
-                tableColumns: [
-                    { title: '標題', render: row => row.portfolio_Title },
-                    { title: '連結', render: row => `<a href="${row.portfolio_URL}" target="_blank">連結</a>` },
-                    { title: '內容', render: row => row.portfolio_Content },
-                    {
-                        title: '群組', render: row => {
-                            const group = @Html.Raw(Json.Serialize(Model.AllGroups));
-                            const g = group.find(x => x.portfolioGroup_Id === row.portfolioGroup_Id);
-                            return g ? g.portfolioGroup_Name : '未知';
+            const allPortfolios = @Html.Raw(Json.Serialize(Model.AllPortfolios));
+            const allGroups = @Html.Raw(Json.Serialize(Model.AllGroups));
+            let filteredPortfolios = allPortfolios;
+
+            function renderPortfolioTable() {
+                window.initResponsivePaginator({
+                    data: filteredPortfolios,
+                    tableColumns: [
+                        { title: '標題', className: 'text-nowrap', render: row => row.portfolio_Title },
+                        { title: '連結', className: 'text-nowrap', render: row => `<a href="${row.portfolio_URL}" target="_blank">連結</a>` },
+                        { title: '內容', render: row => row.portfolio_Content },
+                        {
+                            title: '群組', className: 'text-nowrap', render: row => {
+                                const g = allGroups.find(x => x.portfolioGroup_Id === row.portfolioGroup_Id);
+                                return g ? g.portfolioGroup_Name : '未知';
+                            }
+                        },
+                        {
+                            title: '狀態', className: 'text-nowrap', render: row => row.isPublished
+                                ? '<span class="badge bg-success">上架</span>'
+                                : '<span class="badge bg-secondary">未上架</span>'
                         }
-                    },
-                    {
-                        title: '狀態', render: row => row.isPublished
-                            ? '<span class="badge bg-success">上架</span>'
-                            : '<span class="badge bg-secondary">未上架</span>'
-                    }
-                ],
-                tableWrapperId: 'portfolio-table',
-                accordionWrapperId: 'portfolio-accordion',
-                paginationWrapperId: 'portfolio-pagination',
-                pageSize: 10,
-                renderRowButtons: row => `
-                        <button class="btn btn-sm btn-warning" onclick="editPortfolio(${row.portfolio_Id})">編輯</button>
-                        <button class="btn btn-sm btn-danger" onclick="deletePortfolio(${row.portfolio_Id})">刪除</button>`
+                    ],
+                    tableWrapperId: 'portfolio-table',
+                    accordionWrapperId: 'portfolio-accordion',
+                    paginationWrapperId: 'portfolio-pagination',
+                    pageSize: 10,
+                    renderRowButtons: row => `
+                                        <button class="btn btn-sm btn-secondary" onclick="editPortfolio(${row.portfolio_Id})">編輯</button>
+                                <button class="btn btn-sm btn-danger" onclick="deletePortfolio(${row.portfolio_Id})">刪除</button>`
+                });
+            }
+
+            // 初始渲染
+            renderPortfolioTable();
+
+            // 關鍵字過濾邏輯
+            $('#portfolio-search').on('input', function () {
+                const keyword = $(this).val().toLowerCase();
+                filteredPortfolios = allPortfolios.filter(p => {
+                    const group = allGroups.find(g => g.portfolioGroup_Id === p.portfolioGroup_Id);
+                    const groupName = group ? group.portfolioGroup_Name : '';
+                    return (
+                        (p.portfolio_Title || '').toLowerCase().includes(keyword) ||
+                        (p.portfolio_Content || '').toLowerCase().includes(keyword) ||
+                        (groupName || '').toLowerCase().includes(keyword)
+                    );
+                });
+                renderPortfolioTable();
+            });
+
+            $('#clear-search').click(function () {
+                $('#portfolio-search').val('');
+                filteredPortfolios = allPortfolios;
+                renderPortfolioTable();
             });
         });
     </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // ✅ 作品群組 JS 分頁
             window.initResponsivePaginator({
                 data: @Html.Raw(Json.Serialize(Model.AllGroups)),
                 tableColumns: [
-                    { title: '群組名稱', render: row => row.portfolioGroup_Name },
+                    { title: '群組名稱', className: 'text-nowrap', render: row => row.portfolioGroup_Name },
                     { title: '內容', render: row => row.portfolioGroup_Content }
                 ],
                 tableWrapperId: 'group-table',
@@ -440,7 +491,7 @@
                 paginationWrapperId: 'group-pagination',
                 pageSize: 10,
                 renderRowButtons: row => `
-                        <button type="button" class="btn btn-sm btn-warning edit-group-btn"
+                                <button type="button" class="btn btn-sm btn-secondary edit-group-btn"
                             data-id="${row.portfolioGroup_Id}"
                             data-name="${row.portfolioGroup_Name.replaceAll('"', '&quot;')}"
                             data-content="${row.portfolioGroup_Content.replaceAll('"', '&quot;')}">編輯</button>

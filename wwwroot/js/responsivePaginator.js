@@ -118,18 +118,20 @@
                 }).join('');
                 const buttons = renderRowButtons ? `<div class="mt-2">${renderRowButtons(row)}</div>` : '';
                 const headerText = accordionHeaderRender ? accordionHeaderRender(row) : tableColumns[0].render(row);
+                const uniqueId = `${accordionWrapperId}-item-${index}`;
 
                 return `
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-${index}">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${index}">
-                        ${headerText}
-                    </button>
-                </h2>
-                <div id="collapse-${index}" class="accordion-collapse collapse" data-bs-parent="#${accordionWrapperId}">
-                    <div class="accordion-body">${body}${buttons}</div>
-                </div>
-            </div>`;
+<div class="accordion-item">
+    <h2 class="accordion-header" id="heading-${uniqueId}">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${uniqueId}" aria-expanded="false" aria-controls="collapse-${uniqueId}">
+            ${headerText}
+        </button>
+    </h2>
+    <div id="collapse-${uniqueId}" class="accordion-collapse collapse" data-bs-parent="#${accordionWrapperId}">
+        <div class="accordion-body">${body}${buttons}</div>
+    </div>
+</div>`;
+
             }).join('');
         }
 

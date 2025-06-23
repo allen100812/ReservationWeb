@@ -28,9 +28,11 @@
 
     @Html.AntiForgeryToken()
     <div class="container" style="margin-top:200px; margin-bottom:200px;">
-        <h2 class="mb-4">產品管理</h2>
 
         <div id="message-area"></div>
+        <h2 class="mb-4 fw-bold">產品管理</h2>
+
+        
 
         <form id="productForm" enctype="multipart/form-data">
             <input type="hidden" asp-for="Product.ProductId" />
@@ -86,7 +88,7 @@
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <button type="submit" class="btn btn-primary">儲存</button>
+                    <button type="submit" class="btn btn-dark">儲存</button>
                 </div>
             </div>
         </form>
@@ -94,19 +96,28 @@
         <hr />
 
         <h4>產品清單</h4>
+        <div class="row mb-3 g-3">
+            <div class="col-md-3">
+                <select id="filterGroup" class="form-select">
+                    <option value="">全部群組</option>
+                    @foreach (var pg in Model.PGroups)
+                    {
+                        <option value="@pg.PGid">@pg.PGname</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="filterState" class="form-select">
+                    <option value="">全部狀態</option>
+                    <option value="1">啟用</option>
+                    <option value="0">停用</option>
+                </select>
+            </div>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-bordered table-hover mt-3" id="productTableBody">
-                <thead class="table-dark">
-                    <tr>
-                        <th>產品編號</th>
-                        <th>名稱</th>
-                        <th>價格</th>
-                        <th>群組</th>
-                        <th>狀態</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody ></tbody>
+
 
             </table>
         </div>
@@ -136,14 +147,36 @@
                     'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
                 },
                 success: function (res) {
+                    resetForm();
                     $("#message-area").html(`<div class="alert alert-success">${res.message}</div>`);
-                    setTimeout(() => location.reload(), 1000);
+                    
                 },
                 error: function () {
                     $("#message-area").html(`<div class="alert alert-danger">儲存失敗，請再試一次。</div>`);
                 }
             });
         });
+        function resetForm() {
+            // 清除所有 input/select/textarea 的值
+            $("#productForm")[0].reset();
+
+            // 確保 ASP.NET Core 綁定欄位的名稱都能重設乾淨
+            $("input[name='Product.ProductId']").val("");
+            $("input[name='Product.Price']").val("");
+            $("input[name='Product.Name']").val("");
+            $("textarea[name='Product.Content']").val("");
+            $("select[name='Product.PGid']").val(""); // 群組
+            $("select[name='Product.ProductState']").val(""); // 狀態
+
+            // 清除圖片預覽
+            $("#previewImage").attr("src", "#").hide();
+
+            // 清除檔案選擇
+            $("#photoFileInput").val("");
+
+            // 重新渲染表格（可選）
+            applyFilters();
+        }
 
         $(".delete-btn").click(function () {
             if (!confirm("確認刪除？")) return;
@@ -178,34 +211,60 @@
             }
         });
     </script>
-
     <script>
         const allProducts = @Html.Raw(Json.Serialize(Model.Products));
         const pgroupMap = @Html.Raw(Json.Serialize(Model.PGroups.ToDictionary(pg => pg.PGid, pg => pg.PGname)));
-        console.log("🧪 allProducts", allProducts);
 
-        initResponsivePaginator({
-            data: allProducts,
-            pageSize: 10,
-            tableWrapperId: "productTableBody",
-            accordionWrapperId: "productAccordion",
-            paginationWrapperId: "pagination",
-            tableColumns: [
-                { title: "產品編號", render: p => p.productId },
-                { title: "名稱", render: p => p.name },
-                { title: "價格", render: p => `$${p.price}` },
-                { title: "群組", render: p => pgroupMap[p.pGid] || "未知" },
-                { title: "狀態", render: p => p.productState === 1 ? "啟用" : "停用" }
-            ],
-            renderRowButtons: p => `
-                <a href="?id=${p.productId}" class="btn btn-sm btn-warning">編輯</a>
-                <button class="btn btn-sm btn-danger delete-btn" data-id="${p.productId}">刪除</button>
-            `,
-            accordionHeaderRender: p => `${p.name} - $${p.price}`
-        });
+        let filteredProducts = allProducts;
 
+        function applyFilters() {
+            const groupFilter = $("#filterGroup").val();
+            const stateFilter = $("#filterState").val();
 
+            filteredProducts = allProducts.filter(p => {
+                const matchGroup = groupFilter === "" || p.pGid.toString() === groupFilter;
+                const matchState = stateFilter === "" || p.productState.toString() === stateFilter;
+                return matchGroup && matchState;
+            });
+
+            renderTable(); // 重新渲染分頁
+        }
+
+        function renderTable() {
+            initResponsivePaginator({
+                data: filteredProducts,
+                pageSize: 10,
+                tableWrapperId: "productTableBody",
+                accordionWrapperId: "productAccordion",
+                paginationWrapperId: "pagination",
+                tableColumns: [
+                    { title: "產品編號", className: 'text-nowrap', render: p => p.productId },
+                    { title: "名稱", className: 'text-nowrap', render: p => p.name },
+                    { title: "價格", className: 'text-nowrap', render: p => `$${p.price}` },
+                    { title: "群組", className: 'text-nowrap', render: p => pgroupMap[p.pGid] || "未知" },
+                    {
+                        title: "狀態",
+                        className: 'text-nowrap',
+                        render: p => p.productState === 1
+                            ? `<span class="badge bg-success">啟用</span>`
+                            : `<span class="badge bg-secondary">停用</span>`
+                    }
+                ],
+                renderRowButtons: p => `
+                        <a href="?id=${p.productId}" class="btn btn-sm btn-secondary">編輯</a>
+                        <button class="btn btn-sm btn-danger delete-btn" data-id="${p.productId}">刪除</button>
+                    `,
+                accordionHeaderRender: p => `${p.name} - $${p.price}`
+            });
+        }
+
+        // 初始渲染
+        renderTable();
+
+        // 綁定篩選器變更事件
+        $("#filterGroup, #filterState").on("change", applyFilters);
     </script>
+
 
 
 </body>

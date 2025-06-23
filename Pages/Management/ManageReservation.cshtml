@@ -23,32 +23,84 @@
 <body>
     @Html.AntiForgeryToken()
     <div class="container" style="margin-top:200px; margin-bottom:200px;">
-        <h2>管理預約訂單</h2>
+        <h2 class="fw-bold">管理預約訂單</h2>
 
         <h4 class="mt-5">預約行事曆（Google Calendar）</h4>
-        <div class="ratio ratio-16x9">
-            <iframe src="https://calendar.google.com/calendar/embed?src=29f882b8d6108305c9a9064e11d25577a699b83939cc49a477bbb32558306a6d%40group.calendar.google.com&ctz=Asia%2FTaipei" style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
-        </div>
+        <div id="calendar-wrapper" class="mt-4"></div>
 
+
+        <script>
+            function loadResponsiveCalendar() {
+                const wrapper = document.getElementById("calendar-wrapper");
+                if (!wrapper) return;
+
+                const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+                const mode = isMobile ? "WEEK" : "MONTH";
+                const height = isMobile ? "500px" : "800px";
+
+                const iframe = document.createElement("iframe");
+                iframe.src = `https://calendar.google.com/calendar/embed?src=29f882b8d6108305c9a9064e11d25577a699b83939cc49a477bbb32558306a6d%40group.calendar.google.com&mode=${mode}&ctz=Asia%2FTaipei`;
+                iframe.style.border = "0";
+                iframe.style.width = "100%";
+                iframe.style.height = height;
+                iframe.setAttribute("frameborder", "0");
+                iframe.setAttribute("scrolling", "no");
+
+                wrapper.innerHTML = ""; // 清空原本內容
+                wrapper.appendChild(iframe);
+            }
+
+            document.addEventListener("DOMContentLoaded", loadResponsiveCalendar);
+            window.addEventListener("resize", function () {
+                // 重新判斷是否需要切換模式
+                loadResponsiveCalendar();
+            });
+        </script>
 
 
         <hr/>
 
-        <h4 class="mt-5 ">預約訂單列表</h4>
+
+        <h4 class="mt-4">預約訂單列表</h4>
+        <!-- 放在表單區域之上，靠近最上層 -->
+        <div id="message-wrapper">
+            @if (!string.IsNullOrEmpty(Model.Message))
+            {
+                var isSuccess = Model.Message.Contains("已完成") || Model.Message.Contains("已更新") || Model.Message.Contains("已取消");
+                var alertClass = isSuccess ? "alert-success" :
+                Model.Message.Contains("失敗") ? "alert-danger" :
+                "alert-info";
+
+                <div class="alert @alertClass">@Model.Message</div>
+            }
+        </div>
+
+
         <!-- 日期查詢表單 -->
-        <form method="get" class="row g-3 mb-3">
-            <div class="col-md-3">
-                <label class="form-label">起始日期</label>
-                <input type="date" class="form-control" name="FilterStartDate" value="@Model.FilterStartDate?.ToString("yyyy-MM-dd")">
+        @{
+            var defaultStartDate = Model.FilterStartDate ?? DateTime.Today;
+            var defaultEndDate = Model.FilterEndDate ?? DateTime.Today.AddDays(15);
+        }
+
+        <form method="get" class="row g-3 mt-4">
+            <div class="col-md-4">
+                <input type="date" class="form-control" name="FilterStartDate" placeholder="起始日期" value="@defaultStartDate.ToString("yyyy-MM-dd")">
+            </div>
+
+            <div class="col-md-1 text-center">
+                <h2>~</h2>
+            </div>
+            <div class="col-md-4">
+                <input type="date" class="form-control" name="FilterEndDate" placeholder="結束日期" value="@defaultEndDate.ToString("yyyy-MM-dd")">
+            </div>
+
+            <div class="offset-md-3">
+               
             </div>
             <div class="col-md-3">
-                <label class="form-label">結束日期</label>
-                <input type="date" class="form-control" name="FilterEndDate" value="@Model.FilterEndDate?.ToString("yyyy-MM-dd")">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">設計師</label>
                 <select class="form-select" name="FilterDesignerId">
-                    <option value="">全部</option>
+                    <option value="">全部設計師</option>
                     @foreach (var d in Model.AllDesigners)
                     {
                         <option value="@d.DesignerId" selected="@(Model.FilterDesignerId == d.DesignerId ? "selected" : null)">
@@ -58,13 +110,11 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">服務名稱</label>
-                <input type="text" class="form-control" name="FilterProductName" value="@Model.FilterProductName">
+                <input type="text" class="form-control" name="FilterProductName" placeholder="服務名稱" value="@Model.FilterProductName">
             </div>
             <div class="col-md-3">
-                <label class="form-label">狀態</label>
                 <select class="form-select" name="FilterStatus">
-                    <option value="">全部</option>
+                    <option value="">全部狀態</option>
                     @foreach (Models.OrderStatus status in Enum.GetValues(typeof(Models.OrderStatus)))
                     {
                         <option value="@status" selected="@(Model.FilterStatus == status ? "selected" : null)">
@@ -80,8 +130,8 @@
                     }
                 </select>
             </div>
-            <div class="col-12 text-end">
-                <button type="submit" class="btn btn-primary">查詢</button>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-dark w-100">查詢</button>
             </div>
         </form>
 
@@ -90,25 +140,19 @@
 
 
         <!-- 已預約清單 -->
-        <div class="table-responsive">
+        <div class="table-responsive mt-4">
             <table class="table table-striped" id="order-table">
                 <!-- 表頭與內容將由 JS 動態生成 -->
             </table>
         </div>
 
-        <div id="order-accordion-wrapper">
-            <div class="accordion" id="order-accordion"></div>
-        </div>
+        <div class="accordion" id="order-accordion"></div>
 
 
         <div id="order-pagination" class="mt-3"></div>
 
 
-        <!-- 顯示訊息 -->
-        @if (!string.IsNullOrEmpty(Model.Message))
-        {
-            <div class="alert alert-info">@Model.Message</div>
-        }
+
     </div>
 
     @{
@@ -123,6 +167,7 @@
                 time = o.ReservationDateTime.ToString("HH:mm"),
                 designerName = Model.GetDesignerName(o.DesignerId),
                 productName = Model.GetProductName(o.ProductId),
+                userName = Model.GetUserName(o.Uid),
                 price = o.Price,
                 payment = o.PaymentMethod.ToDisplayName(),
                 couponTitle = Model.GetCouponTitle(o.UsedCouponId),
@@ -152,17 +197,18 @@
             window.initResponsivePaginator({
                 data,
                 tableColumns: [
-                    { title: "預約日期", render: o => o.reservationDate },
-                    { title: "時間", render: o => o.time },
-                    { title: "設計師", render: o => `【${o.designerName || "—"}】` },
-                    { title: "服務項目", render: o => `【${o.productName || "—"}】` },
+                    { title: "預約日期", className: 'text-nowrap', render: o => o.reservationDate },
+                    { title: "時間", className: 'text-nowrap', render: o => o.time },
+                    { title: "設計師", className: 'text-nowrap', render: o => `【${o.designerName || "—"}】` },
+                    { title: "預約用戶", className: 'text-nowrap', render: o => o.userName || "—" },
+                    { title: "服務項目", className: 'text-nowrap', render: o => `【${o.productName || "—"}】` },
                     {
-                        title: "價格",
+                        title: "價格", className: 'text-nowrap',
                         render: o => parseFloat(o.price).toLocaleString("zh-TW", { style: "currency", currency: "TWD" })
                     },
-                    { title: "付款方式", render: o => o.payment },
+                    { title: "付款方式", className: 'text-nowrap', render: o => o.payment },
                     {
-                        title: "優惠券", render: o => {
+                        title: "優惠券", className: 'text-nowrap', render: o => {
                             const showTitle = o.couponTitle !== "—" ? `【${o.couponTitle}】` : "-";
                             const showDiscount = o.discountAmount > 0
                                 ? ` (折扣 ${parseInt(o.discountAmount).toLocaleString("zh-TW", { style: "currency", currency: "TWD" })})`
@@ -171,34 +217,57 @@
                         }
                     },
                     {
-                        title: "應付金額",
+                        title: "應付金額", className: 'text-nowrap',
                         render: o => parseFloat(o.finalPrice).toLocaleString("zh-TW", { style: "currency", currency: "TWD" }),
                         className: "text-bold"
                     },
                     {
-                        title: "狀態", render: o => {
+                        title: "狀態", className: 'text-nowrap', render: o => {
                             switch (o.status) {
-                                case "Pending": return `<span class="text-warning">⏳ 待確認</span>`;
-                                case "Confirmed": return `<span class="text-primary">📌 預約完成</span>`;
-                                case "Completed": return `<span class="text-success">✅ 已完成</span>`;
-                                case "Cancelled": return `<span class="text-danger">❌ 已取消</span>`;
-                                default: return o.status;
+                                case "Pending": return `<span class="badge bg-warning text-dark">⏳ 待確認</span>`;
+                                case "Confirmed": return `<span class="badge bg-primary">📌 預約中</span>`;
+                                case "Completed": return `<span class="badge bg-success">✅ 已完成</span>`;
+                                case "Cancelled": return `<span class="badge bg-danger">❌ 已取消</span>`;
+                                default: return `<span class="badge bg-secondary">${o.status}</span>`;
                             }
                         }
                     },
+
                     { title: "備註", render: o => o.remark || "—" },
+                    { title: "下單時間", className: 'text-nowrap', render: o => o.orderDate },
                     {
-                        title: "操作", render: o => `
-                                <button class="btn btn-sm btn-danger w-100 cancel-btn" data-id="${o.orderId}">取消</button>
-                            `
-                    },
-                    { title: "下單時間", render: o => o.orderDate }
+                        title: "操作", className: 'text-nowrap', render: o => {
+                            if (o.status === "Confirmed") {
+                                return `
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button class="btn btn-sm btn-success complete-btn" data-id="${o.orderId}">
+                                <i class="fa fa-check"></i> 完成
+                            </button>
+                            <button class="btn btn-sm btn-danger cancel-btn" data-id="${o.orderId}">
+                                <i class="fa fa-times"></i> 取消
+                            </button>
+                        </div>
+                    `;
+                            }
+                            return `<div class="text-muted text-center">—</div>`;
+                        }
+                    }
+
+
+
+
+                    
                 ],
                 tableWrapperId: "order-table",
-                accordionWrapperId: "order-accordion-wrapper",
+                accordionWrapperId: "order-accordion",
                 paginationWrapperId: "order-pagination",
                 pageSize: 10,
-                accordionHeaderRender: o => `${o.reservationDate} - ${o.designerName || '未指定'}`
+                accordionHeaderRender: o => {
+                    const [year, month, day] = o.reservationDate.split("-");
+                    return `${month}/${day} ${o.time}｜${o.designerName || '未指定'}｜客：${o.userName || '—'}｜${o.productName || '—'}`;
+                }
+
+
             });
         }
 
@@ -231,17 +300,68 @@
                         const newData = JSON.parse(newDataRaw || "[]");
                         renderOrderTable(newData);
 
-                        const message = doc.querySelector(".alert-info");
-                        const container = document.querySelector(".container");
-                        const existingAlert = container.querySelector(".alert-info");
-                        if (existingAlert) existingAlert.remove();
-                        if (message) container.appendChild(message);
+                        const message = doc.querySelector(".alert");
+
+                        const wrapper = document.querySelector("#message-wrapper");
+
+                        if (wrapper) wrapper.innerHTML = ""; // 清空舊訊息
+                        if (message) {
+                            wrapper.appendChild(message);
+                            message.scrollIntoView({ behavior: "smooth" });
+                        }
+
+
+
                     })
                     .catch(err => {
                         alert("❌ 取消失敗，請稍後再試");
                         console.error(err);
                     });
             }
+            if (e.target.classList.contains("complete-btn")) {
+                const orderId = e.target.dataset.id;
+                if (!confirm(`確認將預約單 #${orderId} 設為已完成？`)) return;
+
+                fetch(window.location.href, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
+                    },
+                    body: new URLSearchParams({
+                        "NewOrder.OrderId": orderId,
+                        "NewOrder.Status": "Completed",
+                        "action": "update"
+                    })
+                })
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, "text/html");
+                        const newDataRaw = doc.getElementById("order-data-json")?.textContent;
+                        const newData = JSON.parse(newDataRaw || "[]");
+                        renderOrderTable(newData);
+
+                        const message = doc.querySelector(".alert");
+
+                        const wrapper = document.querySelector("#message-wrapper");
+
+                        if (wrapper) wrapper.innerHTML = ""; // 清空舊訊息
+                        if (message) {
+                            wrapper.appendChild(message);
+                            message.scrollIntoView({ behavior: "smooth" });
+                        }
+
+
+
+
+                    })
+                    .catch(err => {
+                        alert("❌ 更新失敗，請稍後再試");
+                        console.error(err);
+                    });
+            }
+
         });
         document.addEventListener("DOMContentLoaded", function () {
             const initialData = loadOrdersFromJson();
