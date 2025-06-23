@@ -119,6 +119,7 @@ namespace Web0524.Pages.Management
             {
                 return new JsonResult(new { success = false, message = "無權限" });
             }
+            Console.WriteLine("id:" + id);
             var success = _userService.DeleteUser(id);
             return new JsonResult(new { success, message = success ? "已停權該用戶" : "停權失敗" });
         }
@@ -127,10 +128,12 @@ namespace Web0524.Pages.Management
         public JsonResult OnPostEnableUser(string id)
         {
             var pageName = this.GetType().Name.Replace("Model", "");
-            if (!_userService.HasPagePermissionByName(ClaimTypes.Sid, pageName))
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
             {
                 return new JsonResult(new { success = false, message = "無權限" });
             }
+            
             var success = _userService.RestoreUser(id);
             return new JsonResult(new { success, message = success ? "已恢復該用戶" : "恢復失敗" });
         }

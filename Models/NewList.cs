@@ -35,8 +35,6 @@ namespace Web0524.Models
 
         public int? Tag { get; set; }
 
-
-
         public DateTime? TopTime { get; set; } // 置頂時間（可排序）
 
         public List<IFormFile> Photos { get; set; } = new(); // 上傳圖檔

@@ -1,4 +1,9 @@
-﻿/* 定義自定義變數 */
+﻿/* wwwroot/css/site.css 或 Share.css 最後加上 */
+body {
+    font-family: "Segoe UI", sans-serif;
+}
+
+/* 定義自定義變數 */
 :root {
     --color1: rgb(229, 230, 230); /* 淺灰*/
     --color1_1: rgb(50, 50, 50,0.7);
