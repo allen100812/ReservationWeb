@@ -71,7 +71,7 @@ namespace Web0524.Models
 
         public IEnumerable<Pgroup> GetAllPgroups()
         {
-            var sql = "SELECT * FROM PgroupTB WHERE IsDeleted = 0 ORDER BY PGorder ASC";
+            var sql = "SELECT * FROM PgroupTB  ORDER BY PGorder ASC";
             return _dbConnection.Query<Pgroup>(sql);
         }
 

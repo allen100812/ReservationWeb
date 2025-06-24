@@ -88,6 +88,13 @@ namespace Web0524.Models
 
         int AutoCompleteExpiredOrders();
 
+
+        bool UpdateScheduleRule(int ruleId, int duration, int max);
+        bool DeleteScheduleRule(int ruleId);
+
+        bool RestoreDesigner(int designerId);
+
+
     }
 
 
@@ -264,6 +271,18 @@ namespace Web0524.Models
 
         public bool AddScheduleRule(int designerId, Designer_ProductScheduleRule rule)
         {
+            // 檢查是否已存在相同 DesignerId + ProductId 的規則
+            var exists = _dbConnection.ExecuteScalar<int>(
+                @"SELECT COUNT(*) FROM DesignerScheduleRuleTB 
+          WHERE DesignerId = @DesignerId AND ProductId = @ProductId",
+                new { DesignerId = designerId, rule.ProductId });
+
+            if (exists > 0)
+            {
+                // 已存在規則，不允許新增
+                return false;
+            }
+
             var sql = @"INSERT INTO DesignerScheduleRuleTB
                 (DesignerId, ProductId, DurationMinutes, MaxCustomers)
                 VALUES (@DesignerId, @ProductId, @DurationMinutes, @MaxCustomers)";
@@ -696,7 +715,32 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
             return updatedCount;
         }
 
+        public bool UpdateScheduleRule(int ruleId, int duration, int max)
+        {
+            var sql = @"UPDATE DesignerScheduleRuleTB 
+                SET DurationMinutes = @Duration, MaxCustomers = @MaxCustomers 
+                WHERE RuleId = @RuleId";
+            return _dbConnection.Execute(sql, new
+            {
+                RuleId = ruleId,
+                Duration = duration,
+                MaxCustomers = max
+            }) > 0;
+        }
 
+
+        public bool DeleteScheduleRule(int ruleId)
+        {
+            var sql = "DELETE FROM DesignerScheduleRuleTB WHERE RuleId = @RuleId";
+            return _dbConnection.Execute(sql, new { RuleId = ruleId }) > 0;
+        }
+
+
+        public bool RestoreDesigner(int designerId)
+        {
+            var sql = "UPDATE DesignerTB SET IsDeleted = 0 WHERE DesignerId = @DesignerId";
+            return _dbConnection.Execute(sql, new { DesignerId = designerId }) > 0;
+        }
 
     }
 

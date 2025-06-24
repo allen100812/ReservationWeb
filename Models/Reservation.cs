@@ -24,6 +24,14 @@ namespace Web0524.Models
 
     public class Designer_ProductScheduleRule
     {
+        [Required(ErrorMessage = "規則 ID 必填")]
+        [DataType(DataType.Text)]
+        public int RuleId { get; set; }  // 對應資料表的 RuleId 主鍵
+        [Required(ErrorMessage = "設計師 ID 必填")]
+        [DataType(DataType.Text)]
+        public int DesignerId { get; set; }  // 對應資料表的 RuleId 主鍵
+        
+
         [Required(ErrorMessage = "產品 ID 必填")]
         [DataType(DataType.Text)]
         public int ProductId { get; set; }

@@ -15,148 +15,200 @@
     <link href="css/hover-min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="~/css/Share.css">
+    <script src="~/js/responsivePaginator.js"></script>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
     @Html.AntiForgeryToken()
 
-    <div class="container" style="margin-top:200px;">
-        <h2>產品分類管理</h2>
+    <div class="container" style="margin-top:200px; margin-bottom:200px; ">
+
+
+        <div id="message-area"></div>
+        <h2 class="mb-4 fw-bold">產品分類管理</h2>
 
         <div id="alertPlaceholder"></div>
 
         <form id="pgroupForm">
             
-            <div class="row">
+            <div class="row g-3">
                 <input type="hidden" asp-for="Pgroup.PGid" />
-
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label asp-for="Pgroup.PGname"></label>
+                        <label class="form-label">產品群組名稱</label>
                         <input asp-for="Pgroup.PGname" class="form-control" />
                         <span asp-validation-for="Pgroup.PGname" class="text-danger"></span>
                     </div>
+
+                </div>
+                <div class="col-md-6">
                     <div class="form-group">
-                        <label asp-for="Pgroup.PGcontent"></label>
-                        <textarea asp-for="Pgroup.PGcontent" class="form-control"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label asp-for="Pgroup.PGorder"></label>
+                        <label class="form-label">顯示排序</label>
                         <input asp-for="Pgroup.PGorder" class="form-control" />
                     </div>
-                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+                <div class="col-md-12">
+
+                    <div class="form-group">
+                        <label class="form-label">群組說明</label>
+                        <textarea asp-for="Pgroup.PGcontent" class="form-control"></textarea>
+                    </div>
+
                 </div>
             </div>
+            <button type="submit" class="btn btn-dark">儲存</button>
         </form>
 
         <hr />
 
         <h4>分類清單</h4>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>名稱</th>
-                    <th>順序</th>
-                    <th>描述</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody id="pgroupTableBody">
-            </tbody>
-        </table>
+        <!-- 加在原本 form 下方，替代原本的 table -->
+        <div class="table-responsive mt-4">
+            <table class="table table-bordered" id="pgroupTable"></table>
+        </div>
+        <div class="accordion d-md-none mt-4" id="pgroupAccordion"></div>
+        <div id="pgroupPagination" class="mt-3"></div>
 
-        @section Scripts {
-            <partial name="_ValidationScriptsPartial" />
-            <script>
-                $(document).ready(function () {
-                    loadTable();
+        <script>
+            let groupData = [];
 
-                    $('#pgroupForm').submit(function (e) {
-                        e.preventDefault();
-                        const formData = $(this).serialize();
-                        $.post('/Management/PGManagement?handler=Save', formData)
-                            .done(function (res) {
-                                showAlert(res.message, res.success);
-                                if (res.success) {
-                                    $('#pgroupForm')[0].reset();
-                                    loadTable();
-                                }
-                            })
-                            .fail(function () {
-                                showAlert("無法儲存，伺服器回傳 404 或錯誤格式。", false);
-                            });
+            function getToken() {
+                return $('input[name="__RequestVerificationToken"]').val();
+            }
+
+
+            $(document).ready(function () {
+                loadTable();
+
+                $('#pgroupForm').submit(function (e) {
+                    e.preventDefault();
+                    const formData = $(this).serialize();
+                    $.ajax({
+                        url: '/Management/PGManagement?handler=Save',
+                        method: 'POST',
+                        data: formData,
+                        headers: { 'RequestVerificationToken': getToken() },
+                        success: function (res) {
+                            showAlert(res.message, res.success);
+                            if (res.success) {
+                                $('#pgroupForm')[0].reset();
+                                loadTable();
+                            }
+                        },
+                        error: function () {
+                            showAlert("無法儲存，伺服器錯誤。", false);
+                        }
                     });
                 });
 
+            });
 
-                function loadTable() {
-                    $.getJSON('/Management/PGManagement?handler=List', function (data) {
-                        const tbody = $('#pgroupTableBody');
-                        tbody.empty();
-                        data.forEach(item => {
-                            tbody.append(`
-                                        <tr>
-                                            <td>${item.pGid}</td>
-                                            <td>${item.pGname}</td>
-                                            <td>${item.pGorder}</td>
-                                            <td>${item.pGcontent}</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-warning" onclick="edit(${item.pGid})">編輯</button>
-                                                <button class="btn btn-sm btn-danger" onclick="remove(${item.pGid})">刪除</button>
-                                            </td>
-                                        </tr>
-                                    `);
+            function loadTable() {
+                $.ajax({
+                    url: '/Management/PGManagement?handler=List',
+                    method: 'GET',
+                    headers: { 'RequestVerificationToken': getToken() },
+                    success: function (data) {
+                        groupData = data;
+                        initResponsivePaginator({
+                            data: groupData,
+                            tableColumns: [
+                                { title: "名稱", className: 'text-nowrap', render: r => r.pGname },
+                                
+                                { title: "描述", render: r => r.pGcontent },
+                                { title: "顯示順序", className: 'text-nowrap', render: r => r.pGorder },
+                                {
+                                    title: "狀態",
+                                    className: 'text-nowrap',
+                                    render: r => r.isDeleted
+                                        ? '<span class="badge bg-danger">停用</span>'
+                                        : '<span class="badge bg-success">啟用</span>'
+                                }
+
+                            ],
+                            tableWrapperId: "pgroupTable",
+                            accordionWrapperId: "pgroupAccordion",
+                            paginationWrapperId: "pgroupPagination",
+                            pageSize: 5,
+                            renderRowButtons: r => `
+                <button class="btn btn-sm btn-secondary me-1" onclick="edit(${r.pGid})">編輯</button>
+                            <button class="btn btn-sm btn-${r.isDeleted ? 'success' : 'danger'} me-1" onclick="toggleStatus(${r.pGid})">
+                                ${r.isDeleted ? '啟用' : '停用'}
+                </button>
+            `,
+
+                            accordionHeaderRender: r => r.pGname
                         });
-                    });
-                }
+                    },
+                    error: () => showAlert("載入清單失敗", false)
+                });
+            }
 
-                function edit(id) {
-                    $.getJSON('/Management/PGManagement?handler=Get&id=' + id, function (data) {
+
+            function edit(id) {
+                $.ajax({
+                    url: '/Management/PGManagement?handler=Get&id=' + id,
+                    method: 'GET',
+                    headers: { 'RequestVerificationToken': getToken() },
+                    success: function (data) {
                         $('input[name="Pgroup.PGid"]').val(data.pGid);
                         $('input[name="Pgroup.PGname"]').val(data.pGname);
                         $('textarea[name="Pgroup.PGcontent"]').val(data.pGcontent);
                         $('input[name="Pgroup.PGorder"]').val(data.pGorder);
-                    });
-                }
+                    },
+                    error: () => showAlert("讀取資料失敗", false)
+                });
+            }
 
-                function remove(id) {
-                    if (!confirm('確認刪除？')) return;
+            function remove(id) {
+                if (!confirm('確認刪除？')) return;
 
-                    $.ajax({
-                        url: '/Management/PGManagement?handler=Delete',
-                        type: 'POST',
-                        data: $.param({ id: id }), // 確保正確序列化
-                        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
-                        headers: {
-                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                        },
+                $.ajax({
+                    url: '/Management/PGManagement?handler=Delete',
+                    method: 'POST',
+                    data: $.param({ id: id }),
+                    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                    headers: { 'RequestVerificationToken': getToken() },
+                    success: function (res) {
+                        showAlert(res.message, res.success);
+                        if (res.success) loadTable();
+                    },
+                    error: function (xhr) {
+                        showAlert("刪除失敗（" + xhr.status + "）", false);
+                    }
+                });
+            }
+            function toggleStatus(id) {
+                $.ajax({
+                    url: '/Management/PGManagement?handler=ToggleStatus',
+                    method: 'POST',
+                    data: $.param({ id }),
+                    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                    headers: { 'RequestVerificationToken': getToken() },
+                    success: function (res) {
+                        showAlert(res.message, res.success);
+                        if (res.success) loadTable();
+                    },
+                    error: function (xhr) {
+                        showAlert("切換狀態失敗（" + xhr.status + "）", false);
+                    }
+                });
+            }
 
-                        success: function (res) {
-                            showAlert(res.message, res.success);
-                            if (res.success) loadTable();
-                        },
-                        error: function (xhr) {
-                            console.error("刪除錯誤：", xhr.responseText);
-                            showAlert("刪除失敗（" + xhr.status + "）", false);
-                        }
-                    });
-                }
 
+            function showAlert(message, success) {
+                const type = success ? 'success' : 'danger';
+                $('#alertPlaceholder').html(`
+                        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `);
+            }
+        </script>
 
-                function showAlert(message, success) {
-                    const type = success ? 'success' : 'danger';
-                    $('#alertPlaceholder').html(`
-                                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                                    ${message}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            `);
-                }
-            </script>
-        }
 
     </div>
 

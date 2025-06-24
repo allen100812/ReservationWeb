@@ -6,10 +6,16 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="all">
+    <link href="css/hover-min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="~/css/Share.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設計師管理</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #f8f9fa;
@@ -29,19 +35,6 @@
             color: #333;
         }
 
-        .btn-success, .btn-danger, .btn-primary, .btn-secondary {
-            background-color: #333;
-            border-color: #333;
-            color: #fff;
-        }
-
-            .btn-success:hover,
-            .btn-danger:hover,
-            .btn-primary:hover,
-            .btn-secondary:hover {
-                background-color: #555;
-                border-color: #555;
-            }
 
         .container {
             padding-top: 60px;
@@ -58,114 +51,401 @@
             color: #999;
             margin-left: 6px;
         }
+
+        ul {
+            padding-left: 1.2rem;
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
+    @Html.AntiForgeryToken()
+    <div class="container" style="margin-top:200px; margin-bottom:200px; ">
+        <h2 class="mb-4 fw-bold">設計師管理</h2>
 
-        <h2>設計師管理</h2>
-
-        <form method="post" class="mb-4">
+        <div id="status-message" class="alert d-none" role="alert"></div>
+        @if (TempData["StatusMessage"] != null)
+        {
+            var isSuccess = TempData["StatusSuccess"]?.ToString() == "True";
+            var alertClass = isSuccess ? "alert-success" : "alert-danger";
+            <div class="alert @alertClass" role="alert">
+                @TempData["StatusMessage"]
+            </div>
+        }
+        <form id="designer-form" method="post" onsubmit="disableSubmitBtn()" class="mb-4">
+            <input type="hidden" asp-for="NewDesigner.DesignerId" />
             <div class="row g-2">
                 <div class="col-md-4">
-                    <input asp-for="NewDesigner.Name" class="form-control" placeholder="設計師姓名" required />
+                    <input asp-for="NewDesigner.Name" id="DesignerName" class="form-control" placeholder="設計師姓名" required />
                 </div>
                 <div class="col-md-4">
-                    <input asp-for="NewDesigner.Nickname" class="form-control" placeholder="暱稱" />
+                    <input asp-for="NewDesigner.Nickname" id="DesignerNickname" class="form-control" placeholder="暱稱" />
                 </div>
                 <div class="col-md-4">
-                    <button type="submit" name="action" value="add" class="btn btn-success w-100">新增設計師</button>
+                    <input type="hidden" id="form-action" name="action" value="add" />
+                    <button type="submit" id="submit-btn" class="btn btn-dark w-100">新增設計師</button>
+                    <button type="button" id="cancel-edit" class="btn btn-secondary w-100 d-none mt-2">取消編輯</button>
+
                 </div>
             </div>
         </form>
+        <div class="mb-3">
+            <input type="text" class="form-control" id="search-input" placeholder="輸入姓名或暱稱關鍵字篩選" />
+        </div>
+        <div id="designer-cards" class="row gy-4"></div>
 
-        @if (Model.AllDesigners.Any())
-        {
-            @foreach (var d in Model.AllDesigners)
-            {
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-3">
-                                <strong>姓名：</strong>@d.Name
-                                @if (!d.IsDeleted)
-                                {
-                                    <span class="inactive-label">(已停用)</span>
-                                }
+        <div class="d-flex justify-content-between align-items-center my-3 flex-wrap">
+            <div class="text-muted">共 <span id="total-count"></span> 筆資料</div>
+            <nav>
+                <ul class="pagination mb-0" id="pagination"></ul>
+            </nav>
+        </div>
+
+
+        <!-- Modal for editing rule -->
+        <!-- 放在 editRuleModal 外部 -->
+        <div class="modal fade" id="editRuleModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="edit-rule-form">
+                        <div class="modal-header">
+                            <h5 class="modal-title">編輯排程規則</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="edit-rule-id" />
+                            <div class="mb-3">
+                                <label class="form-label">產品名稱</label>
+                                <input type="text" class="form-control" id="edit-product-name" disabled />
                             </div>
-                            <div class="col-md-3"><strong>暱稱：</strong>@d.Nickname</div>
-                            <div class="col-md-3"><strong>ID：</strong>@d.DesignerId</div>
-                            <div class="col-md-3 text-end">
-                                <form method="post" class="d-inline">
-                                    <input type="hidden" name="DesignerId" value="@d.DesignerId" />
-                                    @if (d.IsDeleted)
-                                    {
-                                        <button type="submit" name="action" value="deactivate" class="btn btn-sm btn-danger">停用</button>
-                                    }
-                                    else
-                                    {
-                                        <button type="submit" name="action" value="activate" class="btn btn-sm btn-secondary">啟用</button>
-                                    }
-                                </form>
+                            <div class="mb-3">
+                                <label class="form-label">耗時 (分鐘)</label>
+                                <input type="number" class="form-control" id="edit-duration" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">最大人數</label>
+                                <input type="number" class="form-control" id="edit-max" required />
                             </div>
                         </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">儲存</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+            
 
-                        <hr />
-
-                        <h6 class="mt-3">排程規則</h6>
-                        @if (d.ScheduleRules.Any())
-                        {
-                            <ul class="list-group mb-3">
-                                @foreach (var rule in d.ScheduleRules)
-                                {
-                                    var product = Model.AllProducts.FirstOrDefault(p => p.ProductId == rule.ProductId);
-                                    string productName = product != null ? product.Name : "未知產品";
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <strong>產品：</strong>@rule.ProductId / @productName，
-                                            <strong>耗時：</strong>@rule.DurationMinutes 分鐘，
-                                            <strong>最大人數：</strong>@rule.MaxCustomers 人
-                                        </div>
-                                    </li>
-                                }
-                            </ul>
-                        }
-                        else
-                        {
-                            <p class="text-muted">尚未設定規則</p>
-                        }
-
-                        <form method="post" class="row g-2 align-items-end">
-                            <input type="hidden" name="DesignerId" value="@d.DesignerId" />
-                            <div class="col-md-3">
-                                <select name="NewRule.ProductId" class="form-select" required>
+        <div class="modal fade" id="addRuleModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="add-rule-form">
+                        <div class="modal-header">
+                            <h5 class="modal-title">新增排程規則</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="add-rule-designer-id" />
+                            <div class="mb-3">
+                                <label class="form-label">產品</label>
+                                <select class="form-select" id="add-product-id" required>
                                     <option value="">請選擇產品</option>
-                                    @foreach (var p in Model.AllProducts)
-                                    {
-                                        <option value="@p.ProductId">@p.Name</option>
-                                    }
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <input type="number" name="NewRule.DurationMinutes" class="form-control" placeholder="耗時（分鐘）" required />
+
+
+                            <div class="mb-3">
+                                <label class="form-label">耗時 (分鐘)</label>
+                                <input type="number" class="form-control" id="add-duration" required />
                             </div>
-                            <div class="col-md-3">
-                                <input type="number" name="NewRule.MaxCustomers" class="form-control" placeholder="最大人數" required />
+                            <div class="mb-3">
+                                <label class="form-label">最大人數</label>
+                                <input type="number" class="form-control" id="add-max" required />
                             </div>
-                            <div class="col-md-3">
-                                <button type="submit" name="action" value="addrule" class="btn btn-primary w-100 btn-sm">新增排程規則</button>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">新增</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        </div>
+                    </form>
+
                 </div>
+            </div>
+        </div>
+
+        @{
+            var designersJson = Json.Serialize(Model.AllDesigners);
+        }
+        @{
+            var productOptionsJson = Json.Serialize(Model.AllProducts);
+        }
+
+        <script>
+           // 顯示訊息函式
+function showStatusMessage(message, isSuccess = true) {
+    const el = $('#status-message');
+    el.removeClass('d-none alert-success alert-danger');
+    el.addClass(isSuccess ? 'alert-success' : 'alert-danger');
+    el.text(message);
+    setTimeout(() => el.addClass('d-none'), 4000);
+}
+
+// 成功後寫入狀態並刷新
+function handleAjaxSuccess(message, success = true) {
+    sessionStorage.setItem('statusMessage', message);
+    sessionStorage.setItem('statusSuccess', success ? '1' : '0');
+    location.reload();
+}
+
+$(document).ready(() => {
+    const msg = sessionStorage.getItem('statusMessage');
+    const isSuccess = sessionStorage.getItem('statusSuccess') === '1';
+    if (msg) {
+        showStatusMessage(msg, isSuccess);
+        sessionStorage.removeItem('statusMessage');
+        sessionStorage.removeItem('statusSuccess');
+    }
+
+    renderDesigners();
+});
+
+const allDesigners = @Html.Raw(designersJson);
+const allProducts = @Html.Raw(productOptionsJson);
+const pageSize = 5;
+let currentPage = 1;
+let filteredDesigners = allDesigners;
+
+function disableSubmitBtn() {
+    $('#submit-btn').prop('disabled', true).text('處理中...');
+}
+
+function renderDesigners() {
+    const start = (currentPage - 1) * pageSize;
+    const pagedData = filteredDesigners.slice(start, start + pageSize);
+    $('#designer-cards').html(pagedData.map(renderCard).join(''));
+    $('#total-count').text(filteredDesigners.length);
+    renderPagination();
+}
+
+function renderCard(d) {
+                const rules = (d.scheduleRules || []).map(r => {
+                    const product = allProducts.find(p => p.productId === r.productId);
+                    const productName = product ? product.name : `產品ID: ${r.productId}`;
+                    return `<li class="d-flex justify-content-between align-items-start">
+                <span class="me-2 flex-grow-1">
+                    &bull; ${productName}，耗時: ${r.durationMinutes} 分鐘，單次最多 ${r.maxCustomers} 人
+                </span>
+                            <span class="d-inline-flex flex-nowrap">
+                                <button class="btn btn-sm btn-secondary me-2" onclick="openEditRuleModal(${r.ruleId}, ${r.durationMinutes}, ${r.maxCustomers})">編輯</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteRule(${r.ruleId})">刪除</button>
+                            </span>
+                        </li>`;
+                }).join('');
+
+
+
+                return `<div class="col-12">
+                        <div class="card p-3">
+                            <div><strong>姓名：</strong>${d.name}</div>
+                            <div><strong>暱稱：</strong>${d.nickname}</div>
+                            <div><strong>狀態：</strong>
+                                <span class="badge bg-${d.isDeleted == 1 ? 'danger' : 'success'}">
+                                    ${d.isDeleted == 1 ? '已停用' : '啟用中'}
+                                </span>
+                            </div>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-secondary me-2" onclick="editDesigner(${d.designerId})">編輯</button>
+                                <button class="btn btn-sm btn-${d.isDeleted == 1 ? 'success' : 'danger'}" onclick="toggleDesignerStatus(${d.designerId}, ${d.isDeleted})">
+                                    ${d.isDeleted == 1 ? '啟用' : '停用'}
+                                </button>
+                            </div>
+                            <hr/>
+                            <strong>排程規則：</strong>
+                            <ul class="mt-2">
+                                ${rules || '<li class="text-muted">尚未設定</li>'}
+                            </ul>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-dark" onclick="openAddRuleModal(${d.designerId})">新增規則</button>
+                            </div>
+                        </div>
+                    </div>`;
+
+}
+
+function renderPagination() {
+    const totalPages = Math.ceil(filteredDesigners.length / pageSize);
+    const pagination = $('#pagination');
+    pagination.html('');
+
+    pagination.append(`<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="changePage(1)">&laquo;</a>
+    </li>`);
+
+    for (let i = 1; i <= totalPages; i++) {
+        pagination.append(`<li class="page-item ${i === currentPage ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+        </li>`);
+    }
+
+    pagination.append(`<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="changePage(${totalPages})">&raquo;</a>
+    </li>`);
+}
+
+function changePage(page) {
+    currentPage = page;
+    renderDesigners();
+}
+
+function editDesigner(id) {
+    const d = allDesigners.find(x => x.designerId === id);
+    if (!d) return;
+    $("input[name='NewDesigner.DesignerId']").val(d.designerId);
+    $("input[name='NewDesigner.Name']").val(d.name);
+    $("input[name='NewDesigner.Nickname']").val(d.nickname);
+    $('#form-action').val('edit');
+    $('#submit-btn').text('儲存設計師');
+    $('#cancel-edit').removeClass('d-none');
+}
+
+$('#cancel-edit').on('click', () => {
+    $("input[name='NewDesigner.DesignerId']").val('');
+    $("input[name='NewDesigner.Name']").val('');
+    $("input[name='NewDesigner.Nickname']").val('');
+    $('#form-action').val('add');
+    $('#submit-btn').text('新增設計師');
+    $('#cancel-edit').addClass('d-none');
+});
+
+function toggleDesignerStatus(designerId, isDeleted) {
+    const action = isDeleted == 1 ? 'RestoreDesigner' : 'DeleteDesigner';
+    const confirmText = isDeleted == 1 ? '確定要啟用這位設計師嗎？' : '確定要停用這位設計師嗎？';
+
+    if (!confirm(confirmText)) return;
+
+    $.ajax({
+        url: `?handler=${action}`,
+        method: 'POST',
+        data: $.param({ designerId }),
+        headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+        success: function (res) {
+            if (res.success) {
+                handleAjaxSuccess('狀態更新成功');
+            } else {
+                handleAjaxSuccess('狀態更新失敗', false);
             }
         }
+    });
+}
 
-        @if (!string.IsNullOrEmpty(Model.Message))
-        {
-            <div class="alert alert-info mt-4">@Model.Message</div>
+function openAddRuleModal(designerId) {
+    $('#add-rule-designer-id').val(designerId);
+    $('#add-duration').val('');
+    $('#add-max').val('');
+    $('#add-product-id').empty().append(`<option value="">請選擇產品</option>`);
+    allProducts.forEach(p => {
+        $('#add-product-id').append(`<option value="${p.productId}">${p.name}</option>`);
+    });
+
+    const modal = new bootstrap.Modal(document.getElementById('addRuleModal'));
+    modal.show();
+}
+
+$('#add-rule-form').on('submit', function (e) {
+    e.preventDefault();
+    const designerId = $('#add-rule-designer-id').val();
+    const productId = $('#add-product-id').val();
+    const duration = $('#add-duration').val();
+    const max = $('#add-max').val();
+
+    $.ajax({
+        url: '?handler=AddRule',
+        method: 'POST',
+        data: $.param({ designerId, productId, duration, max }),
+        headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+        success: function (res) {
+            if (res.success) {
+                handleAjaxSuccess('新增成功');
+            } else {
+                handleAjaxSuccess('新增失敗', false);
+            }
         }
+    });
+});
+
+function openEditRuleModal(ruleId, duration, max) {
+    $('#edit-rule-id').val(ruleId);
+    $('#edit-duration').val(duration);
+    $('#edit-max').val(max);
+
+    let productName = '';
+    for (const designer of allDesigners) {
+        const rule = (designer.scheduleRules || []).find(r => r.ruleId === ruleId);
+        if (rule) {
+            const product = allProducts.find(p => p.productId === rule.productId);
+            productName = product ? product.name : `產品ID: ${rule.productId}`;
+            break;
+        }
+    }
+    $('#edit-product-name').val(productName);
+
+    const modal = new bootstrap.Modal(document.getElementById('editRuleModal'));
+    modal.show();
+}
+
+$('#edit-rule-form').on('submit', function (e) {
+    e.preventDefault();
+    const ruleId = $('#edit-rule-id').val();
+    const duration = $('#edit-duration').val();
+    const max = $('#edit-max').val();
+
+    $.ajax({
+        url: '?handler=UpdateRule',
+        method: 'POST',
+        data: $.param({ ruleId, duration, max }),
+        headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+        success: function (res) {
+            if (res.success) {
+                handleAjaxSuccess('儲存成功');
+            } else {
+                handleAjaxSuccess('儲存失敗', false);
+            }
+        }
+    });
+});
+
+function deleteRule(ruleId) {
+    if (!confirm('確定要刪除這個排程規則嗎？')) return;
+    $.ajax({
+        url: '?handler=DeleteRule',
+        method: 'POST',
+        data: $.param({ ruleId }),
+        headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+        success: function (res) {
+            if (res.success) {
+                handleAjaxSuccess('刪除成功');
+            } else {
+                handleAjaxSuccess('刪除失敗', false);
+            }
+        }
+    });
+}
+
+$('#search-input').on('input', function () {
+    const keyword = $(this).val().toLowerCase().trim();
+    filteredDesigners = allDesigners.filter(d =>
+        d.name.toLowerCase().includes(keyword) ||
+        d.nickname.toLowerCase().includes(keyword)
+    );
+    currentPage = 1;
+    renderDesigners();
+});
+
+        </script>
+
 
     </div>
+ 
 </body>
 </html>

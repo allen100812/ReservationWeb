@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+ï»¿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Web0524.Models;
 
@@ -7,10 +7,11 @@ namespace Web0524.Pages.Management
     public class PGManagementModel : PageModel
     {
         private readonly IPgroupService _pgroupService;
-
-        public PGManagementModel(IPgroupService pgroupService)
+        private readonly IUserService _userService;
+        public PGManagementModel(IPgroupService pgroupService, IUserService userService)
         {
             _pgroupService = pgroupService;
+            _userService = userService;
         }
 
         [BindProperty]
@@ -18,12 +19,24 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnGetList()
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "ç„¡æ¬Šé™" });
+            }
             var data = _pgroupService.GetAllPgroups();
             return new JsonResult(data);
         }
         [IgnoreAntiforgeryToken]
         public JsonResult OnGetGet(int id)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "ç„¡æ¬Šé™" });
+            }
             var data = _pgroupService.GetPgroupById(id);
             if (data == null) return new JsonResult(NotFound());
             return new JsonResult(data);
@@ -31,33 +44,80 @@ namespace Web0524.Pages.Management
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostSave()
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "ç„¡æ¬Šé™" });
+            }
             if (!ModelState.IsValid)
             {
-                var firstError = ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage ?? "¸ê®ÆÅçÃÒ¥¢±Ñ";
+                var firstError = ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage ?? "è³‡æ–™é©—è­‰å¤±æ•—";
                 return new JsonResult(new { success = false, message = firstError });
             }
 
             if (_pgroupService.IsPgroupNameDuplicate(Pgroup.PGname, Pgroup.PGid == 0 ? null : Pgroup.PGid))
             {
-                return new JsonResult(new { success = false, message = "¤ÀÃş¦WºÙ­«½Æ" });
+                return new JsonResult(new { success = false, message = "åˆ†é¡åç¨±é‡è¤‡" });
             }
 
             if (Pgroup.PGid == 0)
             {
                 var newId = _pgroupService.CreatePgroup(Pgroup);
-                return new JsonResult(new { success = true, message = "·s¼W¦¨¥\", id = newId });
+                return new JsonResult(new { success = true, message = "æ–°å¢æˆåŠŸ", id = newId });
             }
             else
             {
                 var updated = _pgroupService.UpdatePgroup(Pgroup);
-                return new JsonResult(new { success = updated, message = updated ? "§ó·s¦¨¥\" : "§ó·s¥¢±Ñ" });
+                return new JsonResult(new { success = updated, message = updated ? "æ›´æ–°æˆåŠŸ" : "æ›´æ–°å¤±æ•—" });
             }
         }
         [IgnoreAntiforgeryToken]
         public JsonResult OnPostDelete(int id)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "ç„¡æ¬Šé™" });
+            }
             var deleted = _pgroupService.DeletePgroup(id);
-            return new JsonResult(new { success = deleted, message = deleted ? "§R°£¦¨¥\" : "§R°£¥¢±Ñ" });
+            return new JsonResult(new { success = deleted, message = deleted ? "åˆªé™¤æˆåŠŸ" : "åˆªé™¤å¤±æ•—" });
         }
+        public JsonResult OnPostToggleStatus(int id)
+        {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "ç„¡æ¬Šé™" });
+            }
+            var item = _pgroupService.GetPgroupById(id);
+            if (item == null)
+                return new JsonResult(new { success = false, message = "è³‡æ–™ä¸å­˜åœ¨" });
+
+            bool result;
+            string actionMessage;
+
+            if (item.IsDeleted)
+            {
+                result = _pgroupService.RestorePgroup(id);
+                actionMessage = "å·²å•Ÿç”¨";
+            }
+            else
+            {
+                result = _pgroupService.DeletePgroup(id);
+                actionMessage = "å·²åœç”¨";
+            }
+
+            return new JsonResult(new
+            {
+                success = result,
+                message = result ? $"åˆ†é¡ {actionMessage} æˆåŠŸ" : $"åˆ†é¡ {actionMessage} å¤±æ•—"
+            });
+        }
+
+
+
     }
 }
