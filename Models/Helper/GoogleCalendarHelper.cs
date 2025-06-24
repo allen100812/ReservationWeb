@@ -49,7 +49,7 @@ namespace Web0524.Models.Helper
 
         public async Task<string> AddEventAsync(Order order, string designerName, string serviceName, string customerName, string paymentMethod)
         {
-            var summary = $"[{order.Status}] 預約 - {designerName}（{order.Uid}）";
+            var summary = $"[{order.Status.ToDisplayName()}] 預約 - {designerName}（{serviceName}）";
             var description = $"🗓 日期: {order.ReservationDateTime:yyyy/MM/dd HH:mm}\n" +
                               $"💇 設計師: {designerName}\n" +
                               $"🛎️ 服務: {serviceName}\n" +
@@ -85,7 +85,7 @@ namespace Web0524.Models.Helper
             {
                 var existingEvent = await _calendarService.Events.Get(_calendarId, googleEventId).ExecuteAsync();
 
-                existingEvent.Summary = $"[{order.Status}] 預約 - {designerName}（{order.Uid}）";
+                var summary = $"[{order.Status.ToDisplayName()}] 預約 - {designerName}（{serviceName}）";
                 existingEvent.Description =
                     $"🗓 日期: {order.ReservationDateTime:yyyy/MM/dd HH:mm}\n" +
                     $"💇 設計師: {designerName}\n" +
@@ -114,7 +114,13 @@ namespace Web0524.Models.Helper
             {
                 var existingEvent = await _calendarService.Events.Get(_calendarId, googleEventId).ExecuteAsync();
 
-                existingEvent.Summary = $"❌已取消 - {existingEvent.Summary}";
+                // 嘗試取代標題中的狀態
+                existingEvent.Summary = System.Text.RegularExpressions.Regex.Replace(
+                    existingEvent.Summary,
+                    @"^\[.*?\]",
+                    $"[{OrderStatus.Cancelled.ToDisplayName()}]"
+                );
+
                 existingEvent.ColorId = "11"; // 紅色
                 existingEvent.Description += "\n\n此預約已取消";
 
@@ -126,5 +132,6 @@ namespace Web0524.Models.Helper
                 return false;
             }
         }
+
     }
 }

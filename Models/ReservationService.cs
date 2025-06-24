@@ -7,6 +7,7 @@ using Dapper;
 using Web0524.Models.Helper;
 using Web0524.Models;
 using System.Data.Common;
+using Web0524.Models.LineMessage;
 
 namespace Web0524.Models
 {
@@ -94,10 +95,14 @@ namespace Web0524.Models
     {
         private readonly IDbConnection _dbConnection;
         private readonly IGoogleCalendarHelper _calendarHelper;
-        public ReservationService(IDbConnection dbConnection,IGoogleCalendarHelper calendarHelper)
+        private readonly IUserService _userService;
+        private readonly LineMessageService _lineService;
+        public ReservationService(IDbConnection dbConnection,IGoogleCalendarHelper calendarHelper, IUserService userService, LineMessageService lineService)
         {
             _dbConnection = dbConnection;
-            _calendarHelper= calendarHelper;
+            _calendarHelper = calendarHelper;
+            _userService = userService;
+            _lineService = lineService;
         }
 
         public List<string> GetFixedHolidays(int designerId)
@@ -175,6 +180,14 @@ namespace Web0524.Models
                 {
                     _dbConnection.Execute("UPDATE UserTB SET CancelNum = CancelNum + 1 WHERE Id = @Id", new { Id = order.Uid });
                 }
+
+                if (My.CancelSandLineMsgSw && !string.IsNullOrEmpty(order?.Uid))
+                {
+                    var user_item = _userService.GetUserByLineUserId(order?.Uid);
+                    var success = _lineService.SendSecureLineMessageAsync(user_item.LineUserId, My.Msg_OrderCancel_client);
+                }
+
+
             }
 
 
@@ -378,6 +391,8 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
                     Console.WriteLine($"[Calendar] 寫入成功，OrderId = {order.OrderId}, EventId = {eventId}");
                 }
+
+
             }
             catch (Exception ex)
             {
@@ -392,87 +407,17 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             _dbConnection.Execute("UPDATE UserTB SET OrderNum = OrderNum + 1 WHERE Id = @Id", new { Id = order.Uid });
 
+            if (My.CreateOrderSandLineMsgSw && !string.IsNullOrEmpty(order?.Uid))
+            {
+                var user_item = _userService.GetUserByLineUserId(order?.Uid);
+                var success = _lineService.SendSecureLineMessageAsync(user_item.LineUserId, My.Msg_OrderSend_client);
+            }
+
+
             return GetOrderById(order.OrderId);
         }
 
 
-        //public bool IsSlotAvailable(int designerId, int productId, DateTime time)
-        //{
-        //    Console.WriteLine($"🔍 檢查是否可預約：設計師ID={designerId}, 產品ID={productId}, 時間={time:yyyy-MM-dd HH:mm}");
-
-        //    var designer = GetDesignerById(designerId);
-        //    if (designer == null)
-        //    {
-        //        Console.WriteLine("❌ 找不到該設計師");
-        //        return false;
-        //    }
-
-        //    var rule = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == productId);
-        //    if (rule == null)
-        //    {
-        //        Console.WriteLine("❌ 該設計師沒有設定此服務項目的排程規則");
-        //        return false;
-        //    }
-
-        //    if (Reservation_IsFixedHoliday(designerId, time.Date))
-        //    {
-        //        Console.WriteLine("❌ 該日為固定假日");
-        //        return false;
-        //    }
-
-        //    if (Reservation_IsDayOff(designerId, time.Date))
-        //    {
-        //        Console.WriteLine("❌ 該設計師當日為休假日");
-        //        return false;
-        //    }
-
-        //    var orders = GetOrdersForDay(designerId, time);
-        //    Console.WriteLine($"✅ 當天已有預約 {orders.Count} 筆");
-
-        //    DateTime serviceStart = time;
-        //    DateTime serviceEnd = time.AddMinutes(rule.DurationMinutes);
-
-        //    var overlappingOrders = orders.Where(o =>
-        //    {
-        //        if (o.DesignerId != designerId || o.Status == OrderStatus.Cancelled)
-        //            return false;
-
-        //        var bookedRule = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == o.ProductId);
-        //        if (bookedRule == null) return false;
-
-        //        var bookedStart = o.ReservationDateTime;
-        //        var bookedEnd = bookedStart.AddMinutes(bookedRule.DurationMinutes);
-
-        //        return !(serviceEnd <= bookedStart || serviceStart >= bookedEnd);
-        //    }).ToList();
-
-        //    Console.WriteLine($"🔄 發現有 {overlappingOrders.Count} 筆重疊預約");
-
-        //    if (overlappingOrders.Any(o => o.ProductId != productId))
-        //    {
-        //        Console.WriteLine("❌ 時段已被其他服務項目預約");
-        //        return false;
-        //    }
-
-        //    if (overlappingOrders.Any(o => o.ProductId == productId && o.ReservationDateTime != time))
-        //    {
-        //        Console.WriteLine("❌ 同一服務有不同時間重疊");
-        //        return false;
-        //    }
-
-        //    int countAtT = orders.Count(o =>
-        //        o.DesignerId == designerId &&
-        //        o.ProductId == productId &&
-        //        o.ReservationDateTime == time &&
-        //        o.Status != OrderStatus.Cancelled);
-
-        //    Console.WriteLine($"⏱ 同時間點已有相同服務 {countAtT} 筆 / 最大上限 {rule.MaxCustomers}");
-
-        //    bool result = countAtT < rule.MaxCustomers;
-        //    Console.WriteLine(result ? "✅ 時段可預約" : "❌ 該時段已達最大上限");
-
-        //    return result;
-        //}
 
         public bool IsSlotAvailable(int? designerId, int? productId, DateTime time)
         {

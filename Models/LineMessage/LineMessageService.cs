@@ -1,7 +1,9 @@
-﻿using System.Net.Http;
+﻿using System.Data;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Dapper;
 
 namespace Web0524.Models.LineMessage
 {
@@ -9,15 +11,35 @@ namespace Web0524.Models.LineMessage
     public class LineMessageService
     {
         private readonly HttpClient _httpClient;
+        private readonly IDbConnection _db;
 
-        public LineMessageService(HttpClient httpClient)
+        private const int MonthlyLimit = 300;
+
+        public LineMessageService(HttpClient httpClient, IDbConnection db)
         {
             _httpClient = httpClient;
+            _db = db;
         }
-
 
         public async Task<bool> SendSecureLineMessageAsync(string lineUserId, string message)
         {
+            // 查詢本月已發送次數
+            var now = DateTime.UtcNow;
+            var startOfMonth = new DateTime(now.Year, now.Month, 1);
+            var endOfMonth = startOfMonth.AddMonths(1);
+
+            var count = _db.ExecuteScalar<int>(
+                "SELECT COUNT(*) FROM LineMessageSendLog WHERE SentAt >= @start AND SentAt < @end",
+                new { start = startOfMonth, end = endOfMonth }
+            );
+
+            if (count >= MonthlyLimit)
+            {
+                Console.WriteLine("本月發送上限已達，訊息不發送。");
+                return false;
+            }
+
+            // 發送 LINE 訊息
             var url = "http://localhost:5678/webhook/line-secure";
             var payload = new
             {
@@ -28,19 +50,42 @@ namespace Web0524.Models.LineMessage
 
             var json = JsonConvert.SerializeObject(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-
             var response = await _httpClient.PostAsync(url, content);
-
             var responseString = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine($"Status Code: {(int)response.StatusCode} ({response.StatusCode})");
             Console.WriteLine($"Response Body: {responseString}");
 
-
-            // 也可以回傳 status code 給呼叫者（若你要用）
-            // return (int)statusCode;
+            if (response.IsSuccessStatusCode)
+            {
+                // 寫入發送紀錄
+                _db.Execute("INSERT INTO LineMessageSendLog (LineUserId, Message, SentAt) VALUES (@LineUserId, @Message, @SentAt)",
+                    new { LineUserId = lineUserId, Message = message, SentAt = now });
+            }
 
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<List<MonthlySendStats>> GetMonthlySendStatsAsync(string? lineUserId = null)
+        {
+            var sql = @"
+        SELECT 
+            FORMAT(SentAt, 'yyyy-MM') AS Month,
+            COUNT(*) AS Total
+        FROM LineMessageSendLog
+        WHERE (@LineUserId IS NULL OR LineUserId = @LineUserId)
+        GROUP BY FORMAT(SentAt, 'yyyy-MM')
+        ORDER BY Month DESC";
+
+            var result = await _db.QueryAsync<MonthlySendStats>(sql, new { LineUserId = lineUserId });
+            return result.ToList();
+        }
+
+
+        public class MonthlySendStats
+        {
+            public string Month { get; set; } = "";  // yyyy-MM
+            public int Total { get; set; }
         }
 
     }

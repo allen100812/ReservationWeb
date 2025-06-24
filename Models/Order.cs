@@ -49,6 +49,7 @@ namespace Web0524.Models
         public decimal? DiscountAmount { get; set; }   // 折抵金額
 
     }
+
     public enum OrderStatus
     {
         Pending,    // 下單但尚未確認
@@ -72,6 +73,20 @@ namespace Web0524.Models
                 OrderPaymentMethod.Cash => "現金",
                 OrderPaymentMethod.CreditCard => "刷卡",
                 OrderPaymentMethod.LinePay => "LinePay",
+                _ => "未知"
+            };
+        }
+    }
+    public static class OrderStatusExtensions
+    {
+        public static string ToDisplayName(this OrderStatus status)
+        {
+            return status switch
+            {
+                OrderStatus.Pending => "待確認",
+                OrderStatus.Confirmed => "預約中",
+                OrderStatus.Cancelled => "已取消",
+                OrderStatus.Completed => "已完成",
                 _ => "未知"
             };
         }

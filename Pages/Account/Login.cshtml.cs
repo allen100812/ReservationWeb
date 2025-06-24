@@ -161,7 +161,7 @@ namespace Web0524.Pages.Account
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
             if (!string.IsNullOrEmpty(lineUserId))
             {
-                var success = await _lineService.SendSecureLineMessageAsync(lineUserId, "登入完成");
+                var success = await _lineService.SendSecureLineMessageAsync(lineUserId, My.Msg_BindOk);
                 TempData["Result"] = success ? "訊息已發送！" : "發送失敗。";
             }
 
