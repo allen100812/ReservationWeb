@@ -8,10 +8,12 @@ namespace Web0524.Pages
     public class ReportModel : PageModel
     {
         private readonly IReportService _reportService;
+        private readonly IUserService _userService;
 
-        public ReportModel(IReportService reportService)
+        public ReportModel(IReportService reportService, IUserService userService)
         {
             _reportService = reportService;
+            _userService = userService;
         }
 
         [BindProperty] public string ReportType { get; set; }
@@ -21,9 +23,19 @@ namespace Web0524.Pages
         [BindProperty] public int TopN { get; set; } = 20;
 
         public object ResultData { get; set; }
+        public string Today => DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+
+        [IgnoreAntiforgeryToken]
 
         public async Task<IActionResult> OnPostAjaxAsync()
         {
+
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "µLÅv­­" });
+            }
             switch (ReportType)
             {
                 case "reservationSummary":
@@ -65,6 +77,7 @@ namespace Web0524.Pages
 
             return new JsonResult(ResultData);
         }
+        [IgnoreAntiforgeryToken]
 
         public async Task<IActionResult> OnPostAsync()
         {

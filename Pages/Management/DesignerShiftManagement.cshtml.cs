@@ -12,8 +12,10 @@ namespace Web0524.Pages.Management
         {
             _reservationService = reservationService;
         }
-        [BindProperty]
+        [BindProperty(SupportsGet = true)]
         public int? SelectedDesignerId { get; set; }
+
+
 
         public List<Designer> AllDesigners { get; set; } = new();
         public Designer? SelectedDesigner { get; set; }
@@ -23,7 +25,22 @@ namespace Web0524.Pages.Management
         {
             AllDesigners = _reservationService.GetAllDesigners();
 
+            if (SelectedDesignerId.HasValue)
+            {
+                SelectedDesigner = _reservationService.GetDesignerById(SelectedDesignerId.Value);
+
+                if (SelectedDesigner != null)
+                {
+                    SelectedDesigner.FixedHolidays = _reservationService.GetFixedHolidays(SelectedDesignerId.Value);
+                    DayOffList = _reservationService.GetShiftsByDesignerId(SelectedDesignerId.Value);
+                }
+                else
+                {
+                    Console.WriteLine("❌ 找不到設計師 ID: " + SelectedDesignerId.Value);
+                }
+            }
         }
+
 
         public void OnPost()
         {
@@ -67,13 +84,13 @@ namespace Web0524.Pages.Management
                 IsDayOff = true
             };
             _reservationService.AddShift(shift);
-            return RedirectToPage();
+            return RedirectToPage(new { SelectedDesignerId = DesignerId });
         }
 
         public IActionResult OnPostRemoveDayOff(int DesignerId, DateTime ShiftDate)
         {
             _reservationService.RemoveShift(DesignerId, ShiftDate.Date);
-            return RedirectToPage();
+            return RedirectToPage(new { SelectedDesignerId = DesignerId });
         }
     }
 }

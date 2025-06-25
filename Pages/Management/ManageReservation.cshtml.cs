@@ -42,7 +42,11 @@ namespace Web0524.Pages.Management
         [BindProperty(SupportsGet = true)] public DateTime? FilterStartDate { get; set; }
         [BindProperty(SupportsGet = true)] public DateTime? FilterEndDate { get; set; }
 
+        [BindProperty]
+        public int SelectedOrderId { get; set; }
 
+        [BindProperty]
+        public string ScannedCode { get; set; }
 
         public IActionResult OnGet()
         {
@@ -121,6 +125,28 @@ namespace Web0524.Pages.Management
 
             switch (action)
             {
+                case "apply_coupon":
+                    var form = Request.Form;
+                    if (!int.TryParse(form["SelectedOrderId"], out int selectedOrderId) || string.IsNullOrWhiteSpace(form["ScannedCode"]))
+                    {
+                        Message = "❌ 缺少優惠資訊。";
+                        break;
+                    }
+
+                    var order = _reservationService.GetOrderById(selectedOrderId);
+                    if (order == null)
+                    {
+                        Message = "❌ 找不到指定的訂單。";
+                        break;
+                    }
+
+                    var code = form["ScannedCode"];
+                    var result = _marketingService.ApplyCouponToOrder(code, order);
+                    Message = result;
+                    break;
+
+
+
                 case "update":
                     if (NewOrder.OrderId <= 0)
                     {

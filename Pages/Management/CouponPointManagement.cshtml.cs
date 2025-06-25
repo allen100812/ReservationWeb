@@ -30,7 +30,7 @@ namespace Web0524.Pages.Management
         public int MemberPoints { get; set; }
         public List<PointLog> PointLogs { get; set; } = new();
 
-
+        public List<Coupon> AllCoupons { get; set; } = new();
 
         [BindProperty]
         public Coupon NewCoupon { get; set; } = new();
@@ -39,14 +39,24 @@ namespace Web0524.Pages.Management
         public List<int> SelectedCategories { get; set; } = new();
 
         public List<SelectListItem> PGroupSelectList { get; set; } = new();
-        public void OnGet(string? message = null)
+
+
+        [BindProperty(SupportsGet = true)]
+        public string SearchKeyword { get; set; } = "";
+
+        public List<CouponDispatchRecord> FilteredRecords { get; set; } = new();
+
+        public IActionResult OnGet(string? message = null)
         {
+            var check = _userService.CheckCurrentUserPermission(this);
+            if (check != null) return check;
 
             LoadSelectList();
             NewCoupon.ValidFrom = DateTime.Today;
             NewCoupon.ValidTo = DateTime.Today.AddMonths(1);
             AllUser = _userService.GetUserTB().ToList();
             AllPgroup = _pgroupService.GetAllPgroups().ToList();
+            AllCoupons = _marketingService.GetAllCoupons();
             if (!string.IsNullOrWhiteSpace(MemberId))
             {
                 // ✅ 取得點數資料
@@ -59,27 +69,77 @@ namespace Web0524.Pages.Management
             }
             if (!string.IsNullOrEmpty(message))
                 ViewData["Message"] = message;
+
+
+            // ✅ 不論有沒有關鍵字，FilteredRecords 一律賦值
+            FilteredRecords = !string.IsNullOrWhiteSpace(SearchKeyword)
+                ? _marketingService.SearchCouponRecords(SearchKeyword)
+                : new List<CouponDispatchRecord>();
+
+            return Page();
         }
+        [IgnoreAntiforgeryToken]
 
         public IActionResult OnPostToggleStatus(int id)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             _marketingService.ToggleCouponStatus(id);
-            return RedirectToPage(new { memberId = MemberId });
+            return new JsonResult(new { success = true, message = "已切換狀態！" });
         }
 
+
+        [IgnoreAntiforgeryToken]
+        public IActionResult OnPostDeleteRecord(int id)
+        {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
+            var ok = _marketingService.DeleteCouponRecord(id);
+            return new JsonResult(new
+            {
+                success = ok,
+                message = ok ? "✅ 已刪除該優惠券紀錄" : "❌ 刪除失敗"
+            });
+        }
+
+        [IgnoreAntiforgeryToken]
         public IActionResult OnPostBatchDistribute(int SelectedCouponId, string TargetMemberIds)
         {
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             var ids = TargetMemberIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             foreach (var id in ids)
             {
-                _marketingService.AssignCouponToMember(id, SelectedCouponId);
+                Console.WriteLine($"🚀 CouponId: {SelectedCouponId}, MemberId: {id}");
+
+                if (!string.IsNullOrWhiteSpace(id))
+                    _marketingService.AssignCouponToMember(id, SelectedCouponId);
             }
-            return RedirectToPage(new { memberId = MemberId });
+
+            return new JsonResult(new { success = true, message = "優惠券已派發成功！" });
         }
+
 
         public IActionResult OnPostAddPoints(string MemberId, int Points, string Action)
         {
-            Console.WriteLine("👉 OnPostAddCfffoupon triggered");
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             if (Points > 0)
                 _marketingService.AddPoints(MemberId, Points, Action);
             else
@@ -89,28 +149,31 @@ namespace Web0524.Pages.Management
         }
         public IActionResult OnPostAddCoupon()
         {
-            Console.WriteLine("👉 OnPostAddCoupon triggered12");
+            var pageName = this.GetType().Name.Replace("Model", "");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
+            if (string.IsNullOrEmpty(userId) || !_userService.HasPagePermissionByName(userId, pageName))
+            {
+                return new JsonResult(new { success = false, message = "無權限" });
+            }
             LoadSelectList();
+
+            // ⚠️ 先產生優惠券代碼，再驗證
+            NewCoupon.Code = "CPN" + DateTime.Now.ToString("yyyyMMdd") + Guid.NewGuid().ToString("N")[..4].ToUpper();
 
             if (SelectedCategories.Any())
                 NewCoupon.CategoryLimit = string.Join(",", SelectedCategories);
 
-            // ✅ 僅驗證 NewCoupon，不用 ModelState
             var validationResults = new List<ValidationResult>();
             var context = new ValidationContext(NewCoupon);
             bool isValid = Validator.TryValidateObject(NewCoupon, context, validationResults, true);
 
             if (!isValid)
             {
-                // 將錯誤訊息彙整輸出
                 ViewData["Message"] = "❌ 表單驗證失敗：<br/>" + string.Join("<br/>",
                     validationResults.Select(vr => $"【{string.Join(", ", vr.MemberNames)}】{vr.ErrorMessage}"));
                 return Page();
             }
-            // 自動產生代碼
-            NewCoupon.Code = "CPN" + DateTime.Now.ToString("yyyyMMdd") + Guid.NewGuid().ToString("N")[..4].ToUpper();
 
-            // CouponSource 對應邏輯
             NewCoupon.CouponSource = NewCoupon.IsWelcome
                 ? CouponSourceEnum.Register
                 : NewCoupon.AutoAssign
@@ -121,9 +184,9 @@ namespace Web0524.Pages.Management
 
             _marketingService.AddSystemCoupon(NewCoupon);
 
-            ViewData["Message"] = "✅ 優惠券已成功建立！";
-            return RedirectToPage(new { Message = "新增成功！" });
+            return RedirectToPage(new { message = "新增成功！" });
         }
+
 
         private void LoadSelectList()
         {
@@ -153,6 +216,37 @@ namespace Web0524.Pages.Management
 
             return string.Join("<br/>", messages);
         }
+        public JsonResult OnGetGetCouponInfo(int id)
+        {
+
+            AllCoupons = _marketingService.GetAllCoupons();
+            var coupon = AllCoupons.FirstOrDefault(c => c.CouponId == id);
+            if (coupon == null)
+                return new JsonResult(new { success = false });
+
+            return new JsonResult(new
+            {
+                success = true,
+                title = coupon.Title,
+                code = coupon.Code
+            });
+        }
+
+        public JsonResult OnGetGetMemberInfo(string id)
+        {
+            AllUser = _userService.GetUserTB().ToList();
+
+            var member = AllUser.FirstOrDefault(u => u.Id == id);
+            if (member == null)
+                return new JsonResult(new { success = false });
+
+            return new JsonResult(new
+            {
+                success = true,
+                name = member.Name
+            });
+        }
+
 
     }
 }

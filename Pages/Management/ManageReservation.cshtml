@@ -6,6 +6,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
     <link href="https://unpkg.com/fullcalendar@6.1.10/main.min.css" rel="stylesheet">
     <script src="https://unpkg.com/fullcalendar@6.1.10/main.min.js"></script>
 
@@ -22,6 +24,21 @@
 </head>
 <body>
     @Html.AntiForgeryToken()
+
+    <!-- 掃描優惠券 QRCode Modal -->
+<div class="modal fade" id="qrScanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-3">
+            <h5>請掃描優惠券 QRCode</h5>
+            <div id="qr-reader" style="width: 100%"></div>
+            <div class="text-end mt-2">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
     <div class="container" style="margin-top:200px; margin-bottom:200px;">
         <h2 class="fw-bold">管理預約訂單</h2>
 
@@ -237,18 +254,22 @@
                     { title: "下單時間", className: 'text-nowrap', render: o => o.orderDate },
                     {
                         title: "操作", className: 'text-nowrap', render: o => {
-                            if (o.status === "Confirmed") {
-                                return `
-                        <div class="d-flex gap-2 justify-content-center">
-                            <button class="btn btn-sm btn-success complete-btn" data-id="${o.orderId}">
-                                <i class="fa fa-check"></i> 完成
-                            </button>
-                            <button class="btn btn-sm btn-danger cancel-btn" data-id="${o.orderId}">
-                                <i class="fa fa-times"></i> 取消
-                            </button>
-                        </div>
-                    `;
-                            }
+if (o.status === "Confirmed") {
+    return `
+        <div class="d-flex gap-2 justify-content-center">
+            <button class="btn btn-sm btn-warning apply-coupon-btn" data-id="${o.orderId}">
+                <i class="fa fa-qrcode"></i> 優惠
+            </button>
+            <button class="btn btn-sm btn-success complete-btn" data-id="${o.orderId}">
+                <i class="fa fa-check"></i> 完成
+            </button>
+            <button class="btn btn-sm btn-danger cancel-btn" data-id="${o.orderId}">
+                <i class="fa fa-times"></i> 取消
+            </button>
+        </div>
+    `;
+}
+
                             return `<div class="text-muted text-center">—</div>`;
                         }
                     }
@@ -370,6 +391,83 @@
 
     </script>
 
+    <script>
+        let currentApplyOrderId = null;
+let qrScanner = null;
 
+function startQrScanner(orderId) {
+    currentApplyOrderId = orderId;
+
+    const modal = new bootstrap.Modal(document.getElementById("qrScanModal"));
+    modal.show();
+
+    const qrRegion = document.getElementById("qr-reader");
+    qrRegion.innerHTML = ""; // 清空區域
+
+    qrScanner = new Html5Qrcode("qr-reader");
+
+    qrScanner.start(
+        { facingMode: "environment" },
+        {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+            modal.hide();
+            qrScanner.stop().then(() => {
+                sendScannedCoupon(decodedText);
+            });
+        },
+        (err) => {
+            // 忽略掃描錯誤
+        }
+    ).catch((err) => {
+        alert("啟動相機失敗：" + err);
+    });
+}
+
+function sendScannedCoupon(code) {
+    fetch(window.location.href, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
+        },
+        body: new URLSearchParams({
+            "SelectedOrderId": currentApplyOrderId,
+            "ScannedCode": code,
+            "action": "apply_coupon"
+        })
+    })
+    .then(response => response.text())
+    .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const newDataRaw = doc.getElementById("order-data-json")?.textContent;
+        const newData = JSON.parse(newDataRaw || "[]");
+        renderOrderTable(newData);
+
+        const wrapper = document.querySelector("#message-wrapper");
+        const message = doc.querySelector(".alert");
+        if (wrapper) wrapper.innerHTML = "";
+        if (message) {
+            wrapper.appendChild(message);
+            message.scrollIntoView({ behavior: "smooth" });
+        }
+    })
+    .catch(err => {
+        alert("❌ 優惠券套用失敗，請稍後再試");
+        console.error(err);
+    });
+}
+document.addEventListener("click", function (e) {
+    if (e.target.closest(".apply-coupon-btn")) {
+        const orderId = e.target.closest(".apply-coupon-btn").dataset.id;
+        startQrScanner(orderId);
+    }
+});
+
+
+    </script>
 </body>
 </html>

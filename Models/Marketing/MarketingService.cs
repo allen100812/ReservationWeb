@@ -52,6 +52,10 @@ namespace Web0524.Models.Marketing
 
         string ApplyCouponByRecordId(int recordId, Order order);
 
+        List<CouponDispatchRecord> SearchCouponRecords(string keyword);
+
+        bool DeleteCouponRecord(int recordId);
+
 
 
 
@@ -81,6 +85,34 @@ namespace Web0524.Models.Marketing
         {
             _dbConnection = dbConnection;
         }
+
+        public List<CouponDispatchRecord> SearchCouponRecords(string keyword)
+        {
+            string sql = @"
+        SELECT r.* 
+        FROM CouponDispatchRecordTB r
+        WHERE r.IsDispatched = 0 AND (
+            EXISTS (
+                SELECT 1 FROM UserTB u 
+                WHERE u.Id = r.MemberId AND (u.Id LIKE @kw OR u.Name LIKE @kw)
+            ) OR
+            EXISTS (
+                SELECT 1 FROM CouponTB c 
+                WHERE c.CouponId = r.CouponId AND (c.Title LIKE @kw OR c.Code LIKE @kw)
+            )
+        )
+        ORDER BY r.DispatchDate DESC";
+
+            return _dbConnection.Query<CouponDispatchRecord>(sql, new { kw = $"%{keyword}%" }).ToList();
+        }
+
+        public bool DeleteCouponRecord(int recordId)
+        {
+            var sql = "UPDATE CouponDispatchRecordTB SET IsDispatched = 1 WHERE RecordId = @recordId";
+            return _dbConnection.Execute(sql, new { recordId }) > 0;
+        }
+
+
 
         public List<Coupon> GetAllCoupons()
         {
@@ -253,17 +285,19 @@ VALUES (@couponId, @memberId, @dispatchDate, 0, @note)",
         }
         public void AssignCouponToMember(string memberId, int couponId)
         {
-            var exists = _dbConnection.ExecuteScalar<int>(
-                "SELECT COUNT(*) FROM CouponDispatchRecordTB WHERE MemberId = @memberId AND CouponId = @couponId",
-                new { memberId, couponId });
+            Console.WriteLine($"➡️ Insert Direct: memberId={memberId}, couponId={couponId}");
 
-            if (exists == 0)
-            {
-                _dbConnection.Execute(@"INSERT INTO CouponDispatchRecordTB (CouponId, MemberId, DispatchDate, IsDispatched, Note)
-                                VALUES (@couponId, @memberId, GETDATE(), 0, '後台派發')",
-                    new { couponId, memberId });
-            }
+            _dbConnection.Execute(@"
+        INSERT INTO CouponDispatchRecordTB 
+            (CouponId, MemberId, DispatchDate, IsDispatched, Note)
+        VALUES 
+            (@couponId, @memberId, GETDATE(), 0, '後台派發')",
+                new { couponId, memberId });
+
+            Console.WriteLine($"✅ Inserted: {memberId} <- {couponId}");
         }
+
+
 
         public void ToggleCouponStatus(int couponId)
         {
