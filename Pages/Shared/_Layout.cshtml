@@ -3,12 +3,11 @@
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
     var userService = (IUserService)ViewContext.HttpContext.RequestServices.GetService(typeof(IUserService));
     var user = userService.GetUserById(userId);
-
-    // 在此处获取 My 数据
-    var myService = (IMyService)ViewContext.HttpContext.RequestServices.GetService(typeof(IMyService));
-    var myData = myService.GetBaseData();
 }
-
+@inject Web0524.Models.My MySetting
+@{
+    var locations = MySetting.Locations;
+}
 <style>
 
     .Text2 {
@@ -168,7 +167,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@myData.Name</title>
+    <title>@Models.My.Name</title>
 
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -446,7 +445,7 @@
                             <!-- 關於我們 -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--color2);">
-                                    關於 @myData.Name_short
+                                    關於 @Models.My.Name_short
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" asp-page="/about"><i class="far fa-address-card nav-icon icon-width"></i> 關於我們</a></li>
@@ -620,7 +619,7 @@
                                     </a>
                                     <ul class="nav nav-treeview">
                                         <li class="nav-item">
-                                            <a href="@myData.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
+                                            <a href="@Models.My.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
                                                 <i class="fab fa-instagram nav-icon Text2 icon-width"></i>
                                                 <span class="Text2">作品集</span>
                                             </a>
@@ -630,7 +629,7 @@
                                 <li class="nav-item menu-open">
                                     <a href="#" class="nav-link">
                                         <p class="Text1">
-                                            關於 @myData.Name_short
+                                            關於 @Models.My.Name_short
                                             <i class="right fas fa-angle-left"></i>
                                         </p>
                                     </a>
@@ -754,22 +753,22 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <img src="/dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8; width: 32px; height: 32px; object-fit: cover; object-position: center;margin-right: 10px;">
-                        <h4 class="modal-title" id="contactModalLabel">@myData.Name</h4>
+                        <h4 class="modal-title" id="contactModalLabel">@Models.My.Name</h4>
 
                     </div>
                     <div class="modal-body">
                         <div class="row">
                             <div class="col-md-4 d-flex justify-content-center align-items-center">
-                                <a href="@myData.Line_Url" target="_blank">
+                                <a href="@Models.My.Line_Url" target="_blank">
                                     <img src="/dist/img/Lineqrcode.png" alt="Line QR Code" width="150">
                                 </a>
                             </div>
                             <div class="col-md-8" style="padding-top:10px;">
                                 <!-- 這裡顯示 Order.Phone -->
-                                <div type="phone"><h5 class="modal-text"><i class="fas fa-phone"></i> @myData.Phone</h5></div>
+                                <div type="phone"><h5 class="modal-text"><i class="fas fa-phone"></i> @Models.My.Phone</h5></div>
 
                                 <!-- 這裡顯示 Order.Email -->
-                                <div type="text"><h5 class="modal-text"><i class="fab fa-line"></i> @myData.Line_Url</h5></div>
+                                <div type="text"><h5 class="modal-text"><i class="fab fa-line"></i> @Models.My.Line_Url</h5></div>
                             </div>
                         </div>
                     </div>
@@ -785,42 +784,42 @@
                 @RenderBody()
                 <div class="footer__aside-top">
                     <ul class="social-media" role="list">
-                        @if (myData.Fb_Url != null && myData.Fb_Url != "")
+                        @if (Models.My.Fb_Url != null && Models.My.Fb_Url != "")
                         {
                             <li>
-                                <a href="@myData.Fb_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Facebook 上追蹤">
+                                <a href="@Models.My.Fb_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Facebook 上追蹤">
                                     <i class="fab fa-facebook" aria-hidden="true"></i>
                                 </a>
                             </li>
                         }
-                        @if (myData.Ig_Url != null && myData.Ig_Url != "")
+                        @if (Models.My.Ig_Url != null && Models.My.Ig_Url != "")
                         {
                             <li>
-                                <a href="@myData.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
+                                <a href="@Models.My.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
                                     <i class="fab fa-instagram" aria-hidden="true"></i>
                                 </a>
                             </li>
                         }
-                        @if (myData.Yt_Url != null && myData.Yt_Url != "")
+                        @if (Models.My.Yt_Url != null && Models.My.Yt_Url != "")
                         {
                             <li>
-                                <a href="@myData.Yt_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 YouTube 上追蹤">
+                                <a href="@Models.My.Yt_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 YouTube 上追蹤">
                                     <i class="fab fa-youtube" aria-hidden="true"></i>
                                 </a>
                             </li>
                         }
-                        @if (myData.Tk_Url != null && myData.Tk_Url != "")
+                        @if (Models.My.Tk_Url != null && Models.My.Tk_Url != "")
                         {
                             <li>
-                                <a href="@myData.Tk_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 TikTok 上追蹤">
+                                <a href="@Models.My.Tk_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 TikTok 上追蹤">
                                     <i class="fab fa-tiktok" aria-hidden="true"></i>
                                 </a>
                             </li>
                         }
-                        @if (myData.Line_Url != null && myData.Line_Url != "")
+                        @if (Models.My.Line_Url != null && Models.My.Line_Url != "")
                         {
                             <li>
-                                <a href="@myData.Line_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 LINE 上追蹤">
+                                <a href="@Models.My.Line_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 LINE 上追蹤">
                                     <i class="fab fa-line" aria-hidden="true"></i>
                                 </a>
                             </li>
@@ -831,36 +830,38 @@
                 <div class="footer__aside-center py-5" style="background-color: #f7f9fb; border-top: 1px solid #ddd;">
                     <div class="container-narrow">
                         <div class="row gy-4">
-                            <!-- 總公司資訊 -->
-                            <div class="col-md-3">
-                                <p class="fw-bold mb-2">Find Us</p>
-                                <p class="mb-1 fw-semibold">總公司</p>
-                                <p class="mb-1">新竹縣竹北市自強五路37號</p>
-                                <p class="mb-1">t : 03-6681222</p>
-                                <p class="mb-1">e : hozo.design@gmail.com</p>
-                            </div>
+                            @for (int i = 0; i < 2; i++)
+                            {
+                                var loc = locations[i];
+                                <div class="col-md-3">
+                                    @if (i == 0)
+                                    {
+                                        <p class="fw-bold mb-2">Find Us</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="fw-bold mb-2 invisible">-</p>
+                                    }
 
-                            <!-- 分公司資訊 -->
-                            <div class="col-md-3">
-                                <p class="fw-bold mb-2 invisible">-</p>
-                                <p class="mb-1 fw-semibold">台中分公司</p>
-                                <p class="mb-1">台中市西區大同街166號</p>
-                                <p class="mb-1">t : 04-24737333</p>
-                                <p class="mb-1">e : hozo.design@gmail.com</p>
-                            </div>
+                                    <p class="mb-1 fw-semibold">@loc.Name</p>
+                                    <p class="mb-1">@loc.Address</p>
+                                    <p class="mb-1">t : @loc.Phone</p>
+                                    <p class="mb-1">e : @Models.My.Email</p> <!-- 可改為 loc.Email 若你要擴充 -->
+                                </div>
+                            }
 
                             <!-- 主要導覽連結 -->
                             <div class="col-md-3">
                                 <p class="fw-bold mb-2">Home</p>
-                                <p class="mb-1"><a href="/about" class="text-decoration-none text-dark">關於寬景</a></p>
-                                <p class="mb-1"><a href="/works" class="text-decoration-none text-dark">作品欣賞</a></p>
-                                <p class="mb-1"><a href="/flow" class="text-decoration-none text-dark">專案流程</a></p>
+                                <p class="mb-1"><a href="/about" class="text-decoration-none text-dark">關於 @Models.My.Name_short</a></p>
+                                <p class="mb-1"><a href="/Product" class="text-decoration-none text-dark">作品欣賞</a></p>
+                                <p class="mb-1"><a href="/MakeReservation" class="text-decoration-none text-dark">立即預約</a></p>
                             </div>
 
                             <!-- 其他連結 -->
                             <div class="col-md-3">
                                 <p class="fw-bold mb-2">新聞中心</p>
-                                <p class="mb-1"><a href="/news" class="text-decoration-none text-dark">新聞中心</a></p>
+                                <p class="mb-1"><a href="/index" class="text-decoration-none text-dark">新聞中心</a></p>
                                 <p class="mb-1"><a href="/contact" class="text-decoration-none text-dark">聯絡我們</a></p>
                             </div>
                         </div>
@@ -870,8 +871,9 @@
 
                         <!-- 底部著作權與技術連結 -->
                         <div class="d-flex justify-content-between text-muted small">
-                            <p class="mb-0">© 2018 HOZO interior design.</p>
-                            <p class="mb-0"><a href="#" class="text-muted text-decoration-none">網頁設計 - GiLE</a></p>
+                            <p class="mb-0">© 2025 SuperiorSeed Information Technology.</p>
+
+                            <p class="mb-0"><a href="#" class="text-muted text-decoration-none">網頁設計 - SuperiorSeed</a></p>
                         </div>
                     </div>
                 </div>

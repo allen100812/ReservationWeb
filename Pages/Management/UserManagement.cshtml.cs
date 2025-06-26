@@ -37,7 +37,7 @@ namespace Web0524.Pages.Management
             var users = _userService.GetUserTB();
             var currentUser = _userService.GetUserById(userId); // ®Ú¾Úµn¤J±b¸¹
             int currentRole = currentUser?.Role ?? 5;
-
+            
             if (!string.IsNullOrWhiteSpace(keyword))
             {
                 keyword = keyword.Trim().ToLower();

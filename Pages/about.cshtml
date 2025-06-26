@@ -1,7 +1,10 @@
 ﻿@page
 @model Web0524.Pages.aboutModel
+@inject Web0524.Models.My MySetting
 @{
+    var content = MySetting.AboutPage;
 }
+
 
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -102,16 +105,17 @@
 <body>
     <div class="container" style="margin-top:200px ;margin-bottom:200px;">
         <header>
-            <h1 class="ml2">時尚尖端 自然美結合</h1>
+            <h1 class="ml2">@content.HeroTitle</h1>
         </header>
 
+        <!-- 第一區塊 -->
         <div class="row mb-4 align-items-center">
             <div class="col-md-6 fixed-height-col">
                 <section class="text-show animate__animated animate__fadeInLeft">
                     <div>
-                        <h2>自然之美，專業呵護。</h2>
-                        <p>SuperiorSeed 是一家專注於自然美的美容業公司。我們致力於提供最高品質的美容服務，讓每位顧客都能散發自己的獨特之處。</p>
-                        <p>我們以專業手法和最新技術為您提供獨特的美容體驗，並幫助您實現美麗目標。</p>
+                        <h2>@content.Section1_Title</h2>
+                        <p>@content.Section1_Paragraph1</p>
+                        <p>@content.Section1_Paragraph2</p>
                     </div>
                 </section>
             </div>
@@ -120,13 +124,14 @@
             </div>
         </div>
 
+        <!-- 第二區塊 -->
         <div class="row mb-4 align-items-center">
             <div class="col-md-6 fixed-height-col order-md-2">
                 <section class="text-show animate__animated animate__fadeInRight">
                     <div>
-                        <h2>探索美的秘密，SuperiorSeed 將引導您。</h2>
-                        <p>我們的使命是讓每位顧客都感受到自然之美，相信每個人都擁有獨特魅力，並協助展現這份自信。</p>
-                        <p>我們堅持使用最優質產品與技術，致力於提供一流服務體驗。</p>
+                        <h2>@content.Section2_Title</h2>
+                        <p>@content.Section2_Paragraph1</p>
+                        <p>@content.Section2_Paragraph2</p>
                     </div>
                 </section>
             </div>
@@ -135,16 +140,17 @@
             </div>
         </div>
 
+        <!-- 第三區塊 -->
         <div class="row mb-4 align-items-center">
             <div class="col-md-6 fixed-height-col">
                 <section class="text-show animate__animated animate__fadeInLeft">
                     <div>
-                        <h2>自然之道，美的旅程。</h2>
+                        <h2>@content.Section3_Title</h2>
                         <ul>
-                            <li>專業美容治療</li>
-                            <li>最新美容技術</li>
-                            <li>個性化美容方案</li>
-                            <li>友善環境與專業團隊</li>
+                            @foreach (var item in content.Section3_Items)
+                            {
+                                <li>@item</li>
+                            }
                         </ul>
                     </div>
                 </section>
@@ -154,7 +160,6 @@
             </div>
         </div>
     </div>
-
     <script>
         var textWrapper = document.querySelector('.ml2');
         textWrapper.innerHTML = textWrapper.textContent.replace(/\S/g, "<span class='letter'>$&</span>");

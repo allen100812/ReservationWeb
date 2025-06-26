@@ -69,6 +69,9 @@ builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(configuration.
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddHostedService<CouponDispatchBackgroundService>(); // ­I´º±Æµ{
 
+builder.Services.AddSingleton<Web0524.Models.My>();
+
+
 builder.Services.AddHttpClient<LineMessageService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IUserService, UserService>();

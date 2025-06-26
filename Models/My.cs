@@ -3,31 +3,24 @@
     public class My
     {
 
-        //public const string Fb_Url = "";
-        //public const string Ig_Url = "";
-        //public const string Yt_Url = "https://futurelab.tw/pages/page-12";
-        //public const string Tk_Url = "";
-        //public const string Line_Url = "";
+        public const string Fb_Url = "";
+        public const string Ig_Url = "";
+        public const string Yt_Url = "https://futurelab.tw/pages/page-12";
+        public const string Tk_Url = "";
+        public const string Line_Url = "";
 
-        //public const string Name_short = "SuperiorSeed";
-        //public const string Name = "SuperiorSeed時尚美學";
-        //public const string Phone = "0936-064980";
-        //public const string Email = "allen100812@gmail.com";
-        //public const string WebURL = "http://localhost:5155/";
-        //public const string LineBotURL = "https://line.me/R/ti/p/%40771xwptp";
+        public const string Name_short = "SuperiorSeed";
+        public const string Name = "SuperiorSeed時尚美學";
+        public const string Phone = "0936-064980";
+        public const string Email = "allen100812@gmail.com";
+        public const string Line = "@123123123";
+        public const string WebURL = "http://localhost:5155/";
+        public const string LineBotURL = "https://line.me/R/ti/p/%40771xwptp";
 
-        public string? Fb_Url { get; set; }
-        public string? Ig_Url { get; set; }
-        public string? Yt_Url { get; set; }
-        public string? Tk_Url { get; set; }
-        public string? Line_Url { get; set; }
 
-        public string? Name_short { get; set; }
-        public string? Name { get; set; }
-        public string? Phone { get; set; }
-        public string? Email { get; set; }
-        public string? WebURL { get; set; }
-        public string? LineBotURL { get; set; }
+
+
+
 
         public const bool CreateOrderSandLineMsgSw = true;
         public const bool CancelSandLineMsgSw = true;
@@ -58,6 +51,60 @@
 
         public const int CancelLimitHours = 2; //取消訂單時限,設0則不可取消訂單
 
-    }
+        public List<LocationInfo> Locations { get; set; } = new List<LocationInfo>
+        {
+            new LocationInfo
+            {
+                Name = "總店 - 竹北店",
+                Address = "新竹縣竹北市自強五路327號",
+                Phone = "03-6681222",
+                MapUrl = "https://www.google.com/maps?q=新竹縣竹北市自強五路37號&output=embed"
+            },
+            new LocationInfo
+            {
+                Name = "分店 - 台北店",
+                Address = "台北市信義區松高路",
+                Phone = "02-12345678",
+                MapUrl = "https://www.google.com/maps?q=台北市信義區松高路&output=embed"
+            },
+            new LocationInfo
+            {
+                Name = "分店 - 台中店",
+                Address = "台中市西區公益路",
+                Phone = "04-87654321",
+                MapUrl = "https://www.google.com/maps?q=台中市西區公益路&output=embed"
+            }
+        };
+        public AboutContent AboutPage { get; set; } = new AboutContent();
 
+    }
+    public class LocationInfo
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string MapUrl { get; set; } = string.Empty;
+    }
+    public class AboutContent
+    {
+        public string PageTitle { get; set; } = "關於我們 - SuperiorSeed";
+        public string HeroTitle { get; set; } = "時尚尖端 自然美結合";
+
+        public string Section1_Title { get; set; } = "自然之美，專業呵護。";
+        public string Section1_Paragraph1 { get; set; } = "SuperiorSeed 是一家專注於自然美的美容業公司。我們致力於提供最高品質的美容服務，讓每位顧客都能散發自己的獨特之處。";
+        public string Section1_Paragraph2 { get; set; } = "我們以專業手法和最新技術為您提供獨特的美容體驗，並幫助您實現美麗目標。";
+
+        public string Section2_Title { get; set; } = "探索美的秘密，SuperiorSeed 將引導您。";
+        public string Section2_Paragraph1 { get; set; } = "我們的使命是讓每位顧客都感受到自然之美，相信每個人都擁有獨特魅力，並協助展現這份自信。";
+        public string Section2_Paragraph2 { get; set; } = "我們堅持使用最優質產品與技術，致力於提供一流服務體驗。";
+
+        public string Section3_Title { get; set; } = "自然之道，美的旅程。";
+        public List<string> Section3_Items { get; set; } = new()
+    {
+        "專業美容治療",
+        "最新美容技術",
+        "個性化美容方案",
+        "友善環境與專業團隊"
+    };
+    }
 }

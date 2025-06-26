@@ -1,6 +1,8 @@
 ﻿@page
 @model Web0524.Pages.locationModel
 @{
+    @inject Web0524.Models.My MySetting
+
 }
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -190,32 +192,18 @@
     <div class="container" style="margin-bottom:200px;">
         <button class="section-btn">商家據點</button>
 
-        <div class="location-block wow animate__animated animate__fadeInUp" data-wow-delay="0.1s">
-            <h3>總店 - 竹北店</h3>
-            <p><i class="fas fa-map-marker-alt"></i> 新竹縣竹北市自強五路37號</p>
-            <p><i class="fas fa-phone"></i> 03-6681222</p>
-            <div class="map-wrapper">
-                <iframe src="https://www.google.com/maps?q=新竹縣竹北市自強五路37號&output=embed" loading="lazy"></iframe>
+        @foreach (var loc in MySetting.Locations)
+        {
+            <div class="location-block wow animate__animated animate__fadeInUp">
+                <h3>@loc.Name</h3>
+                <p><i class="fas fa-map-marker-alt"></i> @loc.Address</p>
+                <p><i class="fas fa-phone"></i> @loc.Phone</p>
+                <div class="map-wrapper">
+                    <iframe src="@loc.MapUrl" loading="lazy"></iframe>
+                </div>
             </div>
-        </div>
+        }
 
-        <div class="location-block wow animate__animated animate__fadeInUp" data-wow-delay="0.3s">
-            <h3>分店 - 台北店</h3>
-            <p><i class="fas fa-map-marker-alt"></i> 台北市信義區松高路</p>
-            <p><i class="fas fa-phone"></i> 02-12345678</p>
-            <div class="map-wrapper">
-                <iframe src="https://www.google.com/maps?q=台北市信義區松高路&output=embed" loading="lazy"></iframe>
-            </div>
-        </div>
-
-        <div class="location-block wow animate__animated animate__fadeInUp" data-wow-delay="0.5s">
-            <h3>分店 - 台中店</h3>
-            <p><i class="fas fa-map-marker-alt"></i> 台中市西區公益路</p>
-            <p><i class="fas fa-phone"></i> 04-87654321</p>
-            <div class="map-wrapper">
-                <iframe src="https://www.google.com/maps?q=台中市西區公益路&output=embed" loading="lazy"></iframe>
-            </div>
-        </div>
     </div>
     <script>
         document.addEventListener('scroll', () => {

@@ -40,22 +40,54 @@ namespace Web0524.Pages
 
         public My basedata { get; set; }
         public List<NewList> newLists { get; set; }
+
+        public List<NewList> FilteredDesignNews { get; set; } = new();
+
+        public List<NewList> FilteredDesignNews_2 { get; set; } = new();
+
         public async void OnGet()
         {
             if (User.FindFirst(ClaimTypes.Sid) != null)
             {
                 SId = User.FindFirst(ClaimTypes.Sid).ToString();
-
-                // 将用户数据传递给视图
             }
-            newLists = _newService.GetNewTB().ToList();
-            //LineMessageSender lineMessageSender = new LineMessageSender();
-            //lineMessageSender.SendMessage("Udf96f6192a32d72329c908a69805aa9e", "官方帳號Push方法");
-            //lineMessageSender.SendMessage_Notify("Notify傳送訊息方法");
-            // 測試用 User
 
+            // 取得所有新聞主檔
+            newLists = _newService.GetNewTB().ToList();
+
+            // 篩選 Tag 2~5，狀態為 1 的資料，依 TopTime 排序
+            FilteredDesignNews = newLists
+                .Where(n => n.Tag is 2 or 3 or 4 or 5 && n.Status == 1)
+                .OrderByDescending(n => n.TopTime ?? DateTime.MinValue)
+                .ToList();
+
+
+            // 篩選 Tag 2~5，狀態為 1 的資料，依 TopTime 排序
+            FilteredDesignNews_2 = newLists
+                .Where(n => n.Tag is 1 && n.Status == 1)
+                .OrderByDescending(n => n.TopTime ?? DateTime.MinValue)
+                .ToList();
+            // 取得所有新聞圖片
+            var photoMap = _newService.GetAllNewsPhotos();
+
+            // 將圖片配回每一筆新聞
+            foreach (var news in FilteredDesignNews)
+            {
+                if (news.NewId != null && photoMap.TryGetValue(news.NewId.Value, out var photos))
+                {
+                    news.PhotoList = photos;
+                }
+            }
+            foreach (var news in FilteredDesignNews_2)
+            {
+                if (news.NewId != null && photoMap.TryGetValue(news.NewId.Value, out var photos))
+                {
+                    news.PhotoList = photos;
+                }
+            }
 
         }
+
 
 
 

@@ -2,10 +2,7 @@
 @model IndexModel
 @using Web0524.Models
 @using System.Globalization;
-@{
-    var myService = (IMyService)ViewContext.HttpContext.RequestServices.GetService(typeof(IMyService));
-    var myData = myService.GetBaseData();
-}
+
 @{
     ViewData["Title"] = "Home page";
 }
@@ -43,7 +40,7 @@
     <link rel="stylesheet" href="~/css/Share.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@myData.Name</title>
+    <title>@Models.My.Name</title>
 
 
     <style>
@@ -280,122 +277,90 @@
     </div>
 
     <div class="container">
-        <div id="designCarousel" style="margin-top: 150px; margin-bottom: 75px;" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
-            <div  class="carousel-inner">
 
-                <div class="carousel-item active">
-                    <div class="container h-100">
-                        <div class="design-slide-row">
 
-                            <div class="col-md-6">
-                                <img src="/dist/img/banner1.jpg" class="object-fit-cover" alt="設計案例1">
-                            </div>
-                            <div class="col-md-6 ps-4 text-content">
-                                <h6 class="text-muted">設計家專訪</h6>
-                                <h3 class="mt-3">減法換屋實現親子樂園 輕鬆看懂安心宅設計秘訣</h3>
-                                <h6 class="mt-4">重新思考居住與空間的關係，減量設計回歸生活本質。</h6>
-                                <div class="btn-wrapper mt-4">
-                                    <a href="#" class="btn btn-outline-dark btn-oval">View</a>
+        @if (Model.FilteredDesignNews!= null &&  Model.FilteredDesignNews.Count>0)
+        {
+            <div id="designCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000" style="margin-top:150px; margin-bottom:75px;">
+                <div class="carousel-inner">
+                    @for (int i = 0; i < Model.FilteredDesignNews.Count; i++)
+                    {
+                        var item = Model.FilteredDesignNews[i];
+                        string imgSrc = "/dist/img/no-image.jpg";
+                        if (item.PhotoList != null && item.PhotoList.Count > 0)
+                        {
+                            var base64 = Convert.ToBase64String(item.PhotoList[0]);
+                            imgSrc = $"data:image/jpeg;base64,{base64}";
+                        }
+                        var isActive = i == 0 ? "active" : "";
+                        <div class="carousel-item @isActive">
+                            <div class="container h-100">
+                                <div class="design-slide-row">
+                                    <div class="col-md-6">
+                                        <img src="@imgSrc" class="object-fit-cover" alt="@item.Title" onerror="this.src='/dist/img/no-image.jpg'">
+                                    </div>
+                                    <div class="col-md-6 ps-4 text-content">
+                                        <h6 class="text-muted">@item.PublishDate?.ToString("yyyy-MM-dd")</h6>
+                                        <h3 class="mt-3">@item.Title</h3>
+                                        <h6 class="mt-4 text-truncate">@item.Content</h6>
+                                        <div class="btn-wrapper mt-4">
+                                            <a href="#" class="btn btn-outline-dark btn-oval">View</a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    }
                 </div>
 
-                <!-- Slide 2 -->
-                <div class="carousel-item">
-                    <div class="container h-100">
-                        <div class="design-slide-row">
+                <div class="carousel-indicators justify-end-wrapper d-flex justify-content-end mt-2">
+                    <div>
+                        @for (int i = 0; i < Model.FilteredDesignNews.Count; i++)
+                        {
+                            <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="@i"
+                                    class="@(i == 0 ? "active" : "")" aria-label="Slide @(i + 1)"></button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <hr style="margin-top: 150px;">
+        }
 
 
-                            <div class="col-md-6 ">
-                                <img src="/dist/img/banner2.jpg" class="object-fit-cover" alt="設計案例2">
-                            </div>
-                            <div class="col-md-6 ps-4 text-content">
-                                <h6 class="text-muted">設計師分享</h6>
-                                <h3 class="mt-3">極簡風格的溫暖演繹</h3>
-                                <h6 class="mt-4">融合木質調與純白基底，打造不冷硬的極簡空間。</h6>
-                                <div class="btn-wrapper mt-4">
-                                    <a href="#" class="btn btn-outline-dark btn-oval">View</a>
+        @if (Model.FilteredDesignNews_2 != null && Model.FilteredDesignNews_2.Count > 0)
+        {
+            <section class="news-section" id="news-section" style="margin-top: 75px; margin-bottom: 150px;">
+                <div class="container">
+                    <h3 class="text-center mb-5">新聞資訊</h3>
+                    <div class="row row-cols-1 row-cols-md-3 g-5">
+                        @foreach (var news in Model.FilteredDesignNews_2)
+                        {
+                            string imgSrc = "/dist/img/no-image.jpg";
+                            if (news.PhotoList != null && news.PhotoList.Count > 0)
+                            {
+                                var base64 = Convert.ToBase64String(news.PhotoList[0]);
+                                imgSrc = $"data:image/jpeg;base64,{base64}";
+                            }
+
+                            <div class="col">
+                                <div class="card border-0 h-100">
+                                    <img src="@imgSrc" class="card-img-top" alt="@news.Title" onerror="this.src='/dist/img/no-image.jpg'">
+                                    <div class="card-body px-0 d-flex flex-column">
+                                        <p class="text-muted mb-1 spacing-wide">@news.PublishDate?.ToString("yyyy-MM-dd") – 媒體報導</p>
+                                        <h5 class="news-title">@news.Title</h5>
+                                        <a href="#" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        }
                     </div>
                 </div>
+            </section>
+        }
 
-                <!-- Slide 3 -->
-                <div class="carousel-item">
-                    <div class="container h-100">
-                        <div class="design-slide-row">
-                            <div class="col-md-6 ">
-                                <img src="/dist/img/banner3.jpg" class="object-fit-cover" alt="設計案例3">
-                            </div>
-                            <div class="col-md-6 ps-4 text-content">
-                                <h6 class="text-muted">宅家美學</h6>
-                                <h3 class="mt-3">光影與格局的對話</h3>
-                                <h6 class="mt-4">善用光線與空間配置，展現沉靜而明亮的生活美學。</h6>
-                                <div class="btn-wrapper mt-4">
-                                    <a href="#" class="btn btn-outline-dark btn-oval">View</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="carousel-indicators justify-end-wrapper d-flex justify-content-end mt-2">
-                <div>
-                    <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-                    <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-                    <button type="button" data-bs-target="#designCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
-                </div>
 
-            </div>
-        </div>
-        <hr style="margin-top: 150px; margin-bottom: 75px;">
-        <section class="news-section" id="news-section" style="margin-bottom: 150px;">
-            <div class="container">
-                <h3 class="text-center mb-5">新聞資訊</h3>
-                <div class="row row-cols-1 row-cols-md-3 g-5">
 
-                    <!-- 卡片 1 -->
-                    <div class="col">
-                        <div class="card border-0 h-100 ">
-                            <img src="/dist/img/news1.jpg" class="card-img-top" alt="新聞圖片1">
-                            <div class="card-body px-0 d-flex flex-column">
-                                <p class="text-muted mb-1 spacing-wide">05.03.2022 – 媒體報導</p>
-                                <h5 class="news-title">首次申請綠裝修認證，獲得【白金級】別</h5>
-                                <a href="#" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 卡片 2 -->
-                    <div class="col">
-                        <div class="card border-0 h-100">
-                            <img src="/dist/img/news2.jpg" class="card-img-top" alt="新聞圖片2">
-                            <div class="card-body px-0 d-flex flex-column">
-                                <p class="text-muted mb-1 spacing-wide">05.03.2022 – 媒體報導</p>
-                                <h5 class="news-title">女醫師的療癒起點 打造60坪自由風格品味宅</h5>
-                                <a href="#" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 卡片 3 -->
-                    <div class="col">
-                        <div class="card border-0 h-100">
-                            <img src="/dist/img/news3.jpg" class="card-img-top" alt="新聞圖片3">
-                            <div class="card-body px-0 d-flex flex-column">
-                                <p class="text-muted mb-1 spacing-wide">05.03.2022 – 媒體報導</p>
-                                <h5 class="news-title">現代北歐感與輕美式風的最佳呈現！讓陽光漫步於恬淡生活內</h5>
-                                <a href="#" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </section>
     </div>
 </body>
 </html>

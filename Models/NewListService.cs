@@ -14,6 +14,8 @@ namespace Web0524.Models
         NewList GetNewListById(int newId);
         IEnumerable<NewList> GetNewTB();
         IEnumerable<NewList> GetNewTB_Top2();
+        Dictionary<int, List<byte[]>> GetAllNewsPhotos();
+
     }
 
     public class NewListService : INewService
@@ -44,6 +46,23 @@ namespace Web0524.Models
         {
             string sql = "SELECT TOP 100 * FROM NewTB  ORDER BY Status ASC, PublishDate DESC";
             return _dbConnection.Query<NewList>(sql);
+        }
+
+        public Dictionary<int, List<byte[]>> GetAllNewsPhotos()
+        {
+            var sql = "SELECT NewId, Photo FROM NewPhotoTB";
+
+            var result = _dbConnection.Query<(int NewId, byte[] Photo)>(sql);
+
+            // 分組回傳 Dictionary<NewId, List<byte[]>>
+            var grouped = result
+                .GroupBy(r => r.NewId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(r => r.Photo).ToList()
+                );
+
+            return grouped;
         }
 
         public IEnumerable<NewList> GetNewTB_Top2()
