@@ -98,12 +98,21 @@
                             <input asp-for="NewCoupon.Title" class="form-control" required />
                             <span asp-validation-for="NewCoupon.Title" class="text-danger"></span>
                         </div>
-                        <div class="col-md-6">
+
+                        <div class="col-md-6 d-none">
                             <label class="form-label">自動產生的優惠券代碼</label>
                             <input asp-for="NewCoupon.Code" class="form-control" readonly />
                         </div>
 
                     </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">優惠券說明</label>
+                            <textarea asp-for="NewCoupon.Remark" class="form-control" rows="3" required></textarea>
+                            <span asp-validation-for="NewCoupon.Remark" class="text-danger"></span>
+                        </div>
+                    </div>
+
 
                     <!-- 優惠方式 -->
                     <div class="row mb-3">

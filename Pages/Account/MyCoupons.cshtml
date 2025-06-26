@@ -13,7 +13,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="~/lib/fontawesome/css/all.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
     <style>
         body {
             background-color: #fff;
@@ -26,61 +25,100 @@
             color: #222;
         }
 
-        .coupon-card {
-            border-radius: 12px;
-            background: linear-gradient(145deg, #fefefe, #f4f4f4);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            padding: 1.5rem;
+        .coupon-wrapper {
+            position: relative;
+            height: 120px;
             margin-bottom: 1.5rem;
-            border-left: 6px solid #ffc5c5;
-            transition: transform 0.2s;
+            filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.15));
+            -webkit-mask-image: radial-gradient(circle 10px at 0 60px, transparent 10px, black 10px), radial-gradient(circle 10px at 100% 60px, transparent 10px, black 10px);
+            -webkit-mask-composite: destination-out;
+            mask-composite: exclude;
+        }
+
+        .coupon-card {
+            height: 100%;
+            border-radius: 12px;
+            background: white;
+            display: flex;
+            overflow: hidden;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15); /* 加上陰影 */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
             .coupon-card:hover {
-                transform: scale(1.01);
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
             }
 
-        .coupon-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #d44a4a;
+        .coupon-left {
+            width: 100px;
+            display: flex;
+            flex-direction: column;
+            color: #fff;
+            font-weight: bold;
+            text-align: center;
         }
 
-        .coupon-content {
+        .top-half {
+            background-color: #ff4d4f;
+            flex: 7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .bottom-half {
+            background-color: #c62828;
+            flex: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            padding: 4px;
+        }
+
+        .coupon-right {
+            flex: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             font-size: 0.95rem;
-            color: #555;
-            margin-bottom: 0.3rem;
+            color: #333;
+        }
+
+
+        .coupon-title {
+            font-weight: 600;
         }
 
         .coupon-meta {
-            font-size: 0.85rem;
-            color: #999;
+            font-size: 0.8rem;
+            color: #666;
         }
 
         .btn-coupon {
             border-radius: 50px;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             font-weight: 500;
-            color: #d44a4a;
-            border: 1px solid #d44a4a;
-            background-color: transparent;
-            padding: 6px 16px;
-            transition: all 0.3s;
+            color: #fff;
+            background-color: #ff4d4f;
+            border: none;
+            padding: 4px 12px;
+            align-self: flex-start;
         }
 
-            .btn-coupon:hover {
-                background-color: #d44a4a;
-                color: white;
-            }
-
-        .modal-content {
-            background-color: #fff;
-            border-radius: 12px;
+        .pagination .page-link {
+            color: #ff4d4f;
         }
 
-        .text-muted {
-            font-size: 0.8rem;
+        .pagination .page-item.active .page-link {
+            background-color: #ff4d4f;
+            border-color: #ff4d4f;
+            color: #fff;
         }
+
     </style>
 </head>
 
@@ -95,31 +133,48 @@
                 var c = Model.CouponMap.ContainsKey(record.CouponId) ? Model.CouponMap[record.CouponId] : null;
                 if (c == null) { continue; }
 
-                <div class="coupon-card">
-                    <div class="coupon-title">@c.Title</div>
-                    <div class="coupon-content">@c.Remark</div>
-                    <div class="coupon-meta">
-                        📅 有效期間：@c.ValidFrom:yyyy-MM-dd ~ @c.ValidTo:yyyy-MM-dd <br />
-                        💰 最低金額：@c.MinAmount.ToString("C0") <br />
-                        🎁 折扣：
+                <div class="coupon-card mt-3">
+                    <div class="coupon-left @(c.DiscountType == Models.DiscountTypeEnum.FixedAmount ? "fixed" : "percent")">
                         @if (c.DiscountType == Models.DiscountTypeEnum.FixedAmount)
                         {
-                            <span>@c.FixedDiscountAmount?.ToString("C0")</span>
+                            <div class="top-half">
+                                <span class="me-1">$</span>@((c.FixedDiscountAmount ?? 0).ToString("0"))
+                            </div>
+                        }
+                        else if (c.DiscountType == Models.DiscountTypeEnum.Percentage)
+                        {
+                            <div class="top-half">
+                                @((c.DiscountAmount).ToString("0"))%off
+                            </div>
                         }
                         else
                         {
-                            <span>@c.DiscountAmount.ToString("0.#")%</span>
+                            <div class="top-half">🎁</div>
                         }
-                        <br />
-                        備註: @c.Remark
+
+                        <div class="bottom-half">
+                            @(c.MinAmount == 0 ? "不限金額使用" : $"滿 {c.MinAmount.ToString("0")} 元可用")
+                        </div>
                     </div>
-                    <div class="mt-3">
-                        <button class="btn btn-coupon generate-qr" data-id="@record.RecordId">
-                            使用此券
-                        </button>
+
+                    <div class="coupon-right">
+                        <div class="cut-line"></div>
+                        <div class="coupon-title">
+                            <h5 class="fw-bold">@c.Title</h5>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <div class="coupon-meta">@c.ValidFrom.ToShortDateString() ~ @c.ValidTo.ToShortDateString()</div>
+                                <button class="btn btn-coupon generate-qr ms-2" data-id="@record.RecordId">去使用</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+
+
+
             }
+
+
         }
         else
         {
@@ -127,6 +182,15 @@
                 <i class="fas fa-info-circle me-2"></i>目前沒有可使用的優惠券
             </div>
         }
+
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div class="text-muted">共 <span id="totalCoupons">0</span> 張優惠券</div>
+            <nav>
+                <ul class="pagination mb-0" id="couponPagination"></ul>
+            </nav>
+        </div>
+
     </div>
 
     <!-- QR Modal -->
@@ -148,8 +212,10 @@
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
     <script>
         $(document).ready(function () {
+            // 顯示 QRCode
             $('.generate-qr').click(function () {
                 var recordId = $(this).data('id');
                 $.get('?handler=GenerateQR&recordId=' + recordId, function (data) {
@@ -163,7 +229,64 @@
                     });
                 });
             });
+
+            // 分頁功能
+            const pageSize = 5;
+            const $coupons = $('.coupon-card');
+            const totalItems = $coupons.length;
+            const totalPages = Math.ceil(totalItems / pageSize);
+            let currentPage = 1;
+
+            function renderPagination() {
+                const $pagination = $('#couponPagination');
+                $pagination.empty();
+
+                const maxButtons = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+                let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+                if (endPage - startPage < maxButtons - 1) {
+                    startPage = Math.max(1, endPage - maxButtons + 1);
+                }
+
+                // 上一頁
+                $pagination.append(`<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>`);
+
+                // 頁碼
+                for (let i = startPage; i <= endPage; i++) {
+                    $pagination.append(`<li class="page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#">${i}</a></li>`);
+                }
+
+                // 下一頁
+                $pagination.append(`<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>`);
+            }
+
+            function showPage(page) {
+                currentPage = page;
+                $coupons.hide().slice((page - 1) * pageSize, page * pageSize).show();
+                renderPagination();
+            }
+
+            $('#couponPagination').on('click', 'a.page-link', function (e) {
+                e.preventDefault();
+                const text = $(this).text();
+                if (text === '«' && currentPage > 1) {
+                    showPage(currentPage - 1);
+                } else if (text === '»' && currentPage < totalPages) {
+                    showPage(currentPage + 1);
+                } else if (!isNaN(text)) {
+                    showPage(parseInt(text));
+                }
+            });
+
+            $('#totalCoupons').text(totalItems);
+            if (totalItems > 0) {
+                showPage(1);
+            }
         });
     </script>
+
 </body>
 </html>
