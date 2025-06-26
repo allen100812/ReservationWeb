@@ -188,7 +188,7 @@ namespace Web0524.Pages.Management
                         Message = "⚠️ 僅能取消「預約中」的訂單。";
                         break;
                     }
-                    var deleted = _reservationService.CancelOrder(NewOrder.OrderId);
+                    var deleted = _reservationService.CancelOrder(NewOrder.OrderId,false);
                     Message = deleted ? "🗑️ 預約單已取消。" : "❌ 取消失敗。";
                     break;
 

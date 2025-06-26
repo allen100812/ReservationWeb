@@ -8,6 +8,11 @@ using Web0524.Models.Helper;
 using Web0524.Models;
 using System.Data.Common;
 using Web0524.Models.LineMessage;
+using MDP.DevKit.LineMessaging;
+using System.Reflection.Metadata;
+using Web0524.Models.SystemMessage;
+using System.Security.Cryptography;
+using System.Xml.Linq;
 
 namespace Web0524.Models
 {
@@ -50,7 +55,7 @@ namespace Web0524.Models
         Order? GetOrderById(int orderId);
 
         // 取消預約單
-        bool CancelOrder(int orderId);
+        bool CancelOrder(int orderId, bool customer_appeal);
 
         // 取得所有預約單
         List<Order> GetAllOrders();
@@ -104,12 +109,18 @@ namespace Web0524.Models
         private readonly IGoogleCalendarHelper _calendarHelper;
         private readonly IUserService _userService;
         private readonly LineMessageService _lineService;
-        public ReservationService(IDbConnection dbConnection,IGoogleCalendarHelper calendarHelper, IUserService userService, LineMessageService lineService)
+        private readonly IMessageService _messageService;
+
+        private readonly IProductService _productService;
+
+        public ReservationService(IDbConnection dbConnection,IGoogleCalendarHelper calendarHelper, IUserService userService, LineMessageService lineService, IMessageService messageService, IProductService productService)
         {
             _dbConnection = dbConnection;
             _calendarHelper = calendarHelper;
             _userService = userService;
             _lineService = lineService;
+            _messageService = messageService;
+            _productService = productService;
         }
 
         public List<string> GetFixedHolidays(int designerId)
@@ -168,7 +179,7 @@ namespace Web0524.Models
             return _dbConnection.QueryFirstOrDefault<Order>(sql, new { OrderId = orderId });
         }
 
-        public bool CancelOrder(int orderId)
+        public bool CancelOrder(int orderId,bool customer_appeal)
         {
             var result = _dbConnection.Execute("UPDATE OrderTB SET Status = @Status WHERE OrderId = @OrderId",
                 new { OrderId = orderId, Status = OrderStatus.Cancelled }) > 0;
@@ -191,7 +202,36 @@ namespace Web0524.Models
                 if (My.CancelSandLineMsgSw && !string.IsNullOrEmpty(order?.Uid))
                 {
                     var user_item = _userService.GetUserByLineUserId(order?.Uid);
-                    var success = _lineService.SendSecureLineMessageAsync(user_item.LineUserId, My.Msg_OrderCancel_client);
+                    var product = _productService.GetProductById(order.ProductId);
+                    string p_name = string.IsNullOrWhiteSpace(product?.Name) ? "（未命名服務）" : product.Name;
+                    var MSG = "";
+                    if (customer_appeal)
+                    {
+                        MSG = MyMessageTemplates.FormatOrderCancelByClient(
+order.OrderId.ToString("X6"),
+p_name,
+order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
+);
+                    }
+                    else
+                    {
+                        MSG = MyMessageTemplates.FormatOrderCancelByStore(
+order.OrderId.ToString("X6"),
+p_name,
+order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
+);
+                    }
+
+                    var success = _lineService.SendSecureLineMessageAsync(user_item.LineUserId, MSG);
+                    _messageService.SendMessage(
+                        order?.Uid,
+                        "預約訊息",
+                        MSG,
+                        MessageType.Store,
+                        TimeSpan.FromDays(60)
+                    );
+
+
                 }
 
 
@@ -201,6 +241,8 @@ namespace Web0524.Models
 
             return result;
         }
+
+
 
         public List<Order> GetAllOrders()
         {
@@ -361,10 +403,60 @@ namespace Web0524.Models
             if (result && newStatus == OrderStatus.Cancelled)
             {
                 var order = GetOrderById(orderId);
-                Console.WriteLine("刪除行事曆update:" + order?.GoogleEventId);
                 if (!string.IsNullOrEmpty(order?.GoogleEventId))
                 {
                     _calendarHelper.CancelEventAsync(order.GoogleEventId).Wait();
+
+
+                    //不同類別不同處裡
+                    var MSG = "";
+                    if(newStatus == OrderStatus.Pending)
+                    {
+                        MSG = "";
+                    }
+                    else if(newStatus == OrderStatus.Confirmed)
+                    {
+                        var product = _productService.GetProductById(order.ProductId);
+                        string p_name = string.IsNullOrWhiteSpace(product?.Name) ? "（未命名服務）" : product.Name;
+
+                        MSG = MyMessageTemplates.FormatOrderCreated(
+                            order.OrderId.ToString("X6"),
+                            p_name,
+                            order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
+                        );
+
+                    }
+                    else if (newStatus == OrderStatus.Cancelled)
+                    {
+                        var product = _productService.GetProductById(order.ProductId);
+                        string p_name = string.IsNullOrWhiteSpace(product?.Name) ? "（未命名服務）" : product.Name;
+
+                        MSG = MyMessageTemplates.FormatOrderCancelByStore(
+                            order.OrderId.ToString("X6"),
+                            p_name,
+                            order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
+                        );
+
+                    }
+                    else if (newStatus == OrderStatus.Completed)
+                    {
+                        var product = _productService.GetProductById(order.ProductId);
+                        string p_name = string.IsNullOrWhiteSpace(product?.Name) ? "（未命名服務）" : product.Name;
+
+                        MSG = MyMessageTemplates.FormatOrderDone(
+                            order.OrderId.ToString("X6"),
+                            p_name,
+                            order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
+                        );
+
+                    }
+                    _messageService.SendMessage(
+                        order?.Uid,
+                        "預約訊息",
+                       MSG,
+                        MessageType.Store,
+                        TimeSpan.FromDays(60)
+                    );
 
                 }
             }
@@ -429,7 +521,22 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
             if (My.CreateOrderSandLineMsgSw && !string.IsNullOrEmpty(order?.Uid))
             {
                 var user_item = _userService.GetUserByLineUserId(order?.Uid);
-                var success = _lineService.SendSecureLineMessageAsync(user_item.LineUserId, My.Msg_OrderSend_client);
+                var product = _productService.GetProductById(order.ProductId);
+                string p_name = string.IsNullOrWhiteSpace(product?.Name) ? "（未命名服務）" : product.Name;
+                var MSG = MyMessageTemplates.FormatOrderCreated(
+                order.OrderId.ToString("X6"),
+                p_name,
+                order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
+);
+                var success = _lineService.SendSecureLineMessageAsync(user_item.LineUserId, MSG);
+                _messageService.SendMessage(
+                    order?.Uid,
+                    "預約訊息",
+                    MSG,
+                    MessageType.Store,
+                    TimeSpan.FromDays(60)
+                );
+
             }
 
 
@@ -440,7 +547,6 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
         public bool IsSlotAvailable(int? designerId, int? productId, DateTime time)
         {
-            Console.WriteLine($"🔍 檢查是否可預約：設計師ID={designerId}, 產品ID={productId}, 時間={time:yyyy-MM-dd HH:mm}");
 
             if (designerId == null)
             {

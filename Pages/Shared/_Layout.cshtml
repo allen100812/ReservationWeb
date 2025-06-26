@@ -782,6 +782,35 @@
             <!-- Main content -->
             <div>
                 @RenderBody()
+                <!-- ✅ 1. 浮動訊息按鈕（右下角） -->
+                <div id="floatingMessageBtn" class="position-fixed bottom-0 end-0 m-4" style="z-index: 1050;">
+                    <button type="button" class="btn btn-warning position-relative shadow" onclick="openMessageModal()">
+                        <i class="fas fa-bell"></i>
+                        <span id="messageBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">
+                            0
+                        </span>
+                    </button>
+                </div>
+
+                <!-- ✅ 2. Modal 結構 -->
+                <div class="modal fade" id="messageModal" tabindex="-1" role="dialog" aria-labelledby="messageModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title" id="messageModalLabel">
+                                    <i class="fas fa-bullhorn"></i> 系統訊息
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-3">
+                                <div id="messageList" class="list-group">
+                                    <!-- 這裡將用 JS 動態產生訊息 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="footer__aside-top">
                     <ul class="social-media" role="list">
                         @if (Models.My.Fb_Url != null && Models.My.Fb_Url != "")
@@ -893,5 +922,79 @@
 
 <!-- AdminLTE App -->
 <script src="/dist/js/adminlte.min.js"></script>
+
+<!-- ✅ 3. JavaScript 動態處理訊息 -->
+<script>
+    let messages = [];
+
+    function getMessageTypeStyle(type) {
+        switch (type) {
+            case 1: return "list-group-item-danger"; // 警告
+            case 2: return "list-group-item-warning"; // 系統
+            case 3: return "list-group-item-info"; // 店鋪
+            default: return "list-group-item-light";
+        }
+    }
+
+    function renderMessages() {
+        const list = document.getElementById("messageList");
+        list.innerHTML = "";
+
+        if (messages.length === 0) {
+            list.innerHTML = '<p class="text-muted">目前沒有新訊息。</p>';
+        } else {
+            messages.forEach(m => {
+                const item = document.createElement("div");
+                item.className = `list-group-item ${getMessageTypeStyle(m.messageType)}`;
+                item.innerHTML = `
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">${m.title} ${!m.isRead ? '<span class=\"badge bg-danger ms-2\">新訊息</span>' : ''}</h5>
+                            <small class="text-muted">${m.createdAt}</small>
+                        </div>
+                        <p class="mb-1">${m.content}</p>
+                    `;
+                list.appendChild(item);
+            });
+        }
+    }
+
+    function openMessageModal() {
+        renderMessages();
+        const modal = new bootstrap.Modal(document.getElementById('messageModal'));
+        modal.show();
+
+        // ⏱️ 等待 3 秒標記已讀
+        setTimeout(() => markAllAsRead(), 3000);
+    }
+
+    function markAllAsRead() {
+        fetch('/api/Message/MarkAllMessagesRead', {
+            method: 'POST'
+        }).then(() => {
+            messages.forEach(m => m.isRead = true);
+            document.getElementById("messageBadge").classList.add("d-none");
+            renderMessages();
+        });
+    }
+
+    function loadMessages() {
+        fetch('/api/Message/GetUserMessages')
+            .then(res => res.json())
+            .then(data => {
+                // 若回傳是物件包陣列，如 { result: [...] }
+                if (Array.isArray(data)) {
+                    messages = data;
+                } else if (data && Array.isArray(data.result)) {
+                    messages = data.result;
+                } else {
+                    messages = [];
+                }
+
+                const unreadCount = messages.filter(m => !m.isRead).length;
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", loadMessages);
+</script>
 @await RenderSectionAsync("Scripts", required: false)
 </html>

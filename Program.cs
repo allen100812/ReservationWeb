@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Web0524.Models.Helper;
 using Web0524.Models.Marketing;
 using Web0524.Models.LineMessage;
+using Web0524.Models.SystemMessage;
 
 
 
@@ -71,7 +72,7 @@ builder.Services.AddHostedService<CouponDispatchBackgroundService>(); // ­I´º±Æµ
 
 builder.Services.AddSingleton<Web0524.Models.My>();
 
-
+builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddHttpClient<LineMessageService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IUserService, UserService>();

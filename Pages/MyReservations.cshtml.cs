@@ -87,7 +87,7 @@ namespace Web0524.Pages
             if (order == null || order.Uid != uid || order.Status != OrderStatus.Pending)
                 return RedirectToPage();
 
-            _reservationService.CancelOrder(id);
+            _reservationService.CancelOrder(id,true);
             return RedirectToPage();
         }
 

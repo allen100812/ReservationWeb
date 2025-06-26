@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Web0524.Models;
+using Web0524.Models.SystemMessage;
 
 public class DailyOrderCompletionService : BackgroundService
 {
@@ -29,11 +30,15 @@ public class DailyOrderCompletionService : BackgroundService
             using (var scope = _serviceProvider.CreateScope())
             {
                 var reservationService = scope.ServiceProvider.GetRequiredService<IReservationService>();
+                var messageService = scope.ServiceProvider.GetRequiredService<IMessageService>();
 
                 try
                 {
                     int count = reservationService.AutoCompleteExpiredOrders();
                     Console.WriteLine($"✅ 背景任務：自動完成 {count} 筆過期預約");
+
+                    messageService.DeleteExpiredMessages();
+                    Console.WriteLine($"✅ 背景任務：已刪除過期訊息");
                 }
                 catch (Exception ex)
                 {
@@ -41,7 +46,8 @@ public class DailyOrderCompletionService : BackgroundService
                 }
             }
 
-            await Task.Delay(_interval, stoppingToken); // 每 24 小時執行一次
+            await Task.Delay(TimeSpan.FromDays(1), stoppingToken); // 每 24 小時執行一次
         }
     }
+
 }
