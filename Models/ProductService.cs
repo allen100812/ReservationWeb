@@ -1,92 +1,60 @@
 ﻿using Dapper;
 using System;
+using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
-using System.Security.Cryptography;
 
 namespace Web0524.Models
 {
     public interface IProductService
     {
-        // 新增產品
         int CreateProduct(Product product);
-
-        // 更新產品
         bool UpdateProduct(Product product);
-
-        // 刪除產品（依編號）
         bool DeleteProduct(int productId);
-
-        // 取得所有產品
         IEnumerable<Product> GetAllProducts();
-
-        // 依產品編號取得單筆資料
         Product GetProductById(int productId);
-
-        // 依產品名稱模糊搜尋
         IEnumerable<Product> SearchProductsByName(string keyword);
-
-        // 依產品群組查詢
         IEnumerable<Product> GetProductsByGroup(int pgid);
-
-        // 依產品狀態查詢（啟用中 / 停用）
         IEnumerable<Product> GetProductsByState(int productState);
-
-        // 設定產品狀態（上架、下架）
         bool ChangeProductState(int productId, int newState);
-
-        // 設定產品排序代碼（ProductOrder）
         bool UpdateProductOrder(int productId, string productOrder);
-
-        // 驗證產品名稱是否重複（用於新增/編輯）
         bool IsProductNameDuplicate(string productName, int? excludeProductId = null);
-
-        // 取得推薦產品（價格最高前 N 筆 / 狀態為啟用）
         IEnumerable<Product> GetTopProductsByPrice(int topN);
-
-        // 統計：產品總數
         int CountAllProducts();
-
-        // 統計：各群組產品數量
         Dictionary<int, int> GetProductCountByGroup();
-
-        // 批次更新產品狀態
         int BulkUpdateProductState(List<int> productIds, int newState);
-
-        // 批次刪除產品
         int BulkDeleteProducts(List<int> productIds);
-
-        //還原產品
         bool RestoreProduct(int productId);
     }
-    public class ProductService: IProductService
+
+    public class ProductService : IProductService
     {
         private readonly IDbConnection _dbConnection;
         public ProductService(IDbConnection dbConnection)
         {
             _dbConnection = dbConnection;
         }
+
         public int CreateProduct(Product product)
         {
             var sql = @"
-            INSERT INTO ProductTB (PGid, ProductState, Name, Price, Content, Photo, ProductOrder, IsDeleted)
-            VALUES (@PGid, @ProductState, @Name, @Price, @Content, @Photo, @ProductOrder, 0);
-            SELECT CAST(SCOPE_IDENTITY() AS INT);";
+                INSERT INTO ProductTB (PGid, ProductState, Name, Price, Content, Photo, ProductOrder, IsDeleted)
+                VALUES (@PGid, @ProductState, @Name, @Price, @Content, @Photo, @ProductOrder, 0);
+                SELECT LAST_INSERT_ID();";
             return _dbConnection.ExecuteScalar<int>(sql, product);
         }
 
         public bool UpdateProduct(Product product)
         {
             var sql = @"
-            UPDATE ProductTB
-            SET PGid = @PGid,
-                ProductState = @ProductState,
-                Name = @Name,
-                Price = @Price,
-                Content = @Content,
-                Photo = @Photo,
-                ProductOrder = @ProductOrder
-            WHERE ProductId = @ProductId AND IsDeleted = 0";
+                UPDATE ProductTB
+                SET PGid = @PGid,
+                    ProductState = @ProductState,
+                    Name = @Name,
+                    Price = @Price,
+                    Content = @Content,
+                    Photo = @Photo,
+                    ProductOrder = @ProductOrder
+                WHERE ProductId = @ProductId AND IsDeleted = 0";
             return _dbConnection.Execute(sql, product) > 0;
         }
 
@@ -150,7 +118,10 @@ namespace Web0524.Models
 
         public IEnumerable<Product> GetTopProductsByPrice(int topN)
         {
-            var sql = $"SELECT TOP (@TopN) * FROM ProductTB WHERE ProductState = 1 AND IsDeleted = 0 ORDER BY Price DESC";
+            var sql = @"SELECT * FROM ProductTB
+                        WHERE ProductState = 1 AND IsDeleted = 0
+                        ORDER BY Price DESC
+                        LIMIT @TopN";
             return _dbConnection.Query<Product>(sql, new { TopN = topN });
         }
 
@@ -163,7 +134,8 @@ namespace Web0524.Models
         public Dictionary<int, int> GetProductCountByGroup()
         {
             var sql = "SELECT PGid, COUNT(*) AS Count FROM ProductTB WHERE IsDeleted = 0 GROUP BY PGid";
-            return _dbConnection.Query(sql).ToDictionary(r => (int)r.PGid, r => (int)r.Count);
+            return _dbConnection.Query(sql)
+                .ToDictionary(row => (int)row.PGid, row => (int)row.Count);
         }
 
         public int BulkUpdateProductState(List<int> productIds, int newState)
@@ -183,6 +155,5 @@ namespace Web0524.Models
             var sql = "UPDATE ProductTB SET IsDeleted = 0 WHERE ProductId = @ProductId";
             return _dbConnection.Execute(sql, new { ProductId = productId }) > 0;
         }
-
     }
 }

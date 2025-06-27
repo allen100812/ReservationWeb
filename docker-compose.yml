@@ -1,0 +1,26 @@
+﻿version: '3.9'
+
+services:
+  web:
+    build: .
+    environment:
+      - ConnectionStrings__WebDB=Server=db;Database=OrderWeb;User Id=sa;Password=@Aa100812;TrustServerCertificate=true;
+    depends_on:
+      - db
+    ports:
+      - "8080:80"
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "@Aa100812"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssqldata:/var/opt/mssql
+      # 若有備份檔要掛載：
+      - D:\backup:/var/opt/mssql/backup
+
+volumes:
+  mssqldata:

@@ -54,7 +54,7 @@ namespace Web0524.Models
         {
             var sql = @"INSERT INTO PortfolioGroupTB (PortfolioGroup_Name, PortfolioGroup_Content)
                     VALUES (@PortfolioGroup_Name, @PortfolioGroup_Content);
-                    SELECT CAST(SCOPE_IDENTITY() AS INT)";
+                    SELECT LAST_INSERT_ID();";
             return await _db.ExecuteScalarAsync<int>(sql, group);
         }
 
@@ -69,7 +69,6 @@ namespace Web0524.Models
 
         public async Task<bool> DeleteAsync(int id)
         {
-            // ⚠️ 判斷是否還有作品集
             var count = await _db.ExecuteScalarAsync<int>(
                 "SELECT COUNT(*) FROM PortfolioTB WHERE PortfolioGroup_Id = @id", new { id });
 
@@ -80,6 +79,7 @@ namespace Web0524.Models
                 "DELETE FROM PortfolioGroupTB WHERE PortfolioGroup_Id = @id", new { id }) > 0;
         }
     }
+
 
     public class PortfolioService : IPortfolioService
     {
@@ -98,13 +98,14 @@ namespace Web0524.Models
             {
                 var photos = await _db.QueryAsync<PortfolioPhoto>(
                     "SELECT Photo_Id, Portfolio_Id, Photo FROM PortfolioPhotoTB WHERE Portfolio_Id = @id",
-                    new { id = p.Portfolio_Id});
+                    new { id = p.Portfolio_Id });
 
                 p.PhotoList = photos.ToList();
             }
 
             return portfolios;
         }
+
         public async Task<IEnumerable<Portfolio>> GetPublishedAsync()
         {
             var portfolios = (await _db.QueryAsync<Portfolio>(
@@ -140,17 +141,13 @@ namespace Web0524.Models
 
         public async Task<int> CreateAsync(Portfolio model, List<byte[]> photos)
         {
-
-
-            Console.WriteLine("CreateAsync");
             var sql = @"
-        INSERT INTO PortfolioTB (PortfolioGroup_Id, Portfolio_Title, Portfolio_Content, Portfolio_URL, IsPublished)
-        VALUES (@PortfolioGroup_Id, @Portfolio_Title, @Portfolio_Content, @Portfolio_URL, @IsPublished);
-        SELECT CAST(SCOPE_IDENTITY() as int)";
+            INSERT INTO PortfolioTB (PortfolioGroup_Id, Portfolio_Title, Portfolio_Content, Portfolio_URL, IsPublished)
+            VALUES (@PortfolioGroup_Id, @Portfolio_Title, @Portfolio_Content, @Portfolio_URL, @IsPublished);
+            SELECT LAST_INSERT_ID();";
 
             int newId = await _db.ExecuteScalarAsync<int>(sql, model);
 
-            // 🧨 防呆檢查：若插入失敗
             if (newId <= 0)
             {
                 throw new Exception("⚠️ 作品集新增失敗，無法取得有效 ID，請確認 PortfolioGroup_Id 是否正確。");
@@ -169,27 +166,23 @@ namespace Web0524.Models
             return newId;
         }
 
-
         public async Task<bool> UpdateAsync(Portfolio model, List<byte[]> newPhotos, List<int> deletePhotoIds)
         {
-            // 1. 更新主資料
             var sql = @"
-                UPDATE PortfolioTB SET
-PortfolioGroup_Id = @PortfolioGroup_Id,
-                    Portfolio_Title = @Portfolio_Title,
-                    Portfolio_Content = @Portfolio_Content,
-                    Portfolio_URL = @Portfolio_URL,
-                    IsPublished = @IsPublished
-                WHERE Portfolio_Id = @Portfolio_Id";
+            UPDATE PortfolioTB SET
+                PortfolioGroup_Id = @PortfolioGroup_Id,
+                Portfolio_Title = @Portfolio_Title,
+                Portfolio_Content = @Portfolio_Content,
+                Portfolio_URL = @Portfolio_URL,
+                IsPublished = @IsPublished
+            WHERE Portfolio_Id = @Portfolio_Id";
             int rows = await _db.ExecuteAsync(sql, model);
 
-            // 2. 刪除圖片
             if (deletePhotoIds?.Any() == true)
             {
                 await _db.ExecuteAsync("DELETE FROM PortfolioPhotoTB WHERE Photo_Id IN @ids", new { ids = deletePhotoIds });
             }
 
-            // 3. 新增圖片
             if (newPhotos?.Any() == true)
             {
                 foreach (var photo in newPhotos)
@@ -215,7 +208,7 @@ PortfolioGroup_Id = @PortfolioGroup_Id,
             var rows = await _db.ExecuteAsync("DELETE FROM PortfolioPhotoTB WHERE Photo_Id = @id", new { id = photoId });
             return rows > 0;
         }
-
     }
+
 
 }

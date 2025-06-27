@@ -26,7 +26,7 @@ namespace Web0524.Pages.Management
 
         public List<Product> Products { get; set; } = new();
 
-        public List<Pgroup> PGroups { get; set; } = new(); // 為顯示 PGname
+        public List<Pgroup> PGroups { get; set; } = new(); 
         [IgnoreAntiforgeryToken]
         public IActionResult OnGet(int? id)
         {
@@ -68,7 +68,7 @@ namespace Web0524.Pages.Management
                 var original = _productService.GetProductById(Product.ProductId);
                 if (original != null && PhotoFile == null)
                 {
-                    Product.Photo = original.Photo; // 沒有上傳新圖，就保留原圖
+                    Product.Photo = original.Photo;
                 }
             }
 
@@ -82,12 +82,12 @@ namespace Web0524.Pages.Management
             if (Product.ProductId == 0)
             {
                 _productService.CreateProduct(Product);
-                return new JsonResult(new { success = true, message = "產品已成功新增。" });
+                return new JsonResult(new { success = true, message = @"產品已成功新增。" });
             }
             else
             {
                 _productService.UpdateProduct(Product);
-                return new JsonResult(new { success = true, message = "產品已成功更新。" });
+                return new JsonResult(new { success = true, message = @"產品已成功更新。" });
             }
         }
 
@@ -117,7 +117,7 @@ namespace Web0524.Pages.Management
             var product = Products.FirstOrDefault(p => p.ProductId == id);
             if (product?.Photo != null)
             {
-                return File(product.Photo, "image/jpeg"); // 或 "image/png"，根據實際格式
+                return File(product.Photo, "image/jpeg");
             }
 
             return NotFound();

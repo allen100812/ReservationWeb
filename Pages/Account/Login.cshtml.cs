@@ -67,7 +67,7 @@ namespace Web0524.Pages.Account
             return new JsonResult(new
             {
                 success = true,
-                message = "登入成功。",
+                message = @"登入成功。",
                 user = new
                 {
                     id = user.Id,
@@ -128,7 +128,7 @@ namespace Web0524.Pages.Account
                 {
                     Id = "LINE_" + Guid.NewGuid().ToString("N").Substring(0, 8),
                     Name = name,
-                    Password = Guid.NewGuid().ToString("N"), // 給定亂數密碼避免登入
+                    Password = Guid.NewGuid().ToString("N"), 
                     UserType = (int)UserTypeEnum.Line,
                     Address = "",
                     Phone = "",

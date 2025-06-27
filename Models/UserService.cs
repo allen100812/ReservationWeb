@@ -258,7 +258,7 @@ WHERE Id = @Id AND Password = @Password AND UserType <> 9 AND IsDeleted = 0";
 
                 // 更新 UserTB 的 Email
                 _dbConnection.Execute(
-                    "UPDATE UserTB SET Email = @NewEmail AND Id = @NewEmail WHERE Id = @Id",
+                    "UPDATE UserTB SET Email = @NewEmail , Id = @NewEmail WHERE Id = @Id",
                     new { Id = userId, NewEmail = newEmail }, tran);
 
                 // 更新所有以舊 Email 當作 Id 的訂單記錄（假設 OrderTB.Id 是舊 email）

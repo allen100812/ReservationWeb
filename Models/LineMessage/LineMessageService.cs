@@ -1,4 +1,6 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,7 +9,6 @@ using Dapper;
 
 namespace Web0524.Models.LineMessage
 {
-
     public class LineMessageService
     {
         private readonly HttpClient _httpClient;
@@ -23,11 +24,11 @@ namespace Web0524.Models.LineMessage
 
         public async Task<bool> SendSecureLineMessageAsync(string lineUserId, string message)
         {
-            // 查詢本月已發送次數
             var now = DateTime.UtcNow;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
             var endOfMonth = startOfMonth.AddMonths(1);
 
+            // 查詢本月已發送次數
             var count = _db.ExecuteScalar<int>(
                 "SELECT COUNT(*) FROM LineMessageSendLog WHERE SentAt >= @start AND SentAt < @end",
                 new { start = startOfMonth, end = endOfMonth }
@@ -58,8 +59,8 @@ namespace Web0524.Models.LineMessage
 
             if (response.IsSuccessStatusCode)
             {
-                // 寫入發送紀錄
-                _db.Execute("INSERT INTO LineMessageSendLog (LineUserId, Message, SentAt) VALUES (@LineUserId, @Message, @SentAt)",
+                _db.Execute(
+                    "INSERT INTO LineMessageSendLog (LineUserId, Message, SentAt) VALUES (@LineUserId, @Message, @SentAt)",
                     new { LineUserId = lineUserId, Message = message, SentAt = now });
             }
 
@@ -69,28 +70,22 @@ namespace Web0524.Models.LineMessage
         public async Task<List<MonthlySendStats>> GetMonthlySendStatsAsync(string? lineUserId = null)
         {
             var sql = @"
-        SELECT 
-            FORMAT(SentAt, 'yyyy-MM') AS Month,
-            COUNT(*) AS Total
-        FROM LineMessageSendLog
-        WHERE (@LineUserId IS NULL OR LineUserId = @LineUserId)
-        GROUP BY FORMAT(SentAt, 'yyyy-MM')
-        ORDER BY Month DESC";
+                SELECT 
+                    DATE_FORMAT(SentAt, '%Y-%m') AS Month,
+                    COUNT(*) AS Total
+                FROM LineMessageSendLog
+                WHERE (@LineUserId IS NULL OR LineUserId = @LineUserId)
+                GROUP BY DATE_FORMAT(SentAt, '%Y-%m')
+                ORDER BY Month DESC";
 
             var result = await _db.QueryAsync<MonthlySendStats>(sql, new { LineUserId = lineUserId });
-            return result.ToList();
+            return result.AsList();
         }
-
 
         public class MonthlySendStats
         {
             public string Month { get; set; } = "";  // yyyy-MM
             public int Total { get; set; }
         }
-
     }
-
 }
-
-
-

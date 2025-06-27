@@ -285,9 +285,9 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
         public Designer AddDesigner(Designer designer)
         {
             var sql = @"
-        INSERT INTO DesignerTB (Name, Nickname, IsDeleted) 
-        VALUES (@Name, @Nickname, 0);
-        SELECT CAST(SCOPE_IDENTITY() AS INT);";
+            INSERT INTO DesignerTB (Name, Nickname, IsDeleted) 
+            VALUES (@Name, @Nickname, 0);
+            SELECT LAST_INSERT_ID();";
 
             var newId = _dbConnection.ExecuteScalar<int>(sql, designer);
             designer.DesignerId = newId;
@@ -345,7 +345,6 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
             var sql = "UPDATE DesignerTB SET IsDeleted = 1 WHERE DesignerId = @DesignerId";
             return _dbConnection.Execute(sql, new { DesignerId = designerId }) > 0;
         }
-
         public Designer_Shift AddShift(Designer_Shift shift)
         {
             var exists = _dbConnection.ExecuteScalar<int>(
@@ -355,14 +354,15 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
             if (exists > 0) return null;
 
             var sql = @"
-        INSERT INTO DesignerShiftTB (DesignerId, ShiftDate, IsDayOff)
-        VALUES (@DesignerId, @ShiftDate, @IsDayOff);
-        SELECT CAST(SCOPE_IDENTITY() AS INT);";
+            INSERT INTO DesignerShiftTB (DesignerId, ShiftDate, IsDayOff)
+            VALUES (@DesignerId, @ShiftDate, @IsDayOff);
+            SELECT LAST_INSERT_ID();";
 
             var newId = _dbConnection.ExecuteScalar<int>(sql, shift);
             shift.ShiftId = newId;
             return shift;
         }
+
 
         public bool RemoveShift(int designerId, DateTime shiftDate)
         {
@@ -476,11 +476,12 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
             if (!IsSlotAvailable(order.DesignerId, order.ProductId, order.ReservationDateTime))
                 return null;
 
-            var sql = @"INSERT INTO OrderTB 
-(Status, DesignerId, ProductId, Price, PaymentMethod, ReservationDateTime, Uid, Remark, Orderdate, UsedCouponId, DiscountAmount)
-VALUES 
-(@Status, @DesignerId, @ProductId, @Price, @PaymentMethod, @ReservationDateTime, @Uid, @Remark, @Orderdate, @UsedCouponId, @DiscountAmount);
-SELECT CAST(SCOPE_IDENTITY() AS INT);";
+            var sql = @"
+            INSERT INTO OrderTB 
+            (Status, DesignerId, ProductId, Price, PaymentMethod, ReservationDateTime, Uid, Remark, Orderdate, UsedCouponId, DiscountAmount)
+            VALUES 
+            (@Status, @DesignerId, @ProductId, @Price, @PaymentMethod, @ReservationDateTime, @Uid, @Remark, @Orderdate, @UsedCouponId, @DiscountAmount);
+            SELECT LAST_INSERT_ID();";
 
             order.OrderId = _dbConnection.ExecuteScalar<int>(sql, order);
 

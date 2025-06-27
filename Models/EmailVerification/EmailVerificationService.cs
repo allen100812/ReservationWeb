@@ -1,21 +1,17 @@
-﻿// EmailVerificationService.cs
-using System;
+﻿using System;
 using System.Data;
 using Dapper;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 
-
 public interface IEmailVerificationService
 {
     DateTime? GetLastSentTime(string email);
     bool SendVerificationCode(string email, string? ip);
     bool CanSendEmail(string email, string? ip);
-
     bool VerifyCode(string email, string code);
     bool CanSendEmailThisMonth();
-
     bool VerifyCodeAndUpdateOrders(string oldEmail, string newEmail, string code);
 }
 
@@ -23,7 +19,7 @@ public class EmailVerificationService : IEmailVerificationService
 {
     private readonly IDbConnection _dbConnection;
     private readonly string smtpUser = "allen100812@gmail.com";
-    private readonly string smtpPass = "ozek myje gzfs ycvm"; // 請填入 Gmail 應用程式密碼
+    private readonly string smtpPass = "ozek myje gzfs ycvm"; // Gmail 應用程式密碼
 
     public EmailVerificationService(IDbConnection dbConnection)
     {
@@ -33,7 +29,7 @@ public class EmailVerificationService : IEmailVerificationService
     public DateTime? GetLastSentTime(string email)
     {
         return _dbConnection.QueryFirstOrDefault<DateTime?>(
-            "SELECT TOP 1 SentAt FROM EmailSendLogTB WHERE Email = @Email ORDER BY SentAt DESC",
+            "SELECT SentAt FROM EmailSendLogTB WHERE Email = @Email ORDER BY SentAt DESC LIMIT 1",
             new { Email = email });
     }
 
@@ -45,7 +41,7 @@ public class EmailVerificationService : IEmailVerificationService
 
         var emailCountToday = _dbConnection.ExecuteScalar<int>(
             @"SELECT COUNT(*) FROM EmailSendLogTB 
-          WHERE Email = @Email AND SentAt >= @TodayStart",
+              WHERE Email = @Email AND SentAt >= @TodayStart",
             new { Email = email, TodayStart = todayStart });
 
         if (emailCountToday >= 5) return false;
@@ -54,12 +50,12 @@ public class EmailVerificationService : IEmailVerificationService
         {
             var ipCountToday = _dbConnection.ExecuteScalar<int>(
                 @"SELECT COUNT(*) FROM EmailSendLogTB 
-              WHERE IPAddress = @IP AND SentAt >= @TodayStart",
+                  WHERE IPAddress = @IP AND SentAt >= @TodayStart",
                 new { IP = ip, TodayStart = todayStart });
 
             var ipCountHour = _dbConnection.ExecuteScalar<int>(
                 @"SELECT COUNT(*) FROM EmailSendLogTB 
-              WHERE IPAddress = @IP AND SentAt >= @HourAgo",
+                  WHERE IPAddress = @IP AND SentAt >= @HourAgo",
                 new { IP = ip, HourAgo = hourAgo });
 
             if (ipCountToday >= 20 || ipCountHour >= 10) return false;
@@ -72,6 +68,7 @@ public class EmailVerificationService : IEmailVerificationService
     {
         var now = DateTime.UtcNow;
         var firstDay = new DateTime(now.Year, now.Month, 1);
+
         var count = _dbConnection.ExecuteScalar<int>(
             "SELECT COUNT(*) FROM EmailSendLogTB WHERE SentAt >= @FirstDay",
             new { FirstDay = firstDay });
@@ -93,13 +90,16 @@ public class EmailVerificationService : IEmailVerificationService
         var sentAt = DateTime.UtcNow;
         var expiresAt = sentAt.AddMinutes(5);
 
-        _dbConnection.Execute("DELETE FROM EmailSendLogTB WHERE SentAt < DATEADD(DAY, -7, GETUTCDATE())");
+        // 清除 7 天前的資料（MySQL 語法）
+        _dbConnection.Execute("DELETE FROM EmailSendLogTB WHERE SentAt < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)");
 
+        // 寫入驗證記錄
         _dbConnection.Execute(@"
-        INSERT INTO EmailSendLogTB (Email, VerificationCode, SentAt, ExpiresAt, IsVerified, IPAddress)
-        VALUES (@Email, @Code, @SentAt, @ExpiresAt, 0, @IP)",
+            INSERT INTO EmailSendLogTB (Email, VerificationCode, SentAt, ExpiresAt, IsVerified, IPAddress)
+            VALUES (@Email, @Code, @SentAt, @ExpiresAt, 0, @IP)",
             new { Email = email, Code = code, SentAt = sentAt, ExpiresAt = expiresAt, IP = ip ?? "-" });
 
+        // 發送 Email
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("預約通知服務", smtpUser));
         message.To.Add(new MailboxAddress("", email));
@@ -127,10 +127,11 @@ public class EmailVerificationService : IEmailVerificationService
     public bool VerifyCode(string email, string code)
     {
         var record = _dbConnection.QueryFirstOrDefault<dynamic>(@"
-            SELECT TOP 1 VerificationCode, ExpiresAt
+            SELECT VerificationCode, ExpiresAt
             FROM EmailSendLogTB
             WHERE Email = @Email
-            ORDER BY SentAt DESC",
+            ORDER BY SentAt DESC
+            LIMIT 1",
             new { Email = email });
 
         if (record == null) return false;
@@ -145,17 +146,14 @@ public class EmailVerificationService : IEmailVerificationService
         return true;
     }
 
-
-    /// <summary>
-    /// 驗證驗證碼，成功時更新所有訂單中使用者 ID
-    /// </summary>
     public bool VerifyCodeAndUpdateOrders(string oldEmail, string newEmail, string code)
     {
         var record = _dbConnection.QueryFirstOrDefault<dynamic>(@"
-            SELECT TOP 1 VerificationCode, ExpiresAt
+            SELECT VerificationCode, ExpiresAt
             FROM EmailSendLogTB
             WHERE Email = @Email
-            ORDER BY SentAt DESC",
+            ORDER BY SentAt DESC
+            LIMIT 1",
             new { Email = newEmail });
 
         if (record == null) return false;
@@ -168,6 +166,8 @@ public class EmailVerificationService : IEmailVerificationService
 
         _dbConnection.Execute("UPDATE EmailSendLogTB SET IsVerified = 1 WHERE Email = @Email", new { Email = newEmail });
 
+        // ✅ 這裡可自行加上更新訂單的邏輯
+        // _dbConnection.Execute("UPDATE Orders SET Email = @NewEmail WHERE Email = @OldEmail", new { OldEmail = oldEmail, NewEmail = newEmail });
 
         return true;
     }

@@ -44,7 +44,8 @@ namespace Web0524.Models
 
         public IEnumerable<NewList> GetNewTB()
         {
-            string sql = "SELECT TOP 100 * FROM NewTB  ORDER BY Status ASC, PublishDate DESC";
+            string sql = "SELECT * FROM NewTB ORDER BY Status ASC, PublishDate DESC LIMIT 100";
+
             return _dbConnection.Query<NewList>(sql);
         }
 
@@ -67,7 +68,8 @@ namespace Web0524.Models
 
         public IEnumerable<NewList> GetNewTB_Top2()
         {
-            string sql = "SELECT TOP 2 * FROM NewTB WHERE Status <> 2 ORDER BY Status ASC, PublishDate DESC";
+            string sql = "SELECT * FROM NewTB WHERE Status <> 2 ORDER BY Status ASC, PublishDate DESC LIMIT 2";
+
             return _dbConnection.Query<NewList>(sql);
         }
 
@@ -83,7 +85,8 @@ namespace Web0524.Models
                     string sql = @"
 INSERT INTO NewTB (Title, Content, Author, PublishDate, Status, Category, Tag, TopTime)
 VALUES (@Title, @Content, @Author, @PublishDate, @Status, @Category, @Tag, @TopTime);
-SELECT CAST(SCOPE_IDENTITY() AS INT)";
+SELECT LAST_INSERT_ID();";
+
 
 
                     int newId = _dbConnection.QuerySingle<int>(sql, newList);

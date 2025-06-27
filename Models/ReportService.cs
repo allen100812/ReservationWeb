@@ -56,14 +56,14 @@ namespace Web0524.Models
         {
             var sql = @"
                 SELECT
-                    CAST(Orderdate AS DATE) AS Date,
+                    DATE(Orderdate) AS Date,
                     COUNT(*) AS TotalReservations,
                     SUM(CASE WHEN Status = 1 THEN 1 ELSE 0 END) AS CompletedCount,
                     SUM(CASE WHEN Status = 2 THEN 1 ELSE 0 END) AS CancelledCount
                 FROM OrderTB
                 WHERE (@startDate IS NULL OR Orderdate >= @startDate)
                   AND (@endDate IS NULL OR Orderdate <= @endDate)
-                GROUP BY CAST(Orderdate AS DATE)
+                GROUP BY DATE(Orderdate)
                 ORDER BY Date
             ";
             return await _db.QueryAsync<ReservationSummaryDto>(sql, new { startDate, endDate });
@@ -92,12 +92,12 @@ namespace Web0524.Models
         {
             var sql = @"
                 SELECT
-                    DATEPART(HOUR, ReservationDateTime) AS Hour,
+                    HOUR(ReservationDateTime) AS Hour,
                     COUNT(*) AS ReservationCount
                 FROM OrderTB
                 WHERE (@startDate IS NULL OR Orderdate >= @startDate)
                   AND (@endDate IS NULL OR Orderdate <= @endDate)
-                GROUP BY DATEPART(HOUR, ReservationDateTime)
+                GROUP BY HOUR(ReservationDateTime)
                 ORDER BY Hour
             ";
             return await _db.QueryAsync<PeakHourStatsDto>(sql, new { startDate, endDate });
@@ -107,14 +107,14 @@ namespace Web0524.Models
         {
             var sql = @"
                 SELECT
-                    CAST(Orderdate AS DATE) AS Date,
+                    DATE(Orderdate) AS Date,
                     SUM(Price) AS TotalRevenue,
-                    SUM(ISNULL(DiscountAmount, 0)) AS DiscountAmount
+                    SUM(IFNULL(DiscountAmount, 0)) AS DiscountAmount
                 FROM OrderTB
                 WHERE (@startDate IS NULL OR Orderdate >= @startDate)
                   AND (@endDate IS NULL OR Orderdate <= @endDate)
                   AND Status = 1
-                GROUP BY CAST(Orderdate AS DATE)
+                GROUP BY DATE(Orderdate)
                 ORDER BY Date
             ";
             return await _db.QueryAsync<RevenueSummaryDto>(sql, new { startDate, endDate });
@@ -189,8 +189,8 @@ namespace Web0524.Models
 
         public async Task<IEnumerable<TopMemberDto>> GetTopMembersAsync(DateTime? startDate, DateTime? endDate, int topN = 20)
         {
-            var sql = @"
-                SELECT TOP (@topN)
+            var sql = $@"
+                SELECT
                     u.Id AS MemberId,
                     u.Name AS MemberName,
                     SUM(o.Price) AS TotalSpent,
@@ -202,6 +202,7 @@ namespace Web0524.Models
                   AND o.Status = 1
                 GROUP BY u.Id, u.Name
                 ORDER BY TotalSpent DESC
+                LIMIT @topN
             ";
             return await _db.QueryAsync<TopMemberDto>(sql, new { startDate, endDate, topN });
         }
@@ -213,7 +214,7 @@ namespace Web0524.Models
                     c.CouponId,
                     c.Title,
                     COUNT(d.RecordId) AS UsageCount,
-                    SUM(ISNULL(o.DiscountAmount, 0)) AS TotalDiscountAmount
+                    SUM(IFNULL(o.DiscountAmount, 0)) AS TotalDiscountAmount
                 FROM CouponDispatchRecordTB d
                 JOIN CouponTB c ON d.CouponId = c.CouponId
                 LEFT JOIN OrderTB o ON d.OrderId = o.OrderId

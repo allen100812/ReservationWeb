@@ -13,6 +13,7 @@ using Web0524.Models.Helper;
 using Web0524.Models.Marketing;
 using Web0524.Models.LineMessage;
 using Web0524.Models.SystemMessage;
+using MySql.Data.MySqlClient; // ← 一定要用這個命名空間！
 
 
 
@@ -66,7 +67,10 @@ var configuration = builder.Configuration;
 
 builder.Services.AddSession();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(configuration.GetConnectionString("WebDB")));
+//builder.Services.AddScoped<IDbConnection>(sp => new SqlConnection(configuration.GetConnectionString("WebDB")));
+builder.Services.AddScoped<IDbConnection>(sp =>
+    new MySqlConnection(configuration.GetConnectionString("WebDB")));
+
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 builder.Services.AddHostedService<CouponDispatchBackgroundService>(); // 背景排程
 
