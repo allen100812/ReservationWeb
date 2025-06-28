@@ -1,65 +1,118 @@
-﻿namespace Web0524.Models
+﻿using Microsoft.Extensions.Caching.Memory;
+using System.Data;
+using Dapper;
+
+namespace Web0524.Models
 {
-    public class My
+    public class MyData
     {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Name_short { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Line { get; set; } = "";
+        public string WebURL { get; set; } = "";
+        public string LineBotURL { get; set; } = "";
+        public string Fb_Url { get; set; } = "";
+        public string Ig_Url { get; set; } = "";
+        public string Yt_Url { get; set; } = "";
+        public string Tk_Url { get; set; } = "";
+        public string Line_Url { get; set; } = "";
+        public bool CreateOrderSandLineMsgSw { get; set; }
+        public bool CancelSandLineMsgSw { get; set; }
+        public int Max_Order_Oneday { get; set; }
+        public int Max_Reg_Oneday { get; set; }
+        public int CancelLimitHours { get; set; }
+        public string Msg_BindOk { get; set; } = "";
+        public  string PageTitle { get; set; } = "";
+        public  string HeroTitle { get; set; } = "";
 
-        public const string Fb_Url = "";
-        public const string Ig_Url = "";
-        public const string Yt_Url = "https://futurelab.tw/pages/page-12";
-        public const string Tk_Url = "";
-        public const string Line_Url = "";
+        public  string Section1_Title { get; set; } = "";
+        public  string Section1_Paragraph1 { get; set; } = "";
+        public  string Section1_Paragraph2 { get; set; } = "";
 
-        public const string Name_short = "SuperiorSeed";
-        public const string Name = "SuperiorSeed時尚美學";
-        public const string Phone = "0936-064980";
-        public const string Email = "allen100812@gmail.com";
-        public const string Line = "@123123123";
-        public const string WebURL = "http://localhost:5155/";
-        public const string LineBotURL = "https://line.me/R/ti/p/%40771xwptp";
+        public  string Section2_Title { get; set; } = "";
+        public  string Section2_Paragraph1 { get; set; } = "";
+        public  string Section2_Paragraph2 { get; set; } = "";
 
+        public  string Section3_Title { get; set; } = "";
+        public  string Section3_Item1 { get; set; } = "";
+        public  string Section3_Item2 { get; set; } = "";
+        public  string Section3_Item3 { get; set; } = "";
+        public  string Section3_Item4 { get; set; } = "";
+        public List<LocationInfo> Locations { get; set; } = new();
+    }
+    public static class My
+    {
+        public static int Id { get; set; }
+        public static string Name { get; set; } = "";
+        public static string Name_short { get; set; } = "";
+        public static string Phone { get; set; } = "";
+        public static string Email { get; set; } = "";
+        public static string Line { get; set; } = "";
+        public static string WebURL { get; set; } = "";
+        public static string LineBotURL { get; set; } = "";
+        public static string Fb_Url { get; set; } = "";
+        public static string Ig_Url { get; set; } = "";
+        public static string Yt_Url { get; set; } = "";
+        public static string Tk_Url { get; set; } = "";
+        public static string Line_Url { get; set; } = "";
 
+        public static bool CreateOrderSandLineMsgSw { get; set; }
+        public static bool CancelSandLineMsgSw { get; set; }
 
+        public static int Max_Order_Oneday { get; set; }
+        public static int Max_Reg_Oneday { get; set; }
+        public static int CancelLimitHours { get; set; }
 
+        public static string Msg_BindOk { get; set; } = "";
 
+        public static string PageTitle { get; set; } = "";
+        public static string HeroTitle { get; set; } = "";
 
-        public const bool CreateOrderSandLineMsgSw = true;
-        public const bool CancelSandLineMsgSw = true;
+        public static string Section1_Title { get; set; } = "";
+        public static string Section1_Paragraph1 { get; set; } = "";
+        public static string Section1_Paragraph2 { get; set; } = "";
 
-        public const string Msg_BindOk = "親愛的用戶，感謝您加入工作室會員！🎉 您已成功完成帳號綁定。\r\n\r\n現在，您可以輕鬆地在線上預約我們提供的服務，並且我們將為您提供即時通知📢。\r\n\r\n我們的通知服務包含以下內容：\r\n\r\n1. 提前通知您即將到來的預約服務，確保您不會錯過重要時間⏰。\r\n\r\n2. 商家接受您的預約或希望與您討論改期時，立即通知您📝📩。\r\n\r\n3. 您還會收到商家的最新資訊、活動和優惠📰💰。\r\n\r\n如果您有任何疑問或需要協助，請隨時與我們聯繫🌟🙌。期待為您服務！";
+        public static string Section2_Title { get; set; } = "";
+        public static string Section2_Paragraph1 { get; set; } = "";
+        public static string Section2_Paragraph2 { get; set; } = "";
 
-
-        public const int Max_Order_Oneday = 5;
-        public const int Max_Reg_Oneday = 5;
-
-        public const int CancelLimitHours = 2; //取消訂單時限,設0則不可取消訂單
-
-        public List<LocationInfo> Locations { get; set; } = new List<LocationInfo>
-        {
-            new LocationInfo
-            {
-                Name = "總店 - 竹北店",
-                Address = "新竹縣竹北市自強五路327號",
-                Phone = "03-6681222",
-                MapUrl = "https://www.google.com/maps?q=新竹縣竹北市自強五路37號&output=embed"
-            },
-            new LocationInfo
-            {
-                Name = "分店 - 台北店",
-                Address = "台北市信義區松高路",
-                Phone = "02-12345678",
-                MapUrl = "https://www.google.com/maps?q=台北市信義區松高路&output=embed"
-            },
-            new LocationInfo
-            {
-                Name = "分店 - 台中店",
-                Address = "台中市西區公益路",
-                Phone = "04-87654321",
-                MapUrl = "https://www.google.com/maps?q=台中市西區公益路&output=embed"
-            }
-        };
-        public AboutContent AboutPage { get; set; } = new AboutContent();
+        public static string Section3_Title { get; set; } = "";
+        public static string Section3_Item1 { get; set; } = "";
+        public static string Section3_Item2 { get; set; } = "";
+        public static string Section3_Item3 { get; set; } = "";
+        public static string Section3_Item4 { get; set; } = "";
+        public static List<LocationInfo> Locations { get; set; } = new List<LocationInfo>
+{
+    new LocationInfo
+    {
+        Name = "總店 - 竹北店",
+        Address = "新竹縣竹北市自強五路327號",
+        Phone = "03-6681222",
+        MapUrl = "https://www.google.com/maps?q=新竹縣竹北市自強五路327號&output=embed"
+    },
+    new LocationInfo
+    {
+        Name = "分店 - 台北信義店",
+        Address = "台北市信義區松高路12號",
+        Phone = "02-27208888",
+        MapUrl = "https://www.google.com/maps?q=台北市信義區松高路12號&output=embed"
+    },
+    new LocationInfo
+    {
+        Name = "分店 - 台中公益店",
+        Address = "台中市南屯區公益路二段123號",
+        Phone = "04-23230000",
+        MapUrl = "https://www.google.com/maps?q=台中市南屯區公益路二段123號&output=embed"
+    }
+};
 
     }
+
+
+
     public class LocationInfo
     {
         public string Name { get; set; } = string.Empty;
@@ -67,28 +120,31 @@
         public string Phone { get; set; } = string.Empty;
         public string MapUrl { get; set; } = string.Empty;
     }
-    public class AboutContent
-    {
-        public string PageTitle { get; set; } = "關於我們 - SuperiorSeed";
-        public string HeroTitle { get; set; } = "時尚尖端 自然美結合";
 
-        public string Section1_Title { get; set; } = "自然之美，專業呵護。";
-        public string Section1_Paragraph1 { get; set; } = "SuperiorSeed 是一家專注於自然美的美容業公司。我們致力於提供最高品質的美容服務，讓每位顧客都能散發自己的獨特之處。";
-        public string Section1_Paragraph2 { get; set; } = "我們以專業手法和最新技術為您提供獨特的美容體驗，並幫助您實現美麗目標。";
 
-        public string Section2_Title { get; set; } = "探索美的秘密，SuperiorSeed 將引導您。";
-        public string Section2_Paragraph1 { get; set; } = "我們的使命是讓每位顧客都感受到自然之美，相信每個人都擁有獨特魅力，並協助展現這份自信。";
-        public string Section2_Paragraph2 { get; set; } = "我們堅持使用最優質產品與技術，致力於提供一流服務體驗。";
 
-        public string Section3_Title { get; set; } = "自然之道，美的旅程。";
-        public List<string> Section3_Items { get; set; } = new()
-    {
-        "專業美容治療",
-        "最新美容技術",
-        "個性化美容方案",
-        "友善環境與專業團隊"
-    };
-    }
+    //public class AboutContent
+    //{
+    //    public string PageTitle { get; set; } = "關於我們 - SuperiorSeed";
+    //    public string HeroTitle { get; set; } = "時尚尖端 自然美結合";
+
+    //    public string Section1_Title { get; set; } = "自然之美，專業呵護。";
+    //    public string Section1_Paragraph1 { get; set; } = "SuperiorSeed 是一家專注於自然美的美容業公司。我們致力於提供最高品質的美容服務，讓每位顧客都能散發自己的獨特之處。";
+    //    public string Section1_Paragraph2 { get; set; } = "我們以專業手法和最新技術為您提供獨特的美容體驗，並幫助您實現美麗目標。";
+
+    //    public string Section2_Title { get; set; } = "探索美的秘密，SuperiorSeed 將引導您。";
+    //    public string Section2_Paragraph1 { get; set; } = "我們的使命是讓每位顧客都感受到自然之美，相信每個人都擁有獨特魅力，並協助展現這份自信。";
+    //    public string Section2_Paragraph2 { get; set; } = "我們堅持使用最優質產品與技術，致力於提供一流服務體驗。";
+
+    //    public string Section3_Title { get; set; } = "自然之道，美的旅程。";
+    //    public List<string> Section3_Items { get; set; } = new()
+    //{
+    //    "專業美容治療",
+    //    "最新美容技術",
+    //    "個性化美容方案",
+    //    "友善環境與專業團隊"
+    //};
+    //}
     public static class MyMessageTemplates
     {
         public const string Msg_OrderCreated_Client =

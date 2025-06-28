@@ -4,23 +4,25 @@ services:
   web:
     build: .
     environment:
-      - ConnectionStrings__WebDB=Server=db;Database=OrderWeb;User Id=sa;Password=@Aa100812;TrustServerCertificate=true;
+      - ConnectionStrings__WebDB=Server=db;Database=OrderWeb;User=root;Password=aA100812;
     depends_on:
       - db
     ports:
       - "8080:80"
 
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mysql:8.0
     environment:
-      SA_PASSWORD: "@Aa100812"
-      ACCEPT_EULA: "Y"
+      MYSQL_ROOT_PASSWORD: aA100812
+      MYSQL_DATABASE: OrderWeb
+      MYSQL_USER: root
+      MYSQL_PASSWORD: aA100812
     ports:
-      - "1433:1433"
+      - "3306:3306"
     volumes:
-      - mssqldata:/var/opt/mssql
-      # 若有備份檔要掛載：
-      - D:\backup:/var/opt/mssql/backup
+      - mysqldata:/var/lib/mysql
+      # 若有.sql備份檔要掛載初始化（可選）：
+      - ./initdb:/docker-entrypoint-initdb.d
 
 volumes:
-  mssqldata:
+  mysqldata:

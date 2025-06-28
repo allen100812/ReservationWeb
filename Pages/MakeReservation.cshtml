@@ -265,8 +265,16 @@
                     @foreach (var c in Model.AvailableCoupons)
                     {
                         var Coupon_item = Model.AllCoupons.FirstOrDefault(x => x.CouponId == c.CouponId);
-                        <option value="@c.RecordId">@Coupon_item.Title</option>
+                        if (Coupon_item != null)
+                        {
+                            <option value="@c.RecordId">@Coupon_item.Title</option>
+                        }
+                        else
+                        {
+                            <option value="@c.RecordId">[無效的優惠券]</option>
+                        }
                     }
+
                 </select>
             </div>
 

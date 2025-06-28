@@ -1,4 +1,4 @@
-using Hangfire.Logging;
+ï»¿using Hangfire.Logging;
 using MDP.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -13,7 +13,7 @@ using Web0524.Models.Helper;
 using Web0524.Models.Marketing;
 using Web0524.Models.LineMessage;
 using Web0524.Models.SystemMessage;
-using MySql.Data.MySqlClient; // ¡ö ¤@©w­n¥Î³o­Ó©R¦WªÅ¶¡¡I
+using MySql.Data.MySqlClient; // â† ä¸€å®šè¦ç”¨é€™å€‹å‘½åç©ºé–“ï¼
 
 
 
@@ -24,7 +24,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 
-builder.AddMdp(); // ±¾¸üMDP
+builder.AddMdp(); // æ›è¼‰MDP
 //builder.WebHost.UseUrls("http://0.0.0.0:5000");
 
 
@@ -49,15 +49,15 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddRazorPages(options =>
 {
-    options.Conventions.AuthorizeFolder("/ProductList"); // ³o±N¹ï¥ş¯¸ªº­¶­±²K¥[ Authorize Äİ©Ê¡C
-    //«ü©w¤£¥Î±ÂÅv´N¥i¨Ï¥Îªº­¶­±
+    options.Conventions.AuthorizeFolder("/ProductList"); // é€™å°‡å°å…¨ç«™çš„é é¢æ·»åŠ  Authorize å±¬æ€§ã€‚
+    //æŒ‡å®šä¸ç”¨æˆæ¬Šå°±å¯ä½¿ç”¨çš„é é¢
     options.Conventions.AllowAnonymousToFolder("/Account");
 });
 
 builder.Services.AddScoped<IGoogleCalendarHelper>(provider =>
 {
     var path = Path.Combine("wwwroot", "credentials", "gen-lang-client-0206008601-176e3adc3481.json");
-    var calendarId = "29f882b8d6108305c9a9064e11d25577a699b83939cc49a477bbb32558306a6d@group.calendar.google.com"; // §Aªº¤é¾ä ID
+    var calendarId = "29f882b8d6108305c9a9064e11d25577a699b83939cc49a477bbb32558306a6d@group.calendar.google.com"; // ä½ çš„æ—¥æ›† ID
     return new GoogleCalendarHelper(path, calendarId);
 });
 
@@ -72,9 +72,9 @@ builder.Services.AddScoped<IDbConnection>(sp =>
     new MySqlConnection(configuration.GetConnectionString("WebDB")));
 
 builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
-builder.Services.AddHostedService<CouponDispatchBackgroundService>(); // ­I´º±Æµ{
+builder.Services.AddHostedService<CouponDispatchBackgroundService>(); // èƒŒæ™¯æ’ç¨‹
 
-builder.Services.AddSingleton<Web0524.Models.My>();
+builder.Services.AddSingleton<Web0524.Models.MyData>();
 
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddHttpClient<LineMessageService>();
@@ -83,13 +83,14 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IPgroupService, PgroupService>();
 builder.Services.AddScoped<IYearReportService, YearReportService>();
-builder.Services.AddScoped<IMyService,  MyService>();
+
 builder.Services.AddScoped<INewService, NewListService>();
 builder.Services.AddScoped<IMarketingService, MarketingService>();
 builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddScoped<IPortfolioGroupService, PortfolioGroupService>();
 builder.Services.AddHostedService<DailyOrderCompletionService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IMyService, MyService>(); // âœ… æ­£ç¢º
 
 
 builder.Services.AddHostedService<CouponDispatchBackgroundService>();
@@ -103,7 +104,7 @@ builder.Services.AddQuartz(quartz =>
 {
     quartz.UseMicrosoftDependencyInjectionJobFactory();
 
-    //// «Ø¥ß Job
+    //// å»ºç«‹ Job
     //var jobKey = new JobKey("AutoNotify", "AutoNotifyGroup");
     //quartz.AddJob<AutoNotify>(opts =>
     //{
@@ -111,7 +112,7 @@ builder.Services.AddQuartz(quartz =>
     //    opts.StoreDurably();
     //});
 
-    //// «Ø¥ßÄ²µo¾¹¡A¦Û°Ê°õ¦æ Job
+    //// å»ºç«‹è§¸ç™¼å™¨ï¼Œè‡ªå‹•åŸ·è¡Œ Job
     //quartz.AddTrigger(opts =>
     //{
     //    opts.ForJob(jobKey);
@@ -133,7 +134,7 @@ var app = builder.Build();
 //    endpoints.MapControllers();
 //});
 // Configure the HTTP request pipeline.
-//Configure ·s¼W
+//Configure æ–°å¢
 
 
 app.MapDefaultControllerRoute();
@@ -144,12 +145,61 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
 }
 
+// åˆå§‹åŒ–éœæ…‹ My è³‡æ–™ï¼ˆä¾†è‡ªè³‡æ–™åº«ï¼‰
+using (var scope = app.Services.CreateScope())
+{
+    var myService = scope.ServiceProvider.GetRequiredService<IMyService>();
+    var baseData = myService.GetBaseData();
 
+    if (baseData != null)
+    {
+        My.Id = baseData.Id;
+        My.Name = baseData.Name;
+        My.Name_short = baseData.Name_short;
+        My.Phone = baseData.Phone;
+        My.Email = baseData.Email;
+        My.Line = baseData.Line;
+        My.WebURL = baseData.WebURL;
+        My.LineBotURL = baseData.LineBotURL;
+        My.Fb_Url = baseData.Fb_Url;
+        My.Ig_Url = baseData.Ig_Url;
+        My.Yt_Url = baseData.Yt_Url;
+        My.Tk_Url = baseData.Tk_Url;
+        My.Line_Url = baseData.Line_Url;
+
+        My.CreateOrderSandLineMsgSw = baseData.CreateOrderSandLineMsgSw;
+        My.CancelSandLineMsgSw = baseData.CancelSandLineMsgSw;
+
+        My.Max_Order_Oneday = baseData.Max_Order_Oneday;
+        My.Max_Reg_Oneday = baseData.Max_Reg_Oneday;
+        My.CancelLimitHours = baseData.CancelLimitHours;
+
+        My.Msg_BindOk = baseData.Msg_BindOk;
+
+        // About ç›¸é—œå±¬æ€§ï¼ˆæ”¤å¹³è¨­å®šï¼‰
+        My.PageTitle = baseData.PageTitle;
+        My.HeroTitle = baseData.HeroTitle;
+
+        My.Section1_Title = baseData.Section1_Title;
+        My.Section1_Paragraph1 = baseData.Section1_Paragraph1;
+        My.Section1_Paragraph2 = baseData.Section1_Paragraph2;
+
+        My.Section2_Title = baseData.Section2_Title;
+        My.Section2_Paragraph1 = baseData.Section2_Paragraph1;
+        My.Section2_Paragraph2 = baseData.Section2_Paragraph2;
+
+        My.Section3_Title = baseData.Section3_Title;
+        My.Section3_Item1 = baseData.Section3_Item1;
+        My.Section3_Item2 = baseData.Section3_Item2;
+        My.Section3_Item3 = baseData.Section3_Item3;
+        My.Section3_Item4 = baseData.Section3_Item4;
+    }
+}
 
 app.UseStaticFiles();
 app.UseSession();
 app.UseRouting();
-app.UseAuthentication(); // ½T«O¦b UseAuthorization ¤§«e½Õ¥Î
+app.UseAuthentication(); // ç¢ºä¿åœ¨ UseAuthorization ä¹‹å‰èª¿ç”¨
 app.UseAuthorization();
 
 app.MapRazorPages();

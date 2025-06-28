@@ -4,10 +4,7 @@
     var userService = (IUserService)ViewContext.HttpContext.RequestServices.GetService(typeof(IUserService));
     var user = userService.GetUserById(userId);
 }
-@inject Web0524.Models.My MySetting
-@{
-    var locations = MySetting.Locations;
-}
+
 <style>
 
     .Text2 {
@@ -859,6 +856,11 @@
                 <div class="footer__aside-center py-5" style="background-color: #f7f9fb; border-top: 1px solid #ddd;">
                     <div class="container-narrow">
                         <div class="row gy-4">
+
+                            @{
+                                var locations = Models.My.Locations;
+                            }
+
                             @for (int i = 0; i < 2; i++)
                             {
                                 var loc = locations[i];

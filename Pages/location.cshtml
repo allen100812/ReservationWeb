@@ -1,9 +1,7 @@
 ﻿@page
 @model Web0524.Pages.locationModel
-@{
-    @inject Web0524.Models.My MySetting
+@using Web0524.Models
 
-}
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -192,7 +190,7 @@
     <div class="container" style="margin-bottom:200px;">
         <button class="section-btn">商家據點</button>
 
-        @foreach (var loc in MySetting.Locations)
+        @foreach (var loc in Models.My.Locations)
         {
             <div class="location-block wow animate__animated animate__fadeInUp">
                 <h3>@loc.Name</h3>

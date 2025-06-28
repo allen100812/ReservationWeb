@@ -1,9 +1,6 @@
 ﻿@page
 @model Web0524.Pages.aboutModel
-@inject Web0524.Models.My MySetting
-@{
-    var content = MySetting.AboutPage;
-}
+@using Web0524.Models
 
 
 <!DOCTYPE html>
@@ -15,7 +12,7 @@
 
     <!-- 字體與動畫 -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -56,9 +53,9 @@
             transition: transform 0.5s ease;
         }
 
-        .img_show:hover {
-            transform: scale(1.05);
-        }
+            .img_show:hover {
+                transform: scale(1.05);
+            }
 
         .text-show {
             display: flex;
@@ -71,21 +68,21 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
 
-        .text-show h2 {
-            font-weight: 600;
-            color: #222;
-            margin-bottom: 1rem;
-        }
+            .text-show h2 {
+                font-weight: 600;
+                color: #222;
+                margin-bottom: 1rem;
+            }
 
-        .text-show p, .text-show li {
-            color: #555;
-            font-size: 1rem;
-            line-height: 1.7;
-        }
+            .text-show p, .text-show li {
+                color: #555;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
 
-        .text-show ul {
-            padding-left: 1.2rem;
-        }
+            .text-show ul {
+                padding-left: 1.2rem;
+            }
 
         .ml2 .letter {
             display: inline-block;
@@ -96,6 +93,7 @@
             .fixed-height-col {
                 height: auto;
             }
+
             .text-show {
                 padding: 1.5rem;
             }
@@ -105,7 +103,7 @@
 <body>
     <div class="container" style="margin-top:200px ;margin-bottom:200px;">
         <header>
-            <h1 class="ml2">@content.HeroTitle</h1>
+            <h1 class="ml2">@My.HeroTitle</h1>
         </header>
 
         <!-- 第一區塊 -->
@@ -113,9 +111,9 @@
             <div class="col-md-6 fixed-height-col">
                 <section class="text-show animate__animated animate__fadeInLeft">
                     <div>
-                        <h2>@content.Section1_Title</h2>
-                        <p>@content.Section1_Paragraph1</p>
-                        <p>@content.Section1_Paragraph2</p>
+                        <h2>@My.Section1_Title</h2>
+                        <p>@My.Section1_Paragraph1</p>
+                        <p>@My.Section1_Paragraph2</p>
                     </div>
                 </section>
             </div>
@@ -129,9 +127,9 @@
             <div class="col-md-6 fixed-height-col order-md-2">
                 <section class="text-show animate__animated animate__fadeInRight">
                     <div>
-                        <h2>@content.Section2_Title</h2>
-                        <p>@content.Section2_Paragraph1</p>
-                        <p>@content.Section2_Paragraph2</p>
+                        <h2>@My.Section2_Title</h2>
+                        <p>@My.Section2_Paragraph1</p>
+                        <p>@My.Section2_Paragraph2</p>
                     </div>
                 </section>
             </div>
@@ -145,12 +143,12 @@
             <div class="col-md-6 fixed-height-col">
                 <section class="text-show animate__animated animate__fadeInLeft">
                     <div>
-                        <h2>@content.Section3_Title</h2>
+                        <h2>@My.Section3_Title</h2>
                         <ul>
-                            @foreach (var item in content.Section3_Items)
-                            {
-                                <li>@item</li>
-                            }
+                            <li>@Models.My.Section3_Item1</li>
+<li>@Models.My.Section3_Item2</li>
+<li>@Models.My.Section3_Item3</li>
+                            <li>@Models.My.Section3_Item4</li>
                         </ul>
                     </div>
                 </section>

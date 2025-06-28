@@ -38,7 +38,7 @@ namespace Web0524.Pages
         public string Myname { get; set; }
 
 
-        public My basedata { get; set; }
+        public MyData basedata { get; set; }
         public List<NewList> newLists { get; set; }
 
         public List<NewList> FilteredDesignNews { get; set; } = new();
