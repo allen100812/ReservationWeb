@@ -41,6 +41,14 @@ namespace Web0524.Models
         public  string Section3_Item2 { get; set; } = "";
         public  string Section3_Item3 { get; set; } = "";
         public  string Section3_Item4 { get; set; } = "";
+
+        public TimeSpan OpenTime { get; set; } = new TimeSpan(9, 0, 0);
+        public TimeSpan CloseTime { get; set; } = new TimeSpan(18, 0, 0);
+
+
+        //DateTime dayStart = date.Date.Add(My.OpenTime);
+        //DateTime dayEnd = date.Date.Add(My.CloseTime);
+
         public List<LocationInfo> Locations { get; set; } = new();
     }
     public static class My
@@ -70,7 +78,7 @@ namespace Web0524.Models
 
         public static string PageTitle { get; set; } = "";
         public static string HeroTitle { get; set; } = "";
-
+        
         public static string Section1_Title { get; set; } = "";
         public static string Section1_Paragraph1 { get; set; } = "";
         public static string Section1_Paragraph2 { get; set; } = "";
@@ -84,6 +92,10 @@ namespace Web0524.Models
         public static string Section3_Item2 { get; set; } = "";
         public static string Section3_Item3 { get; set; } = "";
         public static string Section3_Item4 { get; set; } = "";
+
+        public static TimeSpan OpenTime { get; set; } = new TimeSpan(9, 0, 0);
+        public static TimeSpan CloseTime { get; set; } = new TimeSpan(18, 0, 0);
+
         public static List<LocationInfo> Locations { get; set; } = new List<LocationInfo>
 {
     new LocationInfo

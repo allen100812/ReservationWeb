@@ -570,6 +570,18 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
                 return false;
             }
 
+            // ✅ 加入營業時間檢查
+            // ✅ 使用全站統一營業時間（來自 My 類別）
+            var openTime = My.OpenTime;
+            var closeTime = My.CloseTime;
+            var appointmentTime = time.TimeOfDay;
+
+            if (appointmentTime < openTime || appointmentTime >= closeTime)
+            {
+                Console.WriteLine($"❌ 該時段不在營業時間內（{openTime:hh\\:mm} ~ {closeTime:hh\\:mm}）");
+                return false;
+            }
+
             if (Reservation_IsFixedHoliday(designer.DesignerId, time.Date))
             {
                 Console.WriteLine("❌ 該日為固定假日");
@@ -677,8 +689,9 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
 
             DateTime now = DateTime.Now;
             DateTime earliestAvailableTime = now.AddMinutes(advanceMinutes);
-            DateTime dayStart = date.Date.AddHours(9);
-            DateTime dayEnd = date.Date.AddHours(18);
+            DateTime dayStart = date.Date.Add(My.OpenTime);
+            DateTime dayEnd = date.Date.Add(My.CloseTime);
+
 
             for (DateTime t = dayStart; t.AddMinutes(10) <= dayEnd; t = t.AddMinutes(10))
             {

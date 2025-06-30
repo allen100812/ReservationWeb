@@ -37,8 +37,13 @@ namespace Web0524.Models
 
         public DateTime? TopTime { get; set; } // 置頂時間（可排序）
 
+        [Url(ErrorMessage = "請輸入正確的網址格式")]
+        public string? Link { get; set; }
+
+
         public List<IFormFile> Photos { get; set; } = new(); // 上傳圖檔
         public List<byte[]> PhotoList { get; set; } = new(); // 儲存圖檔內容
+
 
     }
 }

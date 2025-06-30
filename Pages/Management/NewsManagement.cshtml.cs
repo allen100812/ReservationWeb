@@ -59,6 +59,7 @@ namespace Web0524.Pages.Management
                     topTime = news.TopTime?.ToString("yyyy-MM-ddTHH:mm"), // ✅ 加上這行
                     status = news.Status,
                     tag = news.Tag,
+                    link = news.Link, // ✅ 加這行
                     // 將圖片轉為 base64 字串陣列
                     photoList = news.PhotoList?.Select(p => Convert.ToBase64String(p)).ToList()
                 }
@@ -90,6 +91,7 @@ namespace Web0524.Pages.Management
                     PublishDate = DateTime.TryParse(form["NewItem.PublishDate"], out var dt) ? dt : null,
                     Status = int.TryParse(form["NewItem.Status"], out var st) ? st : 0,
                     Tag = int.TryParse(form["NewItem.Tag"], out var tag) ? tag : null,
+                    Link = form["NewItem.Link"], // ✅ 加這行：接收表單送進來的 Link
                     PhotoList = new List<byte[]>()
                 };
 

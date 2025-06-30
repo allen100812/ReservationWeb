@@ -31,12 +31,52 @@ namespace Web0524.Models
 
                 if (cachedData != null)
                 {
+                    // ✅ 同步寫入 My 靜態類別
+                    My.Id = cachedData.Id;
+                    My.Name = cachedData.Name;
+                    My.Name_short = cachedData.Name_short;
+                    My.Phone = cachedData.Phone;
+                    My.Email = cachedData.Email;
+                    My.Line = cachedData.Line;
+                    My.WebURL = cachedData.WebURL;
+                    My.LineBotURL = cachedData.LineBotURL;
+                    My.Fb_Url = cachedData.Fb_Url;
+                    My.Ig_Url = cachedData.Ig_Url;
+                    My.Yt_Url = cachedData.Yt_Url;
+                    My.Tk_Url = cachedData.Tk_Url;
+                    My.Line_Url = cachedData.Line_Url;
+                    My.CreateOrderSandLineMsgSw = cachedData.CreateOrderSandLineMsgSw;
+                    My.CancelSandLineMsgSw = cachedData.CancelSandLineMsgSw;
+                    My.Max_Order_Oneday = cachedData.Max_Order_Oneday;
+                    My.Max_Reg_Oneday = cachedData.Max_Reg_Oneday;
+                    My.CancelLimitHours = cachedData.CancelLimitHours;
+                    My.Msg_BindOk = cachedData.Msg_BindOk;
+                    My.PageTitle = cachedData.PageTitle;
+                    My.HeroTitle = cachedData.HeroTitle;
+                    My.Section1_Title = cachedData.Section1_Title;
+                    My.Section1_Paragraph1 = cachedData.Section1_Paragraph1;
+                    My.Section1_Paragraph2 = cachedData.Section1_Paragraph2;
+                    My.Section2_Title = cachedData.Section2_Title;
+                    My.Section2_Paragraph1 = cachedData.Section2_Paragraph1;
+                    My.Section2_Paragraph2 = cachedData.Section2_Paragraph2;
+                    My.Section3_Title = cachedData.Section3_Title;
+                    My.Section3_Item1 = cachedData.Section3_Item1;
+                    My.Section3_Item2 = cachedData.Section3_Item2;
+                    My.Section3_Item3 = cachedData.Section3_Item3;
+                    My.Section3_Item4 = cachedData.Section3_Item4;
+                    My.OpenTime = cachedData.OpenTime;
+                    My.CloseTime = cachedData.CloseTime;
+
+                    //// 若你有 Locations 資料也可以設定
+                    //My.Locations = cachedData.Locations;
+
                     _memoryCache.Set("BaseData", cachedData, TimeSpan.FromMinutes(10));
                 }
             }
 
             return cachedData;
         }
+
 
         public bool UpdateBaseData(MyData my)
         {
@@ -72,8 +112,10 @@ UPDATE mytb SET
     Section3_Item1 = @AboutPage_Section3_Items_0,
     Section3_Item2 = @AboutPage_Section3_Items_1,
     Section3_Item3 = @AboutPage_Section3_Items_2,
-    Section3_Item4 = @AboutPage_Section3_Items_3
-WHERE Id = @Id;
+    Section3_Item4 = @AboutPage_Section3_Items_3,
+    , OpenTime = @OpenTime
+    , CloseTime = @CloseTime
+
 ";
 
             var param = new
@@ -110,7 +152,9 @@ WHERE Id = @Id;
                 AboutPage_Section3_Items_0 = my.Section3_Item1,
                 AboutPage_Section3_Items_1 = my.Section3_Item2,
                 AboutPage_Section3_Items_2 = my.Section3_Item3,
-                AboutPage_Section3_Items_3 = my.Section3_Item4
+                AboutPage_Section3_Items_3 = my.Section3_Item4,
+                OpenTime = my.OpenTime,
+                CloseTime = my.CloseTime
             };
              
             var result = _dbConnection.Execute(sql, param);

@@ -83,9 +83,10 @@ namespace Web0524.Models
                 try
                 {
                     string sql = @"
-INSERT INTO NewTB (Title, Content, Author, PublishDate, Status, Category, Tag, TopTime)
-VALUES (@Title, @Content, @Author, @PublishDate, @Status, @Category, @Tag, @TopTime);
+INSERT INTO NewTB (Title, Content, Author, PublishDate, Status, Category, Tag, TopTime, Link)
+VALUES (@Title, @Content, @Author, @PublishDate, @Status, @Category, @Tag, @TopTime, @Link);
 SELECT LAST_INSERT_ID();";
+
 
 
 
@@ -123,8 +124,10 @@ UPDATE NewTB SET
     Status = @Status,
     Category = @Category,
     Tag = @Tag,
-    TopTime = @TopTime
+    TopTime = @TopTime,
+    Link = @Link
 WHERE NewId = @NewId";
+
 
 
                     _dbConnection.Execute(sql, newList);

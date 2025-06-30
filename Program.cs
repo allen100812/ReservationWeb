@@ -193,6 +193,9 @@ using (var scope = app.Services.CreateScope())
         My.Section3_Item2 = baseData.Section3_Item2;
         My.Section3_Item3 = baseData.Section3_Item3;
         My.Section3_Item4 = baseData.Section3_Item4;
+
+        My.OpenTime = baseData.OpenTime;
+        My.CloseTime = baseData.CloseTime;
     }
 }
 

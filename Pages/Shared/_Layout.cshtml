@@ -470,7 +470,7 @@
                                             <li><a class="dropdown-item" asp-page="/Management/DesignerManagement"><i class="far fa-circle nav-icon icon-width"></i> 設計師管理</a></li>
                                             <li><a class="dropdown-item" asp-page="/Management/CouponPointManagement"><i class="far fa-circle nav-icon icon-width"></i> 優惠券管理</a></li>
                                             <li><a class="dropdown-item" asp-page="/Report"><i class="far fa-circle nav-icon icon-width"></i>報表</a></li>
-                                            <li><a class="dropdown-item" asp-page="BaseDataEdit"><i class="far fa-circle nav-icon icon-width"></i> 網站設定</a></li>
+                                            <li><a class="dropdown-item" asp-page="/Management/MyManagement"><i class="far fa-circle nav-icon icon-width"></i> 網站設定</a></li>
                                         </ul>
                                     </li>
                                 }
@@ -730,17 +730,144 @@
         <div id="sidebar" class="fullscreen-menu">
             <button class="close-btn" onclick="closeMenu()">×</button>
             <div class="menu-content">
-                <div class="logo">HOZO</div>
+                <div class="logo">@Models.My.Name_short</div>
                 <ul class="menu-list">
-                    <li><a href="#" class="menu-item">Home</a></li>
-                    <li><a href="#">關於賀澤</a></li>
-                    <li><a href="#">作品欣賞</a></li>
-                    <li><a href="#">專案流程</a></li>
-                    <li><a href="#">新聞中心</a></li>
-                    <li><a href="#">聯絡我們</a></li>
+                    <li><a asp-page="/index" class="menu-item">Home</a></li>
+
+                    <!-- 預約服務 -->
+                    <li>
+                        <button class="menu-item btn-toggle" type="button" data-target="#menu-reserve">預約服務</button>
+                        <ul id="menu-reserve" class="submenu collapse">
+                            <li><a asp-page="/MakeReservation" class="menu-item">所有課程&服務</a></li>
+                            <li><a asp-page="/MyReservations" class="menu-item">我的預約清單</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- 作品欣賞 -->
+                    <li>
+                        <button class="menu-item btn-toggle" type="button" data-target="#menu-product">作品欣賞</button>
+                        <ul id="menu-product" class="submenu collapse">
+                            <li><a asp-page="/Product" class="menu-item">作品集</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- 關於我們 -->
+                    <li>
+                        <button class="menu-item btn-toggle" type="button" data-target="#menu-about">關於 @Models.My.Name_short</button>
+                        <ul id="menu-about" class="submenu collapse">
+                            <li><a asp-page="/about" class="menu-item">關於我們</a></li>
+                            <li><a asp-page="/location" class="menu-item">商家據點</a></li>
+                            <li><a asp-page="/contact" class="menu-item">聯絡我們</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- 管理員專區 -->
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        var roleValue = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                        if (roleValue == "1" || roleValue == "2")
+                        {
+                            <li>
+                                <button class="menu-item btn-toggle" type="button" data-target="#menu-admin">管理員專區</button>
+                                <ul id="menu-admin" class="submenu collapse">
+                                    <li><a asp-page="/Management/UserManagement" class="menu-item">會員管理</a></li>
+                                    <li><a asp-page="/Management/NewsManagement" class="menu-item">新聞管理</a></li>
+                                    <li><a asp-page="/Management/PortfolioManagement" class="menu-item">作品集管理</a></li>
+                                    <li><a asp-page="/Management/ProductManagement" class="menu-item">產品管理</a></li>
+                                    <li><a asp-page="/Management/ManageReservation" class="menu-item">預約單查詢</a></li>
+                                    <li><a asp-page="/Management/DesignerManagement" class="menu-item">設計師管理</a></li>
+                                    <li><a asp-page="/Management/CouponPointManagement" class="menu-item">優惠券管理</a></li>
+                                    <li><a asp-page="/Report" class="menu-item">報表</a></li>
+                                    <li><a asp-page="/Management/MyManagement" class="menu-item">網站設定</a></li>
+                                </ul>
+                            </li>
+                        }
+                    }
+
+                    <!-- 使用者功能 -->
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <li><a href="/Account/EditProfile?id=@User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value" class="menu-item">編輯個人資料</a></li>
+                        <li><a href="/Account/MyCoupons" class="menu-item">我的優惠券</a></li>
+                        <li><a href="/Account/Logout" class="menu-item">登出</a></li>
+                    }
+                    else
+                    {
+                        <li><a asp-page="/Account/Login" class="menu-item">登入</a></li>
+                    }
                 </ul>
             </div>
+
         </div>
+        <style>
+            .menu-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                text-align: center; /* ✅ 所有 menu 文字置中 */
+            }
+
+                .menu-list li {
+                    margin: 0.5rem 0;
+                }
+
+                .menu-list .menu-item,
+                .menu-list .btn-toggle {
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 1.4rem;
+                    padding: 0.5rem 0;
+                    cursor: pointer;
+                    font-weight: normal;
+                    text-align: center;
+                    display: inline-block;
+                    width: auto;
+                    transition: color 0.3s ease;
+                }
+
+                    .menu-list .menu-item:hover,
+                    .menu-list .btn-toggle:hover {
+                        color: #f0f0f0;
+                    }
+
+            /* 子選單展開樣式 */
+            .submenu {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+            }
+
+                .submenu:not(.collapse) {
+                    max-height: 500px;
+                }
+
+                .submenu li {
+                    margin: 0.3rem 0;
+                }
+
+        </style>
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                document.querySelectorAll(".btn-toggle").forEach(btn => {
+                    btn.addEventListener("click", () => {
+                        const targetId = btn.getAttribute("data-target");
+                        const targetEl = document.querySelector(targetId);
+
+                        document.querySelectorAll(".submenu").forEach(menu => {
+                            if (menu !== targetEl) {
+                                menu.classList.add("collapse");
+                            }
+                        });
+
+                        if (targetEl) {
+                            targetEl.classList.toggle("collapse");
+                        }
+                    });
+                });
+            });
+
+        </script>
 
 
 

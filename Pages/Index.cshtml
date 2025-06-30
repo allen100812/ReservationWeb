@@ -304,7 +304,7 @@
                                         <h3 class="mt-3">@item.Title</h3>
                                         <h6 class="mt-4 text-truncate">@item.Content</h6>
                                         <div class="btn-wrapper mt-4">
-                                            <a href="#" class="btn btn-outline-dark btn-oval">View</a>
+                                            <a href="@item.Link" target="_blank" rel="noopener noreferrer"  class="btn btn-outline-dark btn-oval">View</a>
                                         </div>
                                     </div>
                                 </div>
@@ -349,7 +349,7 @@
                                     <div class="card-body px-0 d-flex flex-column">
                                         <p class="text-muted mb-1 spacing-wide">@news.PublishDate?.ToString("yyyy-MM-dd") – 媒體報導</p>
                                         <h5 class="news-title">@news.Title</h5>
-                                        <a href="#" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
+                                        <a href="@news.Link"  target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm rounded-pill mt-auto align-self-start" style="width: auto;">more</a>
                                     </div>
                                 </div>
                             </div>
