@@ -13,16 +13,13 @@ services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: aA100812
+      MYSQL_ROOT_PASSWORD: 1008
       MYSQL_DATABASE: OrderWeb
-      MYSQL_USER: root
-      MYSQL_PASSWORD: aA100812
     ports:
       - "3306:3306"
     volumes:
       - mysqldata:/var/lib/mysql
-      # 若有.sql備份檔要掛載初始化（可選）：
-      - ./initdb:/docker-entrypoint-initdb.d
+
 
 volumes:
   mysqldata:
