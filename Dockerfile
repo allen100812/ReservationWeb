@@ -24,5 +24,7 @@ COPY wait-for-it.sh /wait-for-it.sh
 RUN chmod +x /wait-for-it.sh
 
 # 改用 wait-for-it 包住 Web 啟動（等待 db:3306 準備好）
-ENTRYPOINT ["/wait-for-it.sh", "db:3306", "--", "dotnet", "Web0524.dll"]
-
+#ENTRYPOINT ["/wait-for-it.sh", "db:3306", "--", "dotnet", "Web0524.dll"]
+#
+# 改成這樣（暫時保留容器活著給你進入）
+CMD ["sleep", "999999"]
