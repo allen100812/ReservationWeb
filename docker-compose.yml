@@ -4,7 +4,7 @@ services:
   web:
     build: .
     environment:
-      - ConnectionStrings__WebDB=Server=db;Database=OrderWeb;User=root;Password=aA100812;
+      - ConnectionStrings__WebDB=Server=db;Database=OrderWeb;User=root;Password=1008;
     depends_on:
       - db
     ports:
