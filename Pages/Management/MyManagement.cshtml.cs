@@ -62,11 +62,11 @@ namespace Web0524.Pages.Management
                 var success = _myService.UpdateBaseData(MyData);
                 if (success)
                 {
-                    TempData["SuccessMessage"] = "資料已成功更新。";
+                    TempData["SuccessMessage"] = "資料已成功更新";
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = "資料更新失敗，請稍後再試。";
+                    TempData["ErrorMessage"] = "資料更新失敗，請稍後再試";
                 }
             }
             catch (Exception ex)
