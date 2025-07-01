@@ -24,76 +24,85 @@ namespace Web0524.Models
 
         public MyData GetBaseData()
         {
-            if (_memoryCache.TryGetValue("BaseData", out MyData cachedData))
-            {
-                return cachedData;
-            }
+            int maxRetries = 10;
+            int delaySeconds = 3;
+            int attempt = 0;
 
-            const int maxRetry = 5;
-            int retryCount = 0;
-
-            while (retryCount < maxRetry)
+            while (attempt < maxRetries)
             {
                 try
                 {
-                    var sql = "SELECT * FROM mytb LIMIT 1";
-                    cachedData = _dbConnection.QueryFirstOrDefault<MyData>(sql);
-
-                    if (cachedData != null)
+                    if (!_memoryCache.TryGetValue("BaseData", out MyData cachedData))
                     {
-                        // ✅ 同步寫入 My 靜態類別
-                        My.Id = cachedData.Id;
-                        My.Name = cachedData.Name;
-                        My.Name_short = cachedData.Name_short;
-                        My.Phone = cachedData.Phone;
-                        My.Email = cachedData.Email;
-                        My.Line = cachedData.Line;
-                        My.WebURL = cachedData.WebURL;
-                        My.LineBotURL = cachedData.LineBotURL;
-                        My.Fb_Url = cachedData.Fb_Url;
-                        My.Ig_Url = cachedData.Ig_Url;
-                        My.Yt_Url = cachedData.Yt_Url;
-                        My.Tk_Url = cachedData.Tk_Url;
-                        My.Line_Url = cachedData.Line_Url;
-                        My.CreateOrderSandLineMsgSw = cachedData.CreateOrderSandLineMsgSw;
-                        My.CancelSandLineMsgSw = cachedData.CancelSandLineMsgSw;
-                        My.Max_Order_Oneday = cachedData.Max_Order_Oneday;
-                        My.Max_Reg_Oneday = cachedData.Max_Reg_Oneday;
-                        My.CancelLimitHours = cachedData.CancelLimitHours;
-                        My.Msg_BindOk = cachedData.Msg_BindOk;
-                        My.PageTitle = cachedData.PageTitle;
-                        My.HeroTitle = cachedData.HeroTitle;
-                        My.Section1_Title = cachedData.Section1_Title;
-                        My.Section1_Paragraph1 = cachedData.Section1_Paragraph1;
-                        My.Section1_Paragraph2 = cachedData.Section1_Paragraph2;
-                        My.Section2_Title = cachedData.Section2_Title;
-                        My.Section2_Paragraph1 = cachedData.Section2_Paragraph1;
-                        My.Section2_Paragraph2 = cachedData.Section2_Paragraph2;
-                        My.Section3_Title = cachedData.Section3_Title;
-                        My.Section3_Item1 = cachedData.Section3_Item1;
-                        My.Section3_Item2 = cachedData.Section3_Item2;
-                        My.Section3_Item3 = cachedData.Section3_Item3;
-                        My.Section3_Item4 = cachedData.Section3_Item4;
-                        My.OpenTime = cachedData.OpenTime;
-                        My.CloseTime = cachedData.CloseTime;
+                        var sql = "SELECT * FROM mytb LIMIT 1";
+                        cachedData = _dbConnection.QueryFirstOrDefault<MyData>(sql);
 
-                        _memoryCache.Set("BaseData", cachedData, TimeSpan.FromMinutes(10));
+                        if (cachedData != null)
+                        {
+                            // ✅ 同步寫入 My 靜態類別
+                            My.Id = cachedData.Id;
+                            My.Name = cachedData.Name;
+                            My.Name_short = cachedData.Name_short;
+                            My.Phone = cachedData.Phone;
+                            My.Email = cachedData.Email;
+                            My.Line = cachedData.Line;
+                            My.WebURL = cachedData.WebURL;
+                            My.LineBotURL = cachedData.LineBotURL;
+                            My.Fb_Url = cachedData.Fb_Url;
+                            My.Ig_Url = cachedData.Ig_Url;
+                            My.Yt_Url = cachedData.Yt_Url;
+                            My.Tk_Url = cachedData.Tk_Url;
+                            My.Line_Url = cachedData.Line_Url;
+                            My.CreateOrderSandLineMsgSw = cachedData.CreateOrderSandLineMsgSw;
+                            My.CancelSandLineMsgSw = cachedData.CancelSandLineMsgSw;
+                            My.Max_Order_Oneday = cachedData.Max_Order_Oneday;
+                            My.Max_Reg_Oneday = cachedData.Max_Reg_Oneday;
+                            My.CancelLimitHours = cachedData.CancelLimitHours;
+                            My.Msg_BindOk = cachedData.Msg_BindOk;
+                            My.PageTitle = cachedData.PageTitle;
+                            My.HeroTitle = cachedData.HeroTitle;
+                            My.Section1_Title = cachedData.Section1_Title;
+                            My.Section1_Paragraph1 = cachedData.Section1_Paragraph1;
+                            My.Section1_Paragraph2 = cachedData.Section1_Paragraph2;
+                            My.Section2_Title = cachedData.Section2_Title;
+                            My.Section2_Paragraph1 = cachedData.Section2_Paragraph1;
+                            My.Section2_Paragraph2 = cachedData.Section2_Paragraph2;
+                            My.Section3_Title = cachedData.Section3_Title;
+                            My.Section3_Item1 = cachedData.Section3_Item1;
+                            My.Section3_Item2 = cachedData.Section3_Item2;
+                            My.Section3_Item3 = cachedData.Section3_Item3;
+                            My.Section3_Item4 = cachedData.Section3_Item4;
+                            My.OpenTime = cachedData.OpenTime;
+                            My.CloseTime = cachedData.CloseTime;
+
+                            _memoryCache.Set("BaseData", cachedData, TimeSpan.FromMinutes(10));
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️ 第 {attempt + 1} 次查無資料，將重試...");
+                        }
 
                         return cachedData;
                     }
-
-                    Console.WriteLine($"⚠️ 找不到資料（mytb 空？），重試中...（第 {retryCount + 1} 次）");
+                    else
+                    {
+                        return cachedData; // 快取命中
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"❌ GetBaseData 連線失敗：{ex.Message}（第 {retryCount + 1} 次）");
-                }
+                    attempt++;
+                    Console.WriteLine($"❌ GetBaseData 連線失敗：{ex.Message}（第 {attempt} 次）");
 
-                retryCount++;
-                Thread.Sleep(3000); // 等 3 秒再重試
+                    if (attempt >= maxRetries)
+                        throw new Exception("GetBaseData：無法成功從 mytb 讀取資料，請確認資料庫是否正常。");
+
+                    Thread.Sleep(delaySeconds * 1000); // 等待重試
+                }
             }
 
-            throw new Exception("GetBaseData：無法成功從 mytb 讀取資料，請確認資料庫是否正常。");
+            // 安全備援
+            throw new Exception("GetBaseData：重試失敗");
         }
 
 
