@@ -19,5 +19,10 @@ COPY --from=build /app/publish .
 # 開放 port 80 給外部使用
 EXPOSE 80
 
-# 啟動應用程式
-ENTRYPOINT ["dotnet", "Web0524.dll"]
+# 加入 wait-for-it 腳本
+COPY wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
+
+# 改用 wait-for-it 包住 Web 啟動（等待 db:3306 準備好）
+ENTRYPOINT ["/wait-for-it.sh", "db:3306", "--", "dotnet", "Web0524.dll"]
+
