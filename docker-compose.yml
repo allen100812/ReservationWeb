@@ -17,6 +17,7 @@ services:
 
   db:
     image: mysql:8.0
+    command: --lower_case_table_names=1
     environment:
       MYSQL_ROOT_PASSWORD: 1008
       MYSQL_DATABASE: OrderWeb
