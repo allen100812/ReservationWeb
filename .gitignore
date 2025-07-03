@@ -2,6 +2,7 @@
 .vs/
 *.user
 *.suo
+wwwroot/credentials/
 
 
 # 忽略編譯產物
