@@ -20,6 +20,10 @@ COPY --from=build /app/publish .
 COPY wait-for-it.sh /wait-for-it.sh
 RUN chmod +x /wait-for-it.sh
 
+#取得google日立憑證
+COPY wwwroot/credentials /app/wwwroot/credentials
+
+
 # 開放 port 80
 EXPOSE 80
 
