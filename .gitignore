@@ -2,10 +2,9 @@
 .vs/
 *.user
 *.suo
-
-# ✅ 忽略 Google 憑證與敏感憑證資料夾（防止推送）
 wwwroot/credentials/
 wwwroot/credentials/**
+*.json
 
 # 忽略編譯產物
 bin/
