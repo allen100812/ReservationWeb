@@ -208,3 +208,4 @@ app.UseAuthorization();
 app.MapRazorPages();
 
 app.Run();
+Console.WriteLine("連線字串：" + configuration.GetConnectionString("WebDB"));

@@ -9,6 +9,10 @@ services:
       - db
     ports:
       - "8080:80"
+    volumes:
+      - ./keys:/root/.aspnet/DataProtection-Keys # ✅ 加入這一行掛載 DataProtection 金鑰
+      - ./logs:/app/logs                         # （可選）你也可以加入 log 資料夾掛載
+    restart: always
 
   db:
     image: mysql:8.0
