@@ -12,6 +12,7 @@ services:
     volumes:
       - ./keys:/root/.aspnet/DataProtection-Keys # ✅ 加入這一行掛載 DataProtection 金鑰
       - ./logs:/app/logs                         # （可選）你也可以加入 log 資料夾掛載
+      - /root/ReservationWeb/wwwroot/credentials:/app/wwwroot/credentials # ✅ 掛載憑證到容器中正確位置
     restart: always
 
   db:
