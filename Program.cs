@@ -145,6 +145,8 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
 }
 
+Console.WriteLine("連線字串：" + configuration.GetConnectionString("WebDB"));
+
 // 初始化靜態 My 資料（來自資料庫）
 using (var scope = app.Services.CreateScope())
 {
@@ -208,4 +210,3 @@ app.UseAuthorization();
 app.MapRazorPages();
 
 app.Run();
-Console.WriteLine("連線字串：" + configuration.GetConnectionString("WebDB"));
