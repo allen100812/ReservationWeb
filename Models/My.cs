@@ -160,22 +160,22 @@ namespace Web0524.Models
     public static class MyMessageTemplates
     {
         public const string Msg_OrderCreated_Client =
-            "🎉 您好，預約已成功！\r\n\r\n📌 訂單編號：{Sid}\r\n🌟 服務項目：{Pname}\r\n📅 預約時間：{Date}\r\n\r\n我們已收到您的預約並通知商家確認，請稍待片刻 ⏳\r\n如有異動會再通知您喔！😊";
+            "🎉 您好，預約已成功！📌 訂單編號：{Sid}🌟 服務項目：{Pname}📅 預約時間：{Date}我們已收到您的預約並通知商家確認，請稍待片刻 ⏳如有異動會再通知您喔！😊";
 
         public const string Msg_OrderCancel_Client =
-            "🙇‍♀️ 很遺憾，您已取消此次預約。\r\n\r\n📌 訂單編號：{Sid}\r\n🌟 服務項目：{Pname}\r\n📅 原預約時間：{Date}\r\n\r\n期待下次再為您服務 💖";
+            "🙇‍♀️ 很遺憾，您已取消此次預約。📌 訂單編號：{Sid}🌟 服務項目：{Pname}📅 原預約時間：{Date}期待下次再為您服務 💖";
 
         public const string Msg_OrderCancel_Store =
-            "⚠️ 很抱歉，您的預約已由商家取消。\r\n\r\n📌 訂單編號：{Sid}\r\n🌟 服務項目：{Pname}\r\n📅 原預約時間：{Date}\r\n\r\n若有任何疑問歡迎聯絡我們，我們將盡快協助您 🙏";
+            "⚠️ 很抱歉，您的預約已由商家取消。📌 訂單編號：{Sid}🌟 服務項目：{Pname}📅 原預約時間：{Date}若有任何疑問歡迎聯絡我們，我們將盡快協助您 🙏";
 
         public const string Msg_OrderDone =
-            "✨ 您的預約已順利完成，感謝您的蒞臨！\r\n\r\n📌 訂單編號：{Sid}\r\n🌟 服務項目：{Pname}\r\n📅 預約時間：{Date}\r\n\r\n若您滿意這次服務，歡迎留下評價與回饋 💬";
+            "✨ 您的預約已順利完成，感謝您的蒞臨！📌 訂單編號：{Sid}🌟 服務項目：{Pname}📅 預約時間：{Date}若您滿意這次服務，歡迎留下評價與回饋 💬";
 
         public const string Msg_OrderRemind_3days =
-            "⏰ 貼心提醒：您有即將到來的預約唷！\r\n\r\n📌 訂單編號：{Sid}\r\n🌟 服務項目：{Pname}\r\n📅 預約時間：{Date}\r\n\r\n我們期待見到您 🥰";
+            "⏰ 貼心提醒：您有即將到來的預約唷！📌 訂單編號：{Sid}🌟 服務項目：{Pname}📅 預約時間：{Date}我們期待見到您 🥰";
 
         public const string Msg_OrderRemind_Today =
-            "📢 今日預約提醒：千萬別忘記唷！\r\n\r\n📌 訂單編號：{Sid}\r\n🌟 服務項目：{Pname}\r\n📅 預約時間：{Date}\r\n\r\n請準時抵達，我們已準備好迎接您 🌈";
+            "📢 今日預約提醒：千萬別忘記唷！📌 訂單編號：{Sid}🌟 服務項目：{Pname}📅 預約時間：{Date}請準時抵達，我們已準備好迎接您 🌈";
 
         // 可重用方法
         public static string Format(string template, string sid, string pname, string date)

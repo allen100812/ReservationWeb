@@ -85,9 +85,19 @@ namespace Web0524.Pages.Account
             var state = Guid.NewGuid().ToString();
             var scope = "profile openid email";
 
-            var url = $"https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={clientId}&redirect_uri={redirectUri}&state={state}&scope={scope}";
+            var encodedRedirectUri = Uri.EscapeDataString(redirectUri);
+            var encodedScope = Uri.EscapeDataString(scope);
+
+            var url = $"https://access.line.me/oauth2/v2.1/authorize" +
+                      $"?response_type=code" +
+                      $"&client_id={clientId}" +
+                      $"&redirect_uri={encodedRedirectUri}" +
+                      $"&state={state}" +
+                      $"&scope={encodedScope}";
+
             return Redirect(url);
         }
+
         public async Task<IActionResult> OnGetLineCallback(string code, string state)
         {
             var tokenEndpoint = "https://api.line.me/oauth2/v2.1/token";

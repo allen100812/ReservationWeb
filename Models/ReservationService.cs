@@ -155,7 +155,7 @@ namespace Web0524.Models
             }
             catch (Exception ex)
             {
-                Console.WriteLine("❌ 儲存固定休假失敗：" + ex.Message);
+                //Console.WriteLine("❌ 儲存固定休假失敗：" + ex.Message);
                 return false;
             }
             finally
@@ -188,7 +188,7 @@ namespace Web0524.Models
             {
                 
                 var order = GetOrderById(orderId);
-                Console.WriteLine("刪除行事曆:" + order?.GoogleEventId);
+                //Console.WriteLine("刪除行事曆:" + order?.GoogleEventId);
                 if (!string.IsNullOrEmpty(order?.GoogleEventId))
                 {
                     _calendarHelper.CancelEventAsync(order.GoogleEventId).Wait();
@@ -202,7 +202,15 @@ namespace Web0524.Models
                 if (My.CancelSandLineMsgSw && !string.IsNullOrEmpty(order?.Uid))
                 {
                     var user_item = _userService.GetUserByLineUserId(order?.Uid);
-                    var product = _productService.GetProductById(order.ProductId);
+                    //Console.WriteLine($"[CreateOrder] 檢查 ProductId: {order.ProductId}");
+
+                    var product = _productService?.GetProductById(order.ProductId);
+
+                    if (product == null)
+                    {
+                        //Console.WriteLine($"❌ 找不到產品，ProductId = {order.ProductId}");
+                    }
+
                     string p_name = string.IsNullOrWhiteSpace(product?.Name) ? "（未命名服務）" : product.Name;
                     var MSG = "";
                     if (customer_appeal)
@@ -473,6 +481,13 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
         // ✅ 建立訂單方法更新
         public Order? CreateOrder(Order order)
         {
+
+            if (order == null)
+            {
+                //Console.WriteLine("❌ 建立預約失敗：order 為 null");
+                return null;
+            }
+
             if (!IsSlotAvailable(order.DesignerId, order.ProductId, order.ReservationDateTime))
                 return null;
 
@@ -501,14 +516,14 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
                         "UPDATE OrderTB SET GoogleEventId = @EventId WHERE OrderId = @OrderId",
                         new { EventId = eventId, OrderId = order.OrderId });
 
-                    Console.WriteLine($"[Calendar] 寫入成功，OrderId = {order.OrderId}, EventId = {eventId}");
+                    //Console.WriteLine($"[Calendar] 寫入成功，OrderId = {order.OrderId}, EventId = {eventId}");
                 }
 
 
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Calendar] 新增事件失敗：{ex.Message}");
+                //Console.WriteLine($"[Calendar] 新增事件失敗：{ex.Message}");
             }
 
             // 如有使用優惠券，更新 CouponDispatchRecord 為已使用
@@ -521,22 +536,31 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
 
             if (My.CreateOrderSandLineMsgSw && !string.IsNullOrEmpty(order?.Uid))
             {
-                var user_item = _userService.GetUserByLineUserId(order?.Uid);
+                var user_item = _userService.GetUserById(order?.Uid);
                 var product = _productService.GetProductById(order.ProductId);
                 string p_name = string.IsNullOrWhiteSpace(product?.Name) ? "（未命名服務）" : product.Name;
                 var MSG = MyMessageTemplates.FormatOrderCreated(
                 order.OrderId.ToString("X6"),
                 p_name,
                 order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
-);
-                var success = _lineService.SendSecureLineMessageAsync(user_item.LineUserId, MSG);
-                _messageService.SendMessage(
-                    order?.Uid,
-                    "預約訊息",
-                    MSG,
-                    MessageType.Store,
-                    TimeSpan.FromDays(60)
-                );
+                 );
+                if (user_item != null && !string.IsNullOrEmpty(user_item.LineUserId))
+                {
+                    var success = _lineService.SendSecureLineMessageAsync(user_item.LineUserId, MSG);
+
+                    _messageService.SendMessage(
+                        order?.Uid,
+                        "預約訊息",
+                        MSG,
+                        MessageType.Store,
+                        TimeSpan.FromDays(60)
+                    );
+                }
+                else
+                {
+                    //Console.WriteLine($"❌ 查無 user_item，Uid={order?.Uid}");
+                }
+
 
             }
 
@@ -566,7 +590,7 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
             var designer = GetDesignerById(designerId.Value);
             if (designer == null)
             {
-                Console.WriteLine("❌ 找不到該設計師");
+                ////Console.WriteLine("❌ 找不到該設計師");
                 return false;
             }
 
@@ -578,24 +602,24 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
 
             if (appointmentTime < openTime || appointmentTime >= closeTime)
             {
-                Console.WriteLine($"❌ 該時段不在營業時間內（{openTime:hh\\:mm} ~ {closeTime:hh\\:mm}）");
+                ////Console.WriteLine($"❌ 該時段不在營業時間內（{openTime:hh\\:mm} ~ {closeTime:hh\\:mm}）");
                 return false;
             }
 
             if (Reservation_IsFixedHoliday(designer.DesignerId, time.Date))
             {
-                Console.WriteLine("❌ 該日為固定假日");
+                ////Console.WriteLine("❌ 該日為固定假日");
                 return false;
             }
 
             if (Reservation_IsDayOff(designer.DesignerId, time.Date))
             {
-                Console.WriteLine("❌ 該設計師當日為休假日");
+                ////Console.WriteLine("❌ 該設計師當日為休假日");
                 return false;
             }
 
             var orders = GetOrdersForDay(designer.DesignerId, time);
-            Console.WriteLine($"✅ 當天已有預約 {orders.Count} 筆");
+            ////Console.WriteLine($"✅ 當天已有預約 {orders.Count} 筆");
 
             // 如果未指定服務項目，就檢查該設計師當時段是否有任何服務還可以預約
             if (productId == null)
@@ -613,7 +637,7 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
             var ruleForProduct = designer.ScheduleRules.FirstOrDefault(r => r.ProductId == productId);
             if (ruleForProduct == null)
             {
-                Console.WriteLine("❌ 該設計師沒有設定此服務項目的排程規則");
+                ////Console.WriteLine("❌ 該設計師沒有設定此服務項目的排程規則");
                 return false;
             }
 
@@ -634,17 +658,17 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
                 return !(serviceEnd <= bookedStart || serviceStart >= bookedEnd);
             }).ToList();
 
-            Console.WriteLine($"🔄 發現有 {overlappingOrders.Count} 筆重疊預約");
+            ////Console.WriteLine($"🔄 發現有 {overlappingOrders.Count} 筆重疊預約");
 
             if (overlappingOrders.Any(o => o.ProductId != productId))
             {
-                Console.WriteLine("❌ 時段已被其他服務項目預約");
+                ////Console.WriteLine("❌ 時段已被其他服務項目預約");
                 return false;
             }
 
             if (overlappingOrders.Any(o => o.ProductId == productId && o.ReservationDateTime != time))
             {
-                Console.WriteLine("❌ 同一服務有不同時間重疊");
+                ////Console.WriteLine("❌ 同一服務有不同時間重疊");
                 return false;
             }
 
@@ -654,10 +678,10 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
                 o.ReservationDateTime == time &&
                 o.Status != OrderStatus.Cancelled);
 
-            Console.WriteLine($"⏱ 同時間點已有相同服務 {countAtT} 筆 / 最大上限 {ruleForProduct.MaxCustomers}");
+            ////Console.WriteLine($"⏱ 同時間點已有相同服務 {countAtT} 筆 / 最大上限 {ruleForProduct.MaxCustomers}");
 
             bool result = countAtT < ruleForProduct.MaxCustomers;
-            Console.WriteLine(result ? "✅ 時段可預約" : "❌ 該時段已達最大上限");
+            ////Console.WriteLine(result ? "✅ 時段可預約" : "❌ 該時段已達最大上限");
 
             return result;
         }
@@ -668,24 +692,24 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
             var designer = GetDesignerById(designerId);
             if (designer == null)
             {
-                Console.WriteLine("找不到設計師：" + designerId);
+                ////Console.WriteLine("找不到設計師：" + designerId);
                 return result;
             }
 
             if (Reservation_IsFixedHoliday(designerId, date))
             {
-                Console.WriteLine("當日為固定休假日：" + date.ToShortDateString());
+                ////Console.WriteLine("當日為固定休假日：" + date.ToShortDateString());
                 return result;
             }
 
             if (Reservation_IsDayOff(designerId, date))
             {
-                Console.WriteLine("當日為排休日：" + date.ToShortDateString());
+               // //Console.WriteLine("當日為排休日：" + date.ToShortDateString());
                 return result;
             }
 
             var orders = GetOrdersForDay(designerId, date);
-            Console.WriteLine($"共取得 {orders.Count} 筆當日預約單");
+           // //Console.WriteLine($"共取得 {orders.Count} 筆當日預約單");
 
             DateTime now = DateTime.Now;
             DateTime earliestAvailableTime = now.AddMinutes(advanceMinutes);
@@ -697,7 +721,7 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
             {
                 if (date.Date == DateTime.Today && t < earliestAvailableTime)
                 {
-                    Console.WriteLine($"跳過太早的時段：{t:HH:mm}");
+                    ////Console.WriteLine($"跳過太早的時段：{t:HH:mm}");
                     continue;
                 }
 
@@ -707,7 +731,7 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
                     DateTime serviceEnd = t.AddMinutes(rule.DurationMinutes);
                     if (serviceEnd.AddMinutes(cooldownMinutes) > dayEnd)
                     {
-                        Console.WriteLine($"跳過超出工作結束時間的時段：{t:HH:mm} ~ {serviceEnd:HH:mm}");
+                        //Console.WriteLine($"跳過超出工作結束時間的時段：{t:HH:mm} ~ {serviceEnd:HH:mm}");
                         continue;
                     }
 
@@ -727,13 +751,13 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
 
                     if (overlappingOrders.Any(o => o.ProductId == rule.ProductId && o.ReservationDateTime != t))
                     {
-                        Console.WriteLine($"時段 {t:HH:mm} 與其他 {rule.ProductId} 預約重疊");
+                        //Console.WriteLine($"時段 {t:HH:mm} 與其他 {rule.ProductId} 預約重疊");
                         continue;
                     }
 
                     if (overlappingOrders.Any(o => o.ProductId != rule.ProductId))
                     {
-                        Console.WriteLine($"時段 {t:HH:mm} 與不同產品預約重疊");
+                        //Console.WriteLine($"時段 {t:HH:mm} 與不同產品預約重疊");
                         continue;
                     }
 
@@ -745,7 +769,7 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
 
                     if (countAtT < rule.MaxCustomers)
                     {
-                        Console.WriteLine($"可用時段 {t:HH:mm}，產品 {rule.ProductId}，目前預約數 {countAtT}");
+                        //Console.WriteLine($"可用時段 {t:HH:mm}，產品 {rule.ProductId}，目前預約數 {countAtT}");
                         result.Add(new Reservation_AvailableSlotDetail
                         {
                             Date = date.Date,
@@ -756,12 +780,12 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
                     }
                     else
                     {
-                        Console.WriteLine($"時段 {t:HH:mm} 已達最大人數上限（{countAtT}/{rule.MaxCustomers}）");
+                        //Console.WriteLine($"時段 {t:HH:mm} 已達最大人數上限（{countAtT}/{rule.MaxCustomers}）");
                     }
                 }
             }
 
-            Console.WriteLine($"共找到 {result.Count} 筆可預約時段");
+            //Console.WriteLine($"共找到 {result.Count} 筆可預約時段");
             return result;
         }
 
@@ -822,11 +846,11 @@ order.ReservationDateTime.ToString("yyyy-MM-dd HH:mm")
                             var paymentMethod = order.PaymentMethod.ToDisplayName();
 
                             _calendarHelper.UpdateEventAsync(order, order.GoogleEventId, designerName, serviceName, customerName, paymentMethod).Wait();
-                            Console.WriteLine($"[Calendar] 已同步完成 OrderId = {order.OrderId} 的 Google 行事曆");
+                            //Console.WriteLine($"[Calendar] 已同步完成 OrderId = {order.OrderId} 的 Google 行事曆");
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"[Calendar] 同步更新失敗 OrderId = {order.OrderId}，錯誤：{ex.Message}");
+                            //Console.WriteLine($"[Calendar] 同步更新失敗 OrderId = {order.OrderId}，錯誤：{ex.Message}");
                         }
                     }
                 }

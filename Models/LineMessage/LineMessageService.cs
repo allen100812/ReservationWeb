@@ -13,13 +13,15 @@ namespace Web0524.Models.LineMessage
     {
         private readonly HttpClient _httpClient;
         private readonly IDbConnection _db;
+        private readonly IConfiguration _config;
 
         private const int MonthlyLimit = 300;
 
-        public LineMessageService(HttpClient httpClient, IDbConnection db)
+        public LineMessageService(HttpClient httpClient, IDbConnection db, IConfiguration config)
         {
             _httpClient = httpClient;
             _db = db;
+            _config = config;
         }
 
         public async Task<bool> SendSecureLineMessageAsync(string lineUserId, string message)
@@ -41,7 +43,7 @@ namespace Web0524.Models.LineMessage
             }
 
             // 發送 LINE 訊息
-            var url = "http://localhost:5678/webhook/line-secure";
+            var url = _config["LineMsg:WebhookUrl"];
             var payload = new
             {
                 api_key = 1000,

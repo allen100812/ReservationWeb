@@ -201,19 +201,23 @@
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            justify-content: center;
-            align-items: center;
             z-index: 9999;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.5s ease;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 改為頂部對齊 */
+            overflow-y: auto; /* ✅ 可上下滾動 */
+            max-height: 100vh; /* ✅ 限制最大高度 */
+            padding-top: 80px; /* ✅ 預留關閉按鈕與上方空間 */
         }
 
             .fullscreen-menu.active {
                 opacity: 1;
                 pointer-events: auto;
             }
+
 
         /* === 背景面板動畫 === */
         .menu-panel {
@@ -253,6 +257,9 @@
 
         /* === 文字內容動畫 === */
         .menu-content {
+            width: 100%;
+            max-width: 480px;
+            padding: 1rem;
             text-align: center;
             color: white;
             opacity: 0;
@@ -334,6 +341,40 @@
             .dropdown-menu .dropdown-item {
                 text-shadow: 0 0 2px rgba(0, 0, 0, 0.5); /* 黑色微陰影提亮白字 */
             }
+
+
+        /* 隱藏 dropdown-toggle 預設箭頭 */
+        .dropdown-toggle::after {
+            display: none !important;
+        }
+
+        /* 移除藍色底線或 outline */
+        .dropdown-toggle:focus,
+        .dropdown-toggle:active,
+        .dropdown-toggle:visited {
+            outline: none !important;
+            box-shadow: none !important;
+            text-decoration: none !important;
+            color: inherit;
+        }
+
+        @@media (max-width: 576px) {
+    /* 修正右上角使用者下拉選單在手機上超出邊界問題 */
+    .navbar .dropdown-menu {
+        left: auto !important;
+        right: 0 !important;
+        min-width: 180px; /* ✅ 設定最小寬度 */
+        max-width: 90vw;  /* ✅ 避免超出右邊界 */
+        word-break: break-word;
+    }
+
+    /* 使用者頭像靠右排列時不要讓選單被遮擋 */
+    .navbar .dropdown-menu::before,
+    .navbar .dropdown-menu::after {
+        display: none; /* 移除 dropdown 箭頭（可選） */
+    }
+}
+
 
     </style>
 
@@ -528,8 +569,6 @@
                         </button>
 
                     </li>
-
-
                     <li class="nav-item text-center" style="flex: 1; display: flex; justify-content: center; align-items: center;">
                         <!-- Brand Logo -->
                         <a href="/index" class="nav-item animated-link">
@@ -537,18 +576,22 @@
                         </a>
                     </li>
                     <li class="nav-item text-right" style="flex: 1; display: flex; justify-content: flex-end; align-items: center;">
-                        <!-- Sidebar user panel (optional) -->
                         @if (User.Identity.IsAuthenticated)
                         {
-                            <!-- User is authenticated, display the user's photo -->
-                            <div class="dropdown">
-                                <a class="dark dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <img src="@(user.Photo != null ? $"data:image/jpeg;base64,{Convert.ToBase64String(user.Photo)}" : "dist/img/user1-128x128.jpg")" alt="User Photo"
-                                         style="width: 32px; height: 32px; object-fit: cover; object-position: center;" class="imagePreview_img">
+                            <div class="dropdown me-3">
+                                <a class="dark dropdown-toggle" href="#" id="userDropdown" role="button"
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="@(user.Photo != null ? $"data:image/jpeg;base64,{Convert.ToBase64String(user.Photo)}" : "dist/img/user1-128x128.jpg")"
+                                         alt="User Photo"
+                                         style="width: 32px; height: 32px; object-fit: cover; object-position: center;"
+                                         class="imagePreview_img">
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
-                                    <a class="dropdown-item" href="UserEdit?id=@User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value">
+                                    <a class="dropdown-item" href="/Account/EditProfile?id=@User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value">
                                         <i class="fas fa-user-edit"></i> 編輯個人資料
+                                    </a>
+                                    <a class="dropdown-item" href="/Account/MyCoupons">
+                                        <i class="fas fa-user-edit"></i> 我的優惠券
                                     </a>
                                     <a class="dropdown-item" href="/Account/Logout">
                                         <i class="fas fa-sign-out-alt"></i> 登出
@@ -558,172 +601,15 @@
                         }
                         else
                         {
-                            <a asp-page="/Account/Login" class="nav-link d-flex align-items-center" style="color: var(--color2)">
+                            <a asp-page="/Account/Login" class="nav-link d-flex align-items-center me-3" style="color: var(--color2)">
                                 <i class="nav-icon fas fa-user"></i>
                             </a>
                         }
                     </li>
+
                 </ul>
             </nav>
         </div>
-
-@*         <div class="modal" id="sidebar" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">選單</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <nav class="mt-2">
-                            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                                <!-- Add icons to the links using the .nav-icon class with font-awesome or any other icon font library -->
-                                <li class="nav-item">
-                                    <a asp-page="Index" class="nav-link ">
-                                        <i class="nav-icon fas fa-home Text2 font-weight-bold"></i>
-                                        <p class="Text2 font-weight-bold">首頁</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item menu-open">
-                                    <a href="#" class="nav-link Text1">
-                                        <p class="Text1">
-                                            預約服務
-                                            <i class="right fas fa-angle-left"></i>
-                                        </p>
-                                    </a>
-                                    <ul class="nav nav-treeview">
-                                        <li class="nav-item">
-                                            <a asp-page="ProductList" class="nav-link">
-                                                <i class="fas fa-clipboard-list nav-icon Text2 icon-width"></i>
-                                                <span class="Text2">所有課程&服務</span>
-                                            </a>
-                                        </li>
-
-                                        <li class="nav-item">
-                                            <a asp-page="Order" class="nav-link">
-                                                <i class="fas fa-clipboard-check nav-icon Text2 icon-width"></i>
-                                                <span class="Text2">我的預約清單</span>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li class="nav-item menu-open">
-                                    <a href="#" class="nav-link">
-                                        <p class="Text1">
-                                            作品欣賞
-                                            <i class="right fas fa-angle-left"></i>
-                                        </p>
-                                    </a>
-                                    <ul class="nav nav-treeview">
-                                        <li class="nav-item">
-                                            <a href="@Models.My.Ig_Url" class="tap-area icon-a" target="_blank" rel="noopener" aria-label="在 Instagram 上追蹤">
-                                                <i class="fab fa-instagram nav-icon Text2 icon-width"></i>
-                                                <span class="Text2">作品集</span>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li class="nav-item menu-open">
-                                    <a href="#" class="nav-link">
-                                        <p class="Text1">
-                                            關於 @Models.My.Name_short
-                                            <i class="right fas fa-angle-left"></i>
-                                        </p>
-                                    </a>
-                                    <ul class="nav nav-treeview">
-                                        <li class="nav-item">
-                                            <a asp-page="about" class="nav-link">
-                                                <i class="far fa-address-card nav-icon Text2 icon-width"></i>
-                                                <span class="Text2">關於我們</span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="Index#place-section" class="nav-link">
-                                                <i class="fas fa-map-pin nav-icon Text2 icon-width"></i>
-                                                <span class="Text2">商家據點</span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <Button onclick="showContactModal()" class="nav-link">
-                                                <i class="far fa-comment-dots nav-icon Text2 icon-width"></i>
-                                                <span class="Text2">聯絡我們</span>
-                                            </Button>
-                                        </li>
-                                    </ul>
-                                </li>
-                                @if (User.Identity.IsAuthenticated)
-                                {
-                                    var userType = User.FindFirst("UserType")?.Value;
-                                    if (userType == "1" || userType == "2")
-                                    {
-                                        <li class="nav-item menu-open ">
-
-                                            <a href="#" class="nav-link ">
-                                                <i class="nav-icon fas fa-user-shield Text1"></i>
-                                                <p class="Text1">
-                                                    管理員專區
-                                                    <i class="right fas fa-angle-left"></i>
-                                                </p>
-
-                                            </a>
-                                            <ul class="nav nav-treeview">
-                                                <li class="nav-item">
-                                                    <a asp-page="UserList" class="nav-link">
-                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                        <span class="Text2">會員管理</span>
-                                                    </a>
-                                                </li>
-                                                <li class="nav-item">
-                                                    <a asp-page="PlaceList_m" class="nav-link">
-                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                        <span class="Text2">店鋪管理</span>
-                                                    </a>
-                                                </li>
-                                                <li class="nav-item">
-                                                    <a asp-page="ProductList_m" class="nav-link">
-                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                        <span class="Text2">產品管理</span>
-                                                    </a>
-                                                </li>
-                                                <li class="nav-item">
-                                                    <a asp-page="OrderList_m" class="nav-link">
-                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                        <span class="Text2">預約單查詢</span>
-                                                    </a>
-                                                </li>
-                                                <li class="nav-item">
-                                                    <a asp-page="Ordercalendar_m" class="nav-link">
-                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                        <span class="Text2">預約行事曆</span>
-                                                    </a>
-                                                </li>
-                                                <li class="nav-item">
-                                                    <a asp-page="Report" class="nav-link">
-                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                        <span class="Text2">報表檢視</span>
-                                                    </a>
-                                                </li>
-                                                <li class="nav-item">
-                                                    <a asp-page="BaseDataEdit" class="nav-link">
-                                                        <i class="far fa-circle nav-icon Text2 icon-width"></i>
-                                                        <span class="Text2">網站設定</span>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </li>
-                                    }
-                                }
-                                else
-                                {
-                                    <!-- You can add additional menu items here if needed -->
-                                }
-                            </ul>
-
-                        </nav>
-                    </div>
-                </div>
-            </div>
-        </div> *@
 
 
         <!-- 側邊選單滿版 modal -->
@@ -784,17 +670,7 @@
                         }
                     }
 
-                    <!-- 使用者功能 -->
-                    @if (User.Identity.IsAuthenticated)
-                    {
-                        <li><a href="/Account/EditProfile?id=@User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value" class="menu-item">編輯個人資料</a></li>
-                        <li><a href="/Account/MyCoupons" class="menu-item">我的優惠券</a></li>
-                        <li><a href="/Account/Logout" class="menu-item">登出</a></li>
-                    }
-                    else
-                    {
-                        <li><a asp-page="/Account/Login" class="menu-item">登入</a></li>
-                    }
+
                 </ul>
             </div>
 
@@ -847,6 +723,108 @@
                 }
 
         </style>
+
+
+        <style>
+            /* 懸浮鈴鐺按鈕 */
+            .floating-message-btn {
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: linear-gradient(145deg, #f7d9ec, #fce5f2);
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+                backdrop-filter: blur(8px);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1050;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.5);
+            }
+
+                .floating-message-btn:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 10px 20px rgba(255, 105, 180, 0.3);
+                }
+
+                /* 鈴鐺圖示 */
+                .floating-message-btn i {
+                    font-size: 22px;
+                    color: #b80063;
+                }
+
+            /* 徽章 */
+            .message-badge {
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                min-width: 20px;
+                height: 20px;
+                font-size: 12px;
+                background-color: #ff3b3b;
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 0 5px;
+                font-weight: bold;
+                box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+                z-index: 2;
+            }
+            /* 美容風格 Modal 外觀 */
+            #messageModal .modal-content {
+                background: rgba(255, 245, 250, 0.85); /* 粉白玻璃感 */
+                border-radius: 16px;
+                border: 1px solid rgba(255, 192, 203, 0.4);
+                box-shadow: 0 8px 24px rgba(255, 105, 180, 0.2);
+                backdrop-filter: blur(10px);
+            }
+
+            /* 頁首風格 */
+            #messageModal .modal-header {
+                background: linear-gradient(to right, #ffe6f0, #fff5fa);
+                border-bottom: 1px solid #f8d8e4;
+                border-top-left-radius: 16px;
+                border-top-right-radius: 16px;
+            }
+
+            /* 標題文字 */
+            #messageModal .modal-title {
+                font-weight: 600;
+                font-size: 1.25rem;
+                color: #a32060;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            /* 關閉按鈕 */
+            #messageModal .btn-close {
+                filter: brightness(0.8);
+            }
+
+            /* 訊息列表樣式 */
+            #messageList .list-group-item {
+                border: none;
+                background-color: #fff8fb;
+                border-left: 4px solid #ffc0cb;
+                margin-bottom: 10px;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(255, 105, 180, 0.1);
+                transition: background-color 0.3s;
+            }
+
+                #messageList .list-group-item:hover {
+                    background-color: #fff0f5;
+                }
+
+        </style>
+
         <script>
             document.addEventListener("DOMContentLoaded", function () {
                 document.querySelectorAll(".btn-toggle").forEach(btn => {
@@ -907,13 +885,17 @@
             <div>
                 @RenderBody()
                 <!-- ✅ 1. 浮動訊息按鈕（右下角） -->
-                <div id="floatingMessageBtn" class="position-fixed bottom-0 end-0 m-4" style="z-index: 1050;">
+@*                 <div id="floatingMessageBtn" class="position-fixed bottom-0 end-0 m-4" style="z-index: 1050;">
                     <button type="button" class="btn btn-warning position-relative shadow" onclick="openMessageModal()">
                         <i class="fas fa-bell"></i>
                         <span id="messageBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">
                             0
                         </span>
                     </button>
+                </div> *@
+                <div id="floatingMessageBtn" class="floating-message-btn" onclick="openMessageModal()">
+                    <i class="fas fa-bell"></i>
+                    <span id="messageBadge" class="message-badge d-none">0</span>
                 </div>
 
                 <!-- ✅ 2. Modal 結構 -->

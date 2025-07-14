@@ -222,6 +222,11 @@
                 </select>
             </div>
 
+            <div id="calendar-loading" class="text-center my-2 d-none">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">載入中...</span>
+                </div>
+            </div>
 
             <div id="calendar" class="d-none"></div>
 
@@ -330,17 +335,23 @@
             color: #0d6efd !important;
         }
 
+        .fc-daygrid-event {
+            white-space: normal !important; /* ✅ 允許換行 */
+            word-break: break-word; /* ✅ 強制長字分行 */
+            font-size: 0.85rem;
+            padding: 2px 4px;
+            line-height: 1.2;
+        }
+
         .fc-daygrid-day-number {
             position: relative;
             z-index: 2;
         }
 
         .fc-day-hint .fc-event-title {
-
-            
         }
 
-        .fc-bg-event{
+        .fc-bg-event {
             opacity: 1 !important;
             color: #0d6efd !important;
             font-weight: bold;
@@ -351,7 +362,7 @@
 
 
         .fc-day-hint .fc-event-title {
-            color: #0d6efd !important;
+
             font-weight: bold;
             font-size: 0.85rem;
             text-align: center;
@@ -367,10 +378,10 @@
             transition: background-color 0.3s ease !important;
         }
 
-            .fc-daygrid-day-frame:hover {
-                background-color: #e8f4ff;
-                cursor: pointer;
-            }
+        .fc-daygrid-day-frame:hover {
+            background-color: #e8f4ff;
+            cursor: pointer;
+        }
 
         .fc {
             background-color: #E0E0E0;
@@ -399,7 +410,6 @@
             background-color: #bbdefb !important;
             box-shadow: 0 0 0 2px #2196f3 inset;
         }
-
 
     </style>
     <script>
@@ -447,11 +457,16 @@
                 },
                 locale: 'zh-tw',
                 height: 'auto',
+
                 events: function (fetchInfo, successCallback, failureCallback) {
                     const designerId = designerSelect.val();
                     const productId = productSelect.val();
 
+                    // 顯示 loading Spinner
+                    $('#calendar-loading').removeClass('d-none');
+
                     if (!designerId || !productId) {
+                        $('#calendar-loading').addClass('d-none');
                         successCallback([]);
                         return;
                     }
@@ -459,17 +474,26 @@
                     $.get('/MakeReservation?handler=GetAvailableTimeSlots', {
                         designerId,
                         productId
-                    }, function (data) {
-                        eventSlotMap = {};
-                        data.forEach(event => {
-                            const dateStr = event.start;
-                            eventSlotMap[dateStr] = event.extendedProps.slots;
-                            event.display = 'background';
-                            event.title = `${event.extendedProps.slots.length} 個時段可約`;
-                            event.classNames = ['fc-day-hint'];
+                    })
+                        .done(function (data) {
+                            eventSlotMap = {};
+                            data.forEach(event => {
+                                const dateStr = event.start;
+                                eventSlotMap[dateStr] = event.extendedProps.slots;
+                                event.display = 'auto';
+
+                                event.title = `${event.extendedProps.slots.length} 個時段可約`;
+                                event.classNames = ['fc-day-hint'];
+                            });
+                            successCallback(data);
+                        })
+                        .fail(function () {
+                            failureCallback();
+                        })
+                        .always(function () {
+                            // 隱藏 loading Spinner
+                            $('#calendar-loading').addClass('d-none');
                         });
-                        successCallback(data);
-                    });
                 },
                 dateClick: function (info) {
                     if (lastSelectedCell) {
@@ -519,6 +543,19 @@
             });
 
             function tryShowCalendar() {
+                // 隱藏所有預約細節版面
+                slotPanel.addClass('d-none');
+                summaryPanel.addClass('d-none');
+                paymentSection.addClass('d-none');
+                noteSection.addClass('d-none');
+                couponSection.addClass('d-none');
+                agreementSection.addClass('d-none');
+                confirmBtn.addClass('d-none');
+                selectedDateDisplay.val("");
+                selectedTimeDisplay.val("");
+                reservationDateTimeInput.val("");
+                slotList.empty();
+
                 if (designerSelect.val() && productSelect.val()) {
                     $('#calendar').removeClass('d-none');
                     calendar.render();
@@ -527,6 +564,7 @@
                     $('#calendar').addClass('d-none');
                 }
             }
+
 
             // 群組 tab 切換顯示對應產品
             $('#productTab .nav-link').on('click', function (e) {

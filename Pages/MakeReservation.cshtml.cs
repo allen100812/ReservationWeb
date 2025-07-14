@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Reflection;
 using Web0524.Models;
 using Web0524.Models.Marketing;
+using System.Diagnostics;
 
 namespace Web0524.Pages
 {
@@ -56,29 +57,31 @@ namespace Web0524.Pages
 
         public IActionResult OnPost(string action)
         {
+            Console.WriteLine("R1");
             LoadData();
-
+            Console.WriteLine("R2");
             if (action == "add")
             {
+                Console.WriteLine("R3");
                 var uidStr = User.FindFirst(System.Security.Claims.ClaimTypes.Sid)?.Value;
 
                 if (string.IsNullOrEmpty(uidStr))
                 {
                     return RedirectToPage("/Account/Login");
                 }
-
+                Console.WriteLine("R4");
                 if (NewOrder.DesignerId <= 0 || NewOrder.ProductId <= 0 || NewOrder.ReservationDateTime == default)
                 {
                     Message = "請確認所有欄位皆已填寫。";
                     return Page();
                 }
-
+                Console.WriteLine("R5");
                 if (string.IsNullOrWhiteSpace(uidStr))
                 {
                     Message = "使用者驗證失敗，請重新登入。";
                     return Page();
                 }
-
+                Console.WriteLine("R6");
                 var product = AllProducts.FirstOrDefault(x => x.ProductId == NewOrder.ProductId);
                 NewOrder.Status = OrderStatus.Confirmed;
                 NewOrder.Orderdate = DateTime.Now;
@@ -86,8 +89,10 @@ namespace Web0524.Pages
                 NewOrder.Uid = uidStr;
 
                 var createdOrder = _reservationService.CreateOrder(NewOrder);
+                Console.WriteLine("R7");
                 if (createdOrder != null)
                 {
+                    Console.WriteLine("R8");
                     var designer = AllDesigners.FirstOrDefault(x => x.DesignerId == NewOrder.DesignerId);
                     var coupon = AllCoupons.FirstOrDefault(c => c.CouponId == SelectedCouponRecordId);
 
@@ -105,6 +110,7 @@ namespace Web0524.Pages
 
                     if (SelectedCouponRecordId.HasValue)
                     {
+                        Console.WriteLine("R9");
                         var resultMsg = _marketingService.ApplyCouponByRecordId(SelectedCouponRecordId.Value, createdOrder);
                         Message += $"優惠券：{coupon?.Title ?? "已套用"}<br>{resultMsg}";
                     }
@@ -120,7 +126,7 @@ namespace Web0524.Pages
                 }
 
             }
-
+            Console.WriteLine("R10");
             return Page();
         }
 
